@@ -21,13 +21,11 @@ I like doing stuff with data.
 
 ## What You'll Find Here
 
-- **Exploratory analysis** of South African economic and social data
-- **Interactive visualisations** you can explore yourself
-- **Reproducible code** — every post shows the code behind the charts
+- Stuff
 
-## Tools I Use
+## Tools I Use for my posts
 
-- **R** — ggplot2, tidyverse, sf (spatial data)
-- **Python** — pandas, matplotlib, plotly
-- **Quarto** — for publishing reproducible documents
-- **GitHub** — version control and hosting
+- **R** 
+- **Python** 
+- **Quarto** 
+- **GitHub** 

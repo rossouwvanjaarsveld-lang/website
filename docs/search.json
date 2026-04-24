@@ -172,7 +172,7 @@
     "href": "about.html#what-youll-find-here",
     "title": "About",
     "section": "What You’ll Find Here",
-    "text": "What You’ll Find Here\n\nExploratory analysis of South African economic and social data\nInteractive visualisations you can explore yourself\nReproducible code — every post shows the code behind the charts"
+    "text": "What You’ll Find Here\n\nStuff"
   },
   {
     "objectID": "about.html#tools-i-use",
@@ -180,5 +180,12 @@
     "title": "About",
     "section": "Tools I Use",
     "text": "Tools I Use\n\nR — ggplot2, tidyverse, sf (spatial data)\nPython — pandas, matplotlib, plotly\nQuarto — for publishing reproducible documents\nGitHub — version control and hosting"
+  },
+  {
+    "objectID": "about.html#tools-i-use-for-my-posts",
+    "href": "about.html#tools-i-use-for-my-posts",
+    "title": "About",
+    "section": "Tools I Use for my posts",
+    "text": "Tools I Use for my posts\n\nR\nPython\nQuarto\nGitHub"
   }
 ]
