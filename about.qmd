@@ -17,8 +17,7 @@ about:
 
 ## Hi, I'm Rossouw van Jaarsveld
 
-I'm a data analyst based in South Africa. I use R and Python to explore and
-visualise data — this site is where I share that work publicly.
+I like doing stuff with data.
 
 ## What You'll Find Here
 
