@@ -1,0 +1,34 @@
+---
+title: "About"
+image: profile.jpg          # add a profile.jpg to the root folder later
+about:
+  template: jolla           # try: jolla, trestles, solana, marquee, broadside
+  links:
+    - icon: github
+      text: GitHub
+      href: https://github.com/yourusername
+    - icon: linkedin
+      text: LinkedIn
+      href: https://linkedin.com/in/yourprofile
+    - icon: envelope
+      text: Email
+      href: mailto:you@email.com
+---
+
+## Hi, I'm Your Name
+
+I'm a data analyst based in South Africa. I use R and Python to explore and
+visualise data — this site is where I share that work publicly.
+
+## What You'll Find Here
+
+- **Exploratory analysis** of South African economic and social data
+- **Interactive visualisations** you can explore yourself
+- **Reproducible code** — every post shows the code behind the charts
+
+## Tools I Use
+
+- **R** — ggplot2, tidyverse, sf (spatial data)
+- **Python** — pandas, matplotlib, plotly
+- **Quarto** — for publishing reproducible documents
+- **GitHub** — version control and hosting

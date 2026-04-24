@@ -1,0 +1,16 @@
+---
+title: "Your Name | Analytics"
+subtitle: "Exploring data with R and Python"
+page-layout: full
+title-block-banner: true
+
+listing:
+  contents: posts           # automatically scans the /posts folder
+  type: grid                # displays posts as thumbnail cards
+  sort: "date desc"         # newest post appears first
+  grid-columns: 3           # 3 cards per row (reduces to 1-2 on mobile automatically)
+  image-height: "200px"
+  categories: true          # shows filterable category tags above the grid
+  feed: true                # generates an RSS feed at /index.xml
+  fields: [image, date, title, description, categories, reading-time]
+---

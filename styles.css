@@ -1,0 +1,25 @@
+/* ── Card hover effect on listing page ─────────────────── */
+.quarto-grid-item:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* ── Slightly larger body text for readability ──────────── */
+body {
+  font-size: 1.05rem;
+}
+
+/* ── Constrain post content width for comfortable reading ─ */
+.post-content {
+  max-width: 800px;
+  margin: auto;
+}
+
+/* ── Style inline code snippets ────────────────────────── */
+code {
+  background-color: #f4f4f4;
+  padding: 2px 5px;
+  border-radius: 3px;
+  font-size: 0.9em;
+}

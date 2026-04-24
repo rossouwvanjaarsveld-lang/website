@@ -1,0 +1,86 @@
+[
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Your Name | Analytics",
+    "section": "",
+    "text": "SA Inflation Tracker with Interactive Filters\n\n4 min\n\n\nPython\n\nPlotly\n\nInteractive\n\nEconomics\n\nSouth Africa\n\n\n\nTracking South African CPI inflation categories using Python, pandas, and an interactive Plotly dashboard with dropdown selectors.\n\n\n\nMar 10, 2025\n\n\n\n\n\n\n\n\n\n\n\n\n\nSA Housing Market: Interactive Price Trends\n\n3 min\n\n\nR\n\nPlotly\n\nInteractive\n\nReal Estate\n\nSouth Africa\n\n\n\nExploring residential property price trends across South African metros using R and interactive Plotly charts.\n\n\n\nFeb 20, 2025\n\n\n\n\n\n\n\n\n\n\n\n\n\nSouth Africa’s Load Shedding: A Data Story\n\n3 min\n\n\nR\n\nggplot2\n\nSouth Africa\n\nEnergy\n\n\n\nVisualising the frequency and severity of Eskom load shedding stages from 2022 to 2024 using R and ggplot2.\n\n\n\nJan 15, 2025\n\n\n\n\n\n\nNo matching items"
+  },
+  {
+    "objectID": "posts/sa-load-shedding/index.html",
+    "href": "posts/sa-load-shedding/index.html",
+    "title": "South Africa’s Load Shedding: A Data Story",
+    "section": "",
+    "text": "Load shedding has become a defining feature of life in South Africa. In this post I use R to build a clear picture of how shedding frequency and severity changed over time, using publicly available Eskom stage data."
+  },
+  {
+    "objectID": "posts/sa-load-shedding/index.html#background",
+    "href": "posts/sa-load-shedding/index.html#background",
+    "title": "South Africa’s Load Shedding: A Data Story",
+    "section": "",
+    "text": "Load shedding has become a defining feature of life in South Africa. In this post I use R to build a clear picture of how shedding frequency and severity changed over time, using publicly available Eskom stage data."
+  },
+  {
+    "objectID": "posts/sa-load-shedding/index.html#setup",
+    "href": "posts/sa-load-shedding/index.html#setup",
+    "title": "South Africa’s Load Shedding: A Data Story",
+    "section": "Setup",
+    "text": "Setup\n\n\nCode\nlibrary(tidyverse)\nlibrary(lubridate)\nlibrary(scales)"
+  },
+  {
+    "objectID": "posts/sa-load-shedding/index.html#simulated-data",
+    "href": "posts/sa-load-shedding/index.html#simulated-data",
+    "title": "South Africa’s Load Shedding: A Data Story",
+    "section": "Simulated Data",
+    "text": "Simulated Data\nFor this example we simulate a plausible load shedding dataset. In a real post you would load actual Eskom data here (e.g. from an API or a downloaded CSV).\n\n\nCode\nset.seed(42)\n\n# Simulate daily load shedding stages across 2022–2024\ndates &lt;- seq(as.Date(\"2022-01-01\"), as.Date(\"2024-12-31\"), by = \"day\")\n\nstage &lt;- ifelse(\n  dates &lt; as.Date(\"2022-06-01\"),\n  sample(0:2, length(dates), replace = TRUE, prob = c(0.5, 0.3, 0.2)),\n  ifelse(\n    dates &lt; as.Date(\"2023-06-01\"),\n    sample(0:6, length(dates), replace = TRUE, prob = c(0.1, 0.15, 0.2, 0.25, 0.15, 0.1, 0.05)),\n    sample(0:4, length(dates), replace = TRUE, prob = c(0.3, 0.25, 0.2, 0.15, 0.1))\n  )\n)\n\ndf &lt;- tibble(date = dates, stage = stage)\n\nhead(df)\n\n\n# A tibble: 6 × 2\n  date       stage\n  &lt;date&gt;     &lt;int&gt;\n1 2022-01-01     2\n2 2022-01-02     2\n3 2022-01-03     0\n4 2022-01-04     2\n5 2022-01-05     1\n6 2022-01-06     1"
+  },
+  {
+    "objectID": "posts/sa-load-shedding/index.html#monthly-average-stage",
+    "href": "posts/sa-load-shedding/index.html#monthly-average-stage",
+    "title": "South Africa’s Load Shedding: A Data Story",
+    "section": "Monthly Average Stage",
+    "text": "Monthly Average Stage\n\n\nCode\ndf_monthly &lt;- df |&gt;\n  mutate(month = floor_date(date, \"month\")) |&gt;\n  group_by(month) |&gt;\n  summarise(avg_stage = mean(stage), .groups = \"drop\")\n\nggplot(df_monthly, aes(x = month, y = avg_stage, fill = avg_stage)) +\n  geom_col(width = 25) +\n  scale_fill_gradient(low = \"#ffe599\", high = \"#cc0000\", name = \"Avg Stage\") +\n  scale_x_date(date_breaks = \"3 months\", date_labels = \"%b %Y\") +\n  scale_y_continuous(breaks = 0:6) +\n  labs(\n    title    = \"Monthly Average Load Shedding Stage\",\n    subtitle = \"South Africa · Simulated data for illustration\",\n    x        = NULL,\n    y        = \"Average Stage\"\n  ) +\n  theme_minimal(base_size = 13) +\n  theme(axis.text.x = element_text(angle = 45, hjust = 1))\n\n\n\n\n\n\n\n\nFigure 1: Average daily load shedding stage by month"
+  },
+  {
+    "objectID": "posts/sa-load-shedding/index.html#days-at-each-stage-per-year",
+    "href": "posts/sa-load-shedding/index.html#days-at-each-stage-per-year",
+    "title": "South Africa’s Load Shedding: A Data Story",
+    "section": "Days at Each Stage Per Year",
+    "text": "Days at Each Stage Per Year\n\n\nCode\ndf |&gt;\n  mutate(year = year(date)) |&gt;\n  count(year, stage) |&gt;\n  mutate(stage = factor(stage)) |&gt;\n  ggplot(aes(x = stage, y = factor(year), fill = n)) +\n  geom_tile(colour = \"white\", linewidth = 0.5) +\n  geom_text(aes(label = n), size = 3.5) +\n  scale_fill_gradient(low = \"#fff7bc\", high = \"#d7191c\", name = \"Days\") +\n  labs(\n    title = \"Days Spent at Each Load Shedding Stage\",\n    x     = \"Stage\",\n    y     = \"Year\"\n  ) +\n  theme_minimal(base_size = 13)\n\n\n\n\n\n\n\n\nFigure 2: Distribution of load shedding stages per year"
+  },
+  {
+    "objectID": "posts/sa-load-shedding/index.html#key-observations",
+    "href": "posts/sa-load-shedding/index.html#key-observations",
+    "title": "South Africa’s Load Shedding: A Data Story",
+    "section": "Key Observations",
+    "text": "Key Observations\n\n2022 saw a dramatic escalation into higher stages from mid-year\n2023 was the worst year on record, with frequent Stage 4–6 events\n2024 showed tentative improvement, with more Stage 0 days returning\n\n\n\n\n\n\n\nNote\n\n\n\nThis post uses simulated data for illustration purposes. Replace the data block with real Eskom data for a production analysis."
+  },
+  {
+    "objectID": "about.html",
+    "href": "about.html",
+    "title": "About",
+    "section": "",
+    "text": "I’m a data analyst based in South Africa. I use R and Python to explore and visualise data — this site is where I share that work publicly."
+  },
+  {
+    "objectID": "about.html#hi-im-your-name",
+    "href": "about.html#hi-im-your-name",
+    "title": "About",
+    "section": "",
+    "text": "I’m a data analyst based in South Africa. I use R and Python to explore and visualise data — this site is where I share that work publicly."
+  },
+  {
+    "objectID": "about.html#what-youll-find-here",
+    "href": "about.html#what-youll-find-here",
+    "title": "About",
+    "section": "What You’ll Find Here",
+    "text": "What You’ll Find Here\n\nExploratory analysis of South African economic and social data\nInteractive visualisations you can explore yourself\nReproducible code — every post shows the code behind the charts"
+  },
+  {
+    "objectID": "about.html#tools-i-use",
+    "href": "about.html#tools-i-use",
+    "title": "About",
+    "section": "Tools I Use",
+    "text": "Tools I Use\n\nR — ggplot2, tidyverse, sf (spatial data)\nPython — pandas, matplotlib, plotly\nQuarto — for publishing reproducible documents\nGitHub — version control and hosting"
+  }
+]

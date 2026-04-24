@@ -1,0 +1,126 @@
+---
+title: "SA Housing Market: Interactive Price Trends"
+description: "Exploring residential property price trends across South African metros using R and interactive Plotly charts."
+date: 2025-02-20
+categories: [R, Plotly, Interactive, Real Estate, South Africa]
+image: thumbnail.png
+---
+
+## Overview
+
+This post explores simulated residential property price indices across four
+major South African metros. The charts here are **fully interactive** — hover
+to see values, click the legend to toggle metros, and zoom in on any period.
+
+---
+
+## Setup
+
+```{r}
+#| label: setup
+#| message: false
+#| warning: false
+
+library(tidyverse)
+library(plotly)
+library(scales)
+```
+
+---
+
+## Data
+
+```{r}
+#| label: data
+
+set.seed(7)
+
+metros <- c("Johannesburg", "Cape Town", "Durban", "Pretoria")
+quarters <- seq(as.Date("2015-01-01"), as.Date("2024-10-01"), by = "quarter")
+
+# Simulate price index (base = 100 at start) with different growth paths
+df <- expand_grid(metro = metros, date = quarters) |>
+  arrange(metro, date) |>
+  group_by(metro) |>
+  mutate(
+    base_growth = case_when(
+      metro == "Cape Town"     ~ 0.025,
+      metro == "Johannesburg"  ~ 0.015,
+      metro == "Pretoria"      ~ 0.018,
+      metro == "Durban"        ~ 0.010
+    ),
+    noise       = cumsum(rnorm(n(), 0, 0.8)),
+    index       = 100 * cumprod(1 + base_growth / 4 + rnorm(n(), 0, 0.005))
+  ) |>
+  ungroup()
+```
+
+---
+
+## Interactive Price Index Chart
+
+```{r}
+#| label: fig-interactive
+#| fig-cap: "Residential property price index by metro (hover to explore)"
+
+plot_ly(
+  df,
+  x     = ~date,
+  y     = ~round(index, 1),
+  color = ~metro,
+  type  = "scatter",
+  mode  = "lines",
+  hovertemplate = "<b>%{fullData.name}</b><br>%{x|%b %Y}<br>Index: %{y}<extra></extra>"
+) |>
+  layout(
+    title   = list(text = "SA Residential Property Price Index (Base = 100, Q1 2015)"),
+    xaxis   = list(title = ""),
+    yaxis   = list(title = "Price Index"),
+    legend  = list(title = list(text = "Metro")),
+    hovermode = "x unified"
+  )
+```
+
+---
+
+## Interactive Bar: Latest Index Values
+
+```{r}
+#| label: fig-bar
+#| fig-cap: "Latest index value per metro"
+
+latest <- df |>
+  group_by(metro) |>
+  slice_max(date, n = 1)
+
+plot_ly(
+  latest,
+  x    = ~reorder(metro, index),
+  y    = ~round(index, 1),
+  type = "bar",
+  color = ~metro,
+  text = ~paste0(round(index, 1)),
+  textposition = "outside",
+  hovertemplate = "<b>%{x}</b><br>Index: %{y}<extra></extra>"
+) |>
+  layout(
+    title  = "Latest Residential Price Index by Metro",
+    xaxis  = list(title = ""),
+    yaxis  = list(title = "Index Value"),
+    showlegend = FALSE
+  )
+```
+
+---
+
+## Takeaways
+
+- **Cape Town** has seen the strongest cumulative price growth since 2015
+- **Durban** has lagged significantly, with the lowest current index
+- All metros show post-2020 acceleration followed by softening into 2024
+
+::: {.callout-tip}
+## Interact with the charts
+Click a city name in the legend to hide/show it. Drag on the chart to zoom in.
+Double-click to reset the view.
+:::

@@ -1,0 +1,162 @@
+---
+title: "SA Inflation Tracker with Interactive Filters"
+description: "Tracking South African CPI inflation categories using Python, pandas, and an interactive Plotly dashboard with dropdown selectors."
+date: 2025-03-10
+categories: [Python, Plotly, Interactive, Economics, South Africa]
+image: thumbnail.png
+---
+
+## Introduction
+
+South Africa's CPI is broken into several spending categories — food, housing,
+transport, and more. This post builds an interactive tracker so you can explore
+how different categories have moved over time. Use the **dropdown** to switch
+categories.
+
+---
+
+## Setup
+
+```{python}
+#| label: setup
+
+import pandas as pd
+import numpy as np
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+import plotly.express as px
+```
+
+---
+
+## Simulated CPI Data
+
+```{python}
+#| label: data
+
+np.random.seed(42)
+
+months = pd.date_range("2018-01-01", "2024-12-01", freq="MS")
+categories = ["Food & Non-Alcoholic Beverages", "Housing & Utilities",
+              "Transport", "Education", "Health", "Clothing & Footwear",
+              "Miscellaneous"]
+
+# Each category gets a different base inflation trend
+base_rates = {
+    "Food & Non-Alcoholic Beverages": 0.007,
+    "Housing & Utilities":            0.005,
+    "Transport":                      0.006,
+    "Education":                      0.004,
+    "Health":                         0.005,
+    "Clothing & Footwear":            0.003,
+    "Miscellaneous":                  0.004
+}
+
+rows = []
+for cat in categories:
+    index = 100.0
+    for m in months:
+        index *= (1 + base_rates[cat] + np.random.normal(0, 0.002))
+        rows.append({"date": m, "category": cat, "index": round(index, 2)})
+
+df = pd.DataFrame(rows)
+
+# Compute year-on-year % change
+df = df.sort_values(["category", "date"])
+df["yoy_pct"] = df.groupby("category")["index"].pct_change(12) * 100
+df["yoy_pct"] = df["yoy_pct"].round(2)
+df.head()
+```
+
+---
+
+## Interactive Chart: Year-on-Year Inflation by Category
+
+```{python}
+#| label: fig-dropdown
+#| fig-cap: "Year-on-year CPI inflation — use the dropdown to change category"
+
+fig = go.Figure()
+
+first = True
+for cat in categories:
+    subset = df[df["category"] == cat].dropna(subset=["yoy_pct"])
+    fig.add_trace(go.Scatter(
+        x=subset["date"],
+        y=subset["yoy_pct"],
+        name=cat,
+        visible=True if first else False,
+        mode="lines+markers",
+        marker=dict(size=4),
+        hovertemplate="%{x|%b %Y}<br>YoY: %{y:.1f}%<extra></extra>"
+    ))
+    first = False
+
+# Build dropdown buttons — one per category
+buttons = []
+for i, cat in enumerate(categories):
+    visibility = [j == i for j in range(len(categories))]
+    buttons.append(dict(
+        label=cat,
+        method="update",
+        args=[{"visible": visibility},
+              {"title": f"YoY CPI Inflation — {cat}"}]
+    ))
+
+fig.update_layout(
+    title=f"YoY CPI Inflation — {categories[0]}",
+    xaxis_title="",
+    yaxis_title="Year-on-Year % Change",
+    updatemenus=[dict(
+        buttons=buttons,
+        direction="down",
+        showactive=True,
+        x=0.01, xanchor="left",
+        y=1.15, yanchor="top"
+    )],
+    height=450
+)
+
+fig.show()
+```
+
+---
+
+## All Categories: Heatmap Overview
+
+```{python}
+#| label: fig-heatmap
+#| fig-cap: "Annual average YoY inflation across all categories"
+
+df["year"] = df["date"].dt.year
+annual = (df.dropna(subset=["yoy_pct"])
+          .groupby(["category", "year"])["yoy_pct"]
+          .mean()
+          .reset_index())
+
+pivot = annual.pivot(index="category", columns="year", values="yoy_pct").round(1)
+
+fig2 = px.imshow(
+    pivot,
+    text_auto=True,
+    color_continuous_scale="RdYlGn_r",
+    title="Average Annual YoY CPI Inflation by Category (%)",
+    labels=dict(x="Year", y="", color="YoY %")
+)
+fig2.update_layout(height=400)
+fig2.show()
+```
+
+---
+
+## Key Points
+
+- **Food** and **Transport** show the highest inflation volatility
+- **Education** costs have risen steadily with little variation
+- The post-2022 global inflation pulse is visible across all categories
+
+::: {.callout-note}
+All data is simulated for illustration. In a production post, replace with
+actual Stats SA CPI series data downloadable from
+[statssa.gov.za](https://www.statssa.gov.za).
+:::

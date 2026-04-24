@@ -1,0 +1,12 @@
+/.quarto/
+*_files/
+*.Rproj.user
+*.Rhistory
+*.Rproj
+.DS_Store
+__pycache__/
+.ipynb_checkpoints/
+
+# Do NOT ignore /docs — GitHub Pages needs it committed
+
+**/*.quarto_ipynb
