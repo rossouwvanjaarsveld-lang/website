@@ -7,6 +7,55 @@
     "text": "SA Inflation Tracker with Interactive Filters\n\n4 min\n\n\nPython\n\nPlotly\n\nInteractive\n\nEconomics\n\nSouth Africa\n\n\n\nTracking South African CPI inflation categories using Python, pandas, and an interactive Plotly dashboard with dropdown selectors.\n\n\n\nMar 10, 2025\n\n\n\n\n\n\n\n\n\n\n\n\n\nSA Housing Market: Interactive Price Trends\n\n3 min\n\n\nR\n\nPlotly\n\nInteractive\n\nReal Estate\n\nSouth Africa\n\n\n\nExploring residential property price trends across South African metros using R and interactive Plotly charts.\n\n\n\nFeb 20, 2025\n\n\n\n\n\n\n\n\n\n\n\n\n\nSouth Africa’s Load Shedding: A Data Story\n\n3 min\n\n\nR\n\nggplot2\n\nSouth Africa\n\nEnergy\n\n\n\nVisualising the frequency and severity of Eskom load shedding stages from 2022 to 2024 using R and ggplot2.\n\n\n\nJan 15, 2025\n\n\n\n\n\n\nNo matching items"
   },
   {
+    "objectID": "posts/python-inflation-tracker/index.html",
+    "href": "posts/python-inflation-tracker/index.html",
+    "title": "SA Inflation Tracker with Interactive Filters",
+    "section": "",
+    "text": "South Africa’s CPI is broken into several spending categories — food, housing, transport, and more. This post builds an interactive tracker so you can explore how different categories have moved over time. Use the dropdown to switch categories."
+  },
+  {
+    "objectID": "posts/python-inflation-tracker/index.html#introduction",
+    "href": "posts/python-inflation-tracker/index.html#introduction",
+    "title": "SA Inflation Tracker with Interactive Filters",
+    "section": "",
+    "text": "South Africa’s CPI is broken into several spending categories — food, housing, transport, and more. This post builds an interactive tracker so you can explore how different categories have moved over time. Use the dropdown to switch categories."
+  },
+  {
+    "objectID": "posts/python-inflation-tracker/index.html#setup",
+    "href": "posts/python-inflation-tracker/index.html#setup",
+    "title": "SA Inflation Tracker with Interactive Filters",
+    "section": "Setup",
+    "text": "Setup\n\n\nCode\nimport pandas as pd\nimport numpy as np\nimport plotly.graph_objects as go\nfrom plotly.subplots import make_subplots\nimport plotly.express as px"
+  },
+  {
+    "objectID": "posts/python-inflation-tracker/index.html#simulated-cpi-data",
+    "href": "posts/python-inflation-tracker/index.html#simulated-cpi-data",
+    "title": "SA Inflation Tracker with Interactive Filters",
+    "section": "Simulated CPI Data",
+    "text": "Simulated CPI Data\n\n\nCode\nnp.random.seed(42)\n\nmonths = pd.date_range(\"2018-01-01\", \"2024-12-01\", freq=\"MS\")\ncategories = [\"Food & Non-Alcoholic Beverages\", \"Housing & Utilities\",\n              \"Transport\", \"Education\", \"Health\", \"Clothing & Footwear\",\n              \"Miscellaneous\"]\n\n# Each category gets a different base inflation trend\nbase_rates = {\n    \"Food & Non-Alcoholic Beverages\": 0.007,\n    \"Housing & Utilities\":            0.005,\n    \"Transport\":                      0.006,\n    \"Education\":                      0.004,\n    \"Health\":                         0.005,\n    \"Clothing & Footwear\":            0.003,\n    \"Miscellaneous\":                  0.004\n}\n\nrows = []\nfor cat in categories:\n    index = 100.0\n    for m in months:\n        index *= (1 + base_rates[cat] + np.random.normal(0, 0.002))\n        rows.append({\"date\": m, \"category\": cat, \"index\": round(index, 2)})\n\ndf = pd.DataFrame(rows)\n\n# Compute year-on-year % change\ndf = df.sort_values([\"category\", \"date\"])\ndf[\"yoy_pct\"] = df.groupby(\"category\")[\"index\"].pct_change(12) * 100\ndf[\"yoy_pct\"] = df[\"yoy_pct\"].round(2)\ndf.head()\n\n\n\n\n\n\n\n\n\ndate\ncategory\nindex\nyoy_pct\n\n\n\n\n420\n2018-01-01\nClothing & Footwear\n100.71\nNaN\n\n\n421\n2018-02-01\nClothing & Footwear\n101.37\nNaN\n\n\n422\n2018-03-01\nClothing & Footwear\n101.62\nNaN\n\n\n423\n2018-04-01\nClothing & Footwear\n102.12\nNaN\n\n\n424\n2018-05-01\nClothing & Footwear\n102.56\nNaN"
+  },
+  {
+    "objectID": "posts/python-inflation-tracker/index.html#interactive-chart-year-on-year-inflation-by-category",
+    "href": "posts/python-inflation-tracker/index.html#interactive-chart-year-on-year-inflation-by-category",
+    "title": "SA Inflation Tracker with Interactive Filters",
+    "section": "Interactive Chart: Year-on-Year Inflation by Category",
+    "text": "Interactive Chart: Year-on-Year Inflation by Category\n\n\nCode\nfig = go.Figure()\n\nfirst = True\nfor cat in categories:\n    subset = df[df[\"category\"] == cat].dropna(subset=[\"yoy_pct\"])\n    fig.add_trace(go.Scatter(\n        x=subset[\"date\"],\n        y=subset[\"yoy_pct\"],\n        name=cat,\n        visible=True if first else False,\n        mode=\"lines+markers\",\n        marker=dict(size=4),\n        hovertemplate=\"%{x|%b %Y}&lt;br&gt;YoY: %{y:.1f}%&lt;extra&gt;&lt;/extra&gt;\"\n    ))\n    first = False\n\n# Build dropdown buttons — one per category\nbuttons = []\nfor i, cat in enumerate(categories):\n    visibility = [j == i for j in range(len(categories))]\n    buttons.append(dict(\n        label=cat,\n        method=\"update\",\n        args=[{\"visible\": visibility},\n              {\"title\": f\"YoY CPI Inflation — {cat}\"}]\n    ))\n\nfig.update_layout(\n    title=f\"YoY CPI Inflation — {categories[0]}\",\n    xaxis_title=\"\",\n    yaxis_title=\"Year-on-Year % Change\",\n    updatemenus=[dict(\n        buttons=buttons,\n        direction=\"down\",\n        showactive=True,\n        x=0.01, xanchor=\"left\",\n        y=1.15, yanchor=\"top\"\n    )],\n    height=450\n)\n\nfig.show()\n\n\n\n\n                            \n                                            \n\n\nFigure 1: Year-on-year CPI inflation — use the dropdown to change category"
+  },
+  {
+    "objectID": "posts/python-inflation-tracker/index.html#all-categories-heatmap-overview",
+    "href": "posts/python-inflation-tracker/index.html#all-categories-heatmap-overview",
+    "title": "SA Inflation Tracker with Interactive Filters",
+    "section": "All Categories: Heatmap Overview",
+    "text": "All Categories: Heatmap Overview\n\n\nCode\ndf[\"year\"] = df[\"date\"].dt.year\nannual = (df.dropna(subset=[\"yoy_pct\"])\n          .groupby([\"category\", \"year\"])[\"yoy_pct\"]\n          .mean()\n          .reset_index())\n\npivot = annual.pivot(index=\"category\", columns=\"year\", values=\"yoy_pct\").round(1)\n\nfig2 = px.imshow(\n    pivot,\n    text_auto=True,\n    color_continuous_scale=\"RdYlGn_r\",\n    title=\"Average Annual YoY CPI Inflation by Category (%)\",\n    labels=dict(x=\"Year\", y=\"\", color=\"YoY %\")\n)\nfig2.update_layout(height=400)\nfig2.show()\n\n\n\n\n                            \n                                            \n\n\nFigure 2: Annual average YoY inflation across all categories"
+  },
+  {
+    "objectID": "posts/python-inflation-tracker/index.html#key-points",
+    "href": "posts/python-inflation-tracker/index.html#key-points",
+    "title": "SA Inflation Tracker with Interactive Filters",
+    "section": "Key Points",
+    "text": "Key Points\n\nFood and Transport show the highest inflation volatility\nEducation costs have risen steadily with little variation\nThe post-2022 global inflation pulse is visible across all categories\n\n\n\n\n\n\n\nNote\n\n\n\nAll data is simulated for illustration. In a production post, replace with actual Stats SA CPI series data downloadable from statssa.gov.za."
+  },
+  {
     "objectID": "posts/sa-load-shedding/index.html",
     "href": "posts/sa-load-shedding/index.html",
     "title": "South Africa’s Load Shedding: A Data Story",
@@ -54,6 +103,55 @@
     "title": "South Africa’s Load Shedding: A Data Story",
     "section": "Key Observations",
     "text": "Key Observations\n\n2022 saw a dramatic escalation into higher stages from mid-year\n2023 was the worst year on record, with frequent Stage 4–6 events\n2024 showed tentative improvement, with more Stage 0 days returning\n\n\n\n\n\n\n\nNote\n\n\n\nThis post uses simulated data for illustration purposes. Replace the data block with real Eskom data for a production analysis."
+  },
+  {
+    "objectID": "posts/housing-market-analysis/index.html",
+    "href": "posts/housing-market-analysis/index.html",
+    "title": "SA Housing Market: Interactive Price Trends",
+    "section": "",
+    "text": "This post explores simulated residential property price indices across four major South African metros. The charts here are fully interactive — hover to see values, click the legend to toggle metros, and zoom in on any period."
+  },
+  {
+    "objectID": "posts/housing-market-analysis/index.html#overview",
+    "href": "posts/housing-market-analysis/index.html#overview",
+    "title": "SA Housing Market: Interactive Price Trends",
+    "section": "",
+    "text": "This post explores simulated residential property price indices across four major South African metros. The charts here are fully interactive — hover to see values, click the legend to toggle metros, and zoom in on any period."
+  },
+  {
+    "objectID": "posts/housing-market-analysis/index.html#setup",
+    "href": "posts/housing-market-analysis/index.html#setup",
+    "title": "SA Housing Market: Interactive Price Trends",
+    "section": "Setup",
+    "text": "Setup\n\n\nCode\nlibrary(tidyverse)\nlibrary(plotly)\nlibrary(scales)"
+  },
+  {
+    "objectID": "posts/housing-market-analysis/index.html#data",
+    "href": "posts/housing-market-analysis/index.html#data",
+    "title": "SA Housing Market: Interactive Price Trends",
+    "section": "Data",
+    "text": "Data\n\n\nCode\nset.seed(7)\n\nmetros &lt;- c(\"Johannesburg\", \"Cape Town\", \"Durban\", \"Pretoria\")\nquarters &lt;- seq(as.Date(\"2015-01-01\"), as.Date(\"2024-10-01\"), by = \"quarter\")\n\n# Simulate price index (base = 100 at start) with different growth paths\ndf &lt;- expand_grid(metro = metros, date = quarters) |&gt;\n  arrange(metro, date) |&gt;\n  group_by(metro) |&gt;\n  mutate(\n    base_growth = case_when(\n      metro == \"Cape Town\"     ~ 0.025,\n      metro == \"Johannesburg\"  ~ 0.015,\n      metro == \"Pretoria\"      ~ 0.018,\n      metro == \"Durban\"        ~ 0.010\n    ),\n    noise       = cumsum(rnorm(n(), 0, 0.8)),\n    index       = 100 * cumprod(1 + base_growth / 4 + rnorm(n(), 0, 0.005))\n  ) |&gt;\n  ungroup()"
+  },
+  {
+    "objectID": "posts/housing-market-analysis/index.html#interactive-price-index-chart",
+    "href": "posts/housing-market-analysis/index.html#interactive-price-index-chart",
+    "title": "SA Housing Market: Interactive Price Trends",
+    "section": "Interactive Price Index Chart",
+    "text": "Interactive Price Index Chart\n\n\nCode\nplot_ly(\n  df,\n  x     = ~date,\n  y     = ~round(index, 1),\n  color = ~metro,\n  type  = \"scatter\",\n  mode  = \"lines\",\n  hovertemplate = \"&lt;b&gt;%{fullData.name}&lt;/b&gt;&lt;br&gt;%{x|%b %Y}&lt;br&gt;Index: %{y}&lt;extra&gt;&lt;/extra&gt;\"\n) |&gt;\n  layout(\n    title   = list(text = \"SA Residential Property Price Index (Base = 100, Q1 2015)\"),\n    xaxis   = list(title = \"\"),\n    yaxis   = list(title = \"Price Index\"),\n    legend  = list(title = list(text = \"Metro\")),\n    hovermode = \"x unified\"\n  )\n\n\n\n\n\n\n\n\nFigure 1: Residential property price index by metro (hover to explore)"
+  },
+  {
+    "objectID": "posts/housing-market-analysis/index.html#interactive-bar-latest-index-values",
+    "href": "posts/housing-market-analysis/index.html#interactive-bar-latest-index-values",
+    "title": "SA Housing Market: Interactive Price Trends",
+    "section": "Interactive Bar: Latest Index Values",
+    "text": "Interactive Bar: Latest Index Values\n\n\nCode\nlatest &lt;- df |&gt;\n  group_by(metro) |&gt;\n  slice_max(date, n = 1)\n\nplot_ly(\n  latest,\n  x    = ~reorder(metro, index),\n  y    = ~round(index, 1),\n  type = \"bar\",\n  color = ~metro,\n  text = ~paste0(round(index, 1)),\n  textposition = \"outside\",\n  hovertemplate = \"&lt;b&gt;%{x}&lt;/b&gt;&lt;br&gt;Index: %{y}&lt;extra&gt;&lt;/extra&gt;\"\n) |&gt;\n  layout(\n    title  = \"Latest Residential Price Index by Metro\",\n    xaxis  = list(title = \"\"),\n    yaxis  = list(title = \"Index Value\"),\n    showlegend = FALSE\n  )\n\n\n\n\n\n\n\n\nFigure 2: Latest index value per metro"
+  },
+  {
+    "objectID": "posts/housing-market-analysis/index.html#takeaways",
+    "href": "posts/housing-market-analysis/index.html#takeaways",
+    "title": "SA Housing Market: Interactive Price Trends",
+    "section": "Takeaways",
+    "text": "Takeaways\n\nCape Town has seen the strongest cumulative price growth since 2015\nDurban has lagged significantly, with the lowest current index\nAll metros show post-2020 acceleration followed by softening into 2024\n\n\n\n\n\n\n\nTipInteract with the charts\n\n\n\nClick a city name in the legend to hide/show it. Drag on the chart to zoom in. Double-click to reset the view."
   },
   {
     "objectID": "about.html",
