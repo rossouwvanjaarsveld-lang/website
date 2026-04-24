@@ -1,6 +1,6 @@
 ---
-title: "Your Name | Analytics"
-subtitle: "Exploring data with R and Python"
+title: "Rossouw van Jaarsveld | Overfit and Chill"
+subtitle: "My residual thoughts. Hope you GAN feel the fun."
 page-layout: full
 title-block-banner: true
 

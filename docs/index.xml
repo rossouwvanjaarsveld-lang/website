@@ -9,8 +9,8 @@
 <link>https://rossouwvanjaarsveld-lang.github.io/website/</link>
 <atom:link href="https://rossouwvanjaarsveld-lang.github.io/website/index.xml" rel="self" type="application/rss+xml"/>
 <description>Stuff about analytics</description>
-<generator>quarto-1.9.37</generator>
-<lastBuildDate>Mon, 10 Mar 2025 00:00:00 GMT</lastBuildDate>
+<generator>quarto-1.9.36</generator>
+<lastBuildDate>Sun, 09 Mar 2025 22:00:00 GMT</lastBuildDate>
 <item>
   <title>SA Inflation Tracker with Interactive Filters</title>
   <link>https://rossouwvanjaarsveld-lang.github.io/website/posts/python-inflation-tracker/</link>
@@ -708,7 +708,7 @@ Note
   <category>Economics</category>
   <category>South Africa</category>
   <guid>https://rossouwvanjaarsveld-lang.github.io/website/posts/python-inflation-tracker/</guid>
-  <pubDate>Mon, 10 Mar 2025 00:00:00 GMT</pubDate>
+  <pubDate>Sun, 09 Mar 2025 22:00:00 GMT</pubDate>
   <media:content url="https://rossouwvanjaarsveld-lang.github.io/website/posts/python-inflation-tracker/thumbnail.png" medium="image" type="image/png"/>
 </item>
 <item>
@@ -1170,7 +1170,7 @@ Figure&nbsp;2: Latest index value per metro
   <category>Real Estate</category>
   <category>South Africa</category>
   <guid>https://rossouwvanjaarsveld-lang.github.io/website/posts/housing-market-analysis/</guid>
-  <pubDate>Thu, 20 Feb 2025 00:00:00 GMT</pubDate>
+  <pubDate>Wed, 19 Feb 2025 22:00:00 GMT</pubDate>
   <media:content url="https://rossouwvanjaarsveld-lang.github.io/website/posts/housing-market-analysis/thumbnail.png" medium="image" type="image/png"/>
 </item>
 <item>
@@ -1711,7 +1711,7 @@ Note
   <category>South Africa</category>
   <category>Energy</category>
   <guid>https://rossouwvanjaarsveld-lang.github.io/website/posts/sa-load-shedding/</guid>
-  <pubDate>Wed, 15 Jan 2025 00:00:00 GMT</pubDate>
+  <pubDate>Tue, 14 Jan 2025 22:00:00 GMT</pubDate>
   <media:content url="https://rossouwvanjaarsveld-lang.github.io/website/posts/sa-load-shedding/thumbnail.png" medium="image" type="image/png"/>
 </item>
 </channel>

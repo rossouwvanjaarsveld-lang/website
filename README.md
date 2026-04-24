@@ -1,6 +1,7 @@
 # My Analytics Website
 
 Personal analytics blog built with [Quarto](https://quarto.org) and hosted on GitHub Pages.
+Below is an outline of how to get started if you want to clone and create your own.
 
 ## Tech Stack
 - **Quarto** – site framework and document rendering
@@ -29,7 +30,7 @@ quarto render
 
 ## Project Structure
 ```
-my-website/
+website/
 ├── _quarto.yml                        ← site configuration
 ├── index.qmd                          ← landing page with post grid
 ├── about.qmd                          ← about page

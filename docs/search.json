@@ -180,5 +180,12 @@
     "title": "About",
     "section": "Tools I Use",
     "text": "Tools I Use\n\nR — ggplot2, tidyverse, sf (spatial data)\nPython — pandas, matplotlib, plotly\nQuarto — for publishing reproducible documents\nGitHub — version control and hosting"
+  },
+  {
+    "objectID": "about.html#hi-im-rossouw-van-jaarsveld",
+    "href": "about.html#hi-im-rossouw-van-jaarsveld",
+    "title": "About",
+    "section": "",
+    "text": "I’m a data analyst based in South Africa. I use R and Python to explore and visualise data — this site is where I share that work publicly."
   }
 ]

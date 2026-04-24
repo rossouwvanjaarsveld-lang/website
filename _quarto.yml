@@ -16,23 +16,23 @@ website:
         href: about.qmd
     right:
       - icon: github
-        href: https://github.com/yourusername   # replace with your GitHub username
+        href: https://github.com/yourusername   
       - icon: linkedin
         href: https://linkedin.com/in/yourprofile  # optional
 
   page-footer:
-    left: "© 2025 Your Name"
+    left: "© 2025 Rossouw van Jaarsveld"
     right:
       - text: "Built with Quarto"
         href: https://quarto.org
 
 format:
   html:
-    theme: cosmo            # try: cosmo, flatly, litera, lux, minty, sandstone, simplex, sketchy, slate, solar, spacelab, superhero, united, yeti, darkly, cyborg, journal
+    theme: slate           
     css: styles.css
     toc: true               # table of contents on each post
     toc-depth: 3
-    code-fold: true         # code blocks are collapsed by default (reader can expand)
+    code-fold: true         
     code-tools: true        # adds a copy button to code blocks
 
 execute:

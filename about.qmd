@@ -15,7 +15,7 @@ about:
       href: mailto:you@email.com
 ---
 
-## Hi, I'm Your Name
+## Hi, I'm Rossouw van Jaarsveld
 
 I'm a data analyst based in South Africa. I use R and Python to explore and
 visualise data — this site is where I share that work publicly.
