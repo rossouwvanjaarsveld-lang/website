@@ -6,42 +6,72 @@ body, p, li, td, th, .navbar, .quarto-title, h1, h2, h3, h4, h5 {
   font-family: 'JetBrains Mono', monospace;
 }
 
-/* ── Brighter white body text on slate theme ────────────── */
+/* ── Body: pure white with a subtle glow ───────────────── */
 body {
-  color: #e8e8e8;
+  color: #ffffff !important;
   font-size: 1.0rem;
   line-height: 1.75;
-  letter-spacing: -0.01em;   /* tighten spacing slightly for mono fonts */
+  letter-spacing: -0.01em;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.25);
 }
 
-/* ── Headings: full white for contrast ──────────────────── */
+/* ── Headings: bright white with stronger glow ──────────── */
 h1, h2, h3, h4, h5, h6 {
-  color: #ffffff;
+  color: #ffffff !important;
   font-weight: 500;
+  text-shadow: 0 0 12px rgba(255, 255, 255, 0.45);
 }
 
 /* ── Navbar text ────────────────────────────────────────── */
 .navbar-dark .navbar-nav .nav-link,
 .navbar-brand {
   color: #ffffff !important;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
 }
 
-/* ── Card text on the landing page grid ─────────────────── */
+.navbar-dark .navbar-nav .nav-link:hover {
+  color: #ffffff !important;
+  text-shadow: 0 0 16px rgba(255, 255, 255, 0.7);
+}
+
+/* ── Force white on all text elements ───────────────────── */
+p, li, td, th, blockquote, span, label, div,
+.quarto-grid-item .card-body *,
+.navbar-dark .navbar-text {
+  color: #ffffff !important;
+}
+
+/* ── Card titles on landing page grid ───────────────────── */
 .card-title {
-  color: #ffffff;
+  color: #ffffff !important;
   font-weight: 500;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
 }
 
+/* ── Card descriptions ───────────────────────────────────── */
 .card-text, .listing-description {
-  color: #cccccc;
+  color: #ffffff !important;
+  text-shadow: 0 0 6px rgba(255, 255, 255, 0.2);
 }
 
-/* ── Code blocks: differentiate from body text ──────────── */
+/* ── Table of contents ───────────────────────────────────── */
+#TOC a {
+  color: #ffffff !important;
+  text-shadow: 0 0 6px rgba(255, 255, 255, 0.2);
+}
+
+#TOC a:hover {
+  color: #ffffff !important;
+  text-shadow: 0 0 14px rgba(255, 255, 255, 0.6);
+}
+
+/* ── Code blocks ─────────────────────────────────────────── */
 pre, code {
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.875rem;
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: rgba(255, 255, 255, 0.07);
   border-radius: 4px;
+  text-shadow: none;           /* no glow on code — keeps it readable */
 }
 
 /* ── Card hover effect ───────────────────────────────────── */
@@ -51,16 +81,8 @@ pre, code {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* ── Table of contents text ─────────────────────────────── */
-#TOC a {
-  color: #cccccc;
-}
-
-#TOC a:hover {
-  color: #ffffff;
-}
-
-/* ── Footer ─────────────────────────────────────────────── */
-.nav-footer {
-  color: #aaaaaa;
+/* ── Footer ──────────────────────────────────────────────── */
+.nav-footer, .nav-footer a {
+  color: #dddddd !important;
+  text-shadow: 0 0 6px rgba(255, 255, 255, 0.2);
 }
