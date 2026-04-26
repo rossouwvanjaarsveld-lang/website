@@ -1,0 +1,1718 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss  xmlns:atom="http://www.w3.org/2005/Atom" 
+      xmlns:media="http://search.yahoo.com/mrss/" 
+      xmlns:content="http://purl.org/rss/1.0/modules/content/" 
+      xmlns:dc="http://purl.org/dc/elements/1.1/" 
+      version="2.0">
+<channel>
+<title>Rossouw van Jaarsveld | Overfit and Chill</title>
+<link>https://rossouwvanjaarsveld-lang.github.io/website/</link>
+<atom:link href="https://rossouwvanjaarsveld-lang.github.io/website/index.xml" rel="self" type="application/rss+xml"/>
+<description>Stuff about analytics</description>
+<generator>quarto-1.9.37</generator>
+<lastBuildDate>Mon, 10 Mar 2025 00:00:00 GMT</lastBuildDate>
+<item>
+  <title>SA Inflation Tracker with Interactive Filters</title>
+  <link>https://rossouwvanjaarsveld-lang.github.io/website/posts/python-inflation-tracker/</link>
+  <description><![CDATA[ 
+
+
+
+
+<section id="introduction" class="level2">
+<h2 class="anchored" data-anchor-id="introduction">Introduction</h2>
+<p>South Africa’s CPI is broken into several spending categories — food, housing, transport, and more. This post builds an interactive tracker so you can explore how different categories have moved over time. Use the <strong>dropdown</strong> to switch categories.</p>
+<hr>
+</section>
+<section id="setup" class="level2">
+<h2 class="anchored" data-anchor-id="setup">Setup</h2>
+<div id="setup" class="cell" data-execution_count="1">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> pandas <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> pd</span>
+<span id="cb1-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> numpy <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> np</span>
+<span id="cb1-3"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> plotly.graph_objects <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> go</span>
+<span id="cb1-4"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> plotly.subplots <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> make_subplots</span>
+<span id="cb1-5"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> plotly.express <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> px</span></code></pre></div></div>
+</details>
+</div>
+<hr>
+</section>
+<section id="simulated-cpi-data" class="level2">
+<h2 class="anchored" data-anchor-id="simulated-cpi-data">Simulated CPI Data</h2>
+<div id="cell-data" class="cell" data-execution_count="2">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1">np.random.seed(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">42</span>)</span>
+<span id="cb2-2"></span>
+<span id="cb2-3">months <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> pd.date_range(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"2018-01-01"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"2024-12-01"</span>, freq<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"MS"</span>)</span>
+<span id="cb2-4">categories <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Food &amp; Non-Alcoholic Beverages"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Housing &amp; Utilities"</span>,</span>
+<span id="cb2-5">              <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Transport"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Education"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Health"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Clothing &amp; Footwear"</span>,</span>
+<span id="cb2-6">              <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Miscellaneous"</span>]</span>
+<span id="cb2-7"></span>
+<span id="cb2-8"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Each category gets a different base inflation trend</span></span>
+<span id="cb2-9">base_rates <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> {</span>
+<span id="cb2-10">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Food &amp; Non-Alcoholic Beverages"</span>: <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.007</span>,</span>
+<span id="cb2-11">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Housing &amp; Utilities"</span>:            <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.005</span>,</span>
+<span id="cb2-12">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Transport"</span>:                      <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.006</span>,</span>
+<span id="cb2-13">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Education"</span>:                      <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.004</span>,</span>
+<span id="cb2-14">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Health"</span>:                         <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.005</span>,</span>
+<span id="cb2-15">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Clothing &amp; Footwear"</span>:            <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.003</span>,</span>
+<span id="cb2-16">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Miscellaneous"</span>:                  <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.004</span></span>
+<span id="cb2-17">}</span>
+<span id="cb2-18"></span>
+<span id="cb2-19">rows <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> []</span>
+<span id="cb2-20"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> cat <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> categories:</span>
+<span id="cb2-21">    index <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">100.0</span></span>
+<span id="cb2-22">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> m <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> months:</span>
+<span id="cb2-23">        index <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*=</span> (<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> base_rates[cat] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> np.random.normal(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.002</span>))</span>
+<span id="cb2-24">        rows.append({<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"date"</span>: m, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"category"</span>: cat, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"index"</span>: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">round</span>(index, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>)})</span>
+<span id="cb2-25"></span>
+<span id="cb2-26">df <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> pd.DataFrame(rows)</span>
+<span id="cb2-27"></span>
+<span id="cb2-28"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Compute year-on-year % change</span></span>
+<span id="cb2-29">df <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> df.sort_values([<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"category"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"date"</span>])</span>
+<span id="cb2-30">df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"yoy_pct"</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> df.groupby(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"category"</span>)[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"index"</span>].pct_change(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">12</span>) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">100</span></span>
+<span id="cb2-31">df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"yoy_pct"</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"yoy_pct"</span>].<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">round</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>)</span>
+<span id="cb2-32">df.head()</span></code></pre></div></div>
+</details>
+<div id="data" class="cell-output cell-output-display" data-execution_count="2">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">date</th>
+<th data-quarto-table-cell-role="th">category</th>
+<th data-quarto-table-cell-role="th">index</th>
+<th data-quarto-table-cell-role="th">yoy_pct</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">420</th>
+<td>2018-01-01</td>
+<td>Clothing &amp; Footwear</td>
+<td>100.71</td>
+<td>NaN</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">421</th>
+<td>2018-02-01</td>
+<td>Clothing &amp; Footwear</td>
+<td>101.37</td>
+<td>NaN</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">422</th>
+<td>2018-03-01</td>
+<td>Clothing &amp; Footwear</td>
+<td>101.62</td>
+<td>NaN</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">423</th>
+<td>2018-04-01</td>
+<td>Clothing &amp; Footwear</td>
+<td>102.12</td>
+<td>NaN</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">424</th>
+<td>2018-05-01</td>
+<td>Clothing &amp; Footwear</td>
+<td>102.56</td>
+<td>NaN</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<hr>
+</section>
+<section id="interactive-chart-year-on-year-inflation-by-category" class="level2">
+<h2 class="anchored" data-anchor-id="interactive-chart-year-on-year-inflation-by-category">Interactive Chart: Year-on-Year Inflation by Category</h2>
+<div id="cell-fig-dropdown" class="cell" data-execution_count="3">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1">fig <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> go.Figure()</span>
+<span id="cb3-2"></span>
+<span id="cb3-3">first <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span></span>
+<span id="cb3-4"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> cat <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> categories:</span>
+<span id="cb3-5">    subset <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> df[df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"category"</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> cat].dropna(subset<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"yoy_pct"</span>])</span>
+<span id="cb3-6">    fig.add_trace(go.Scatter(</span>
+<span id="cb3-7">        x<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>subset[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"date"</span>],</span>
+<span id="cb3-8">        y<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>subset[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"yoy_pct"</span>],</span>
+<span id="cb3-9">        name<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>cat,</span>
+<span id="cb3-10">        visible<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> first <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">else</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">False</span>,</span>
+<span id="cb3-11">        mode<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"lines+markers"</span>,</span>
+<span id="cb3-12">        marker<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">dict</span>(size<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">4</span>),</span>
+<span id="cb3-13">        hovertemplate<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"%{x|%b %Y}&lt;br&gt;YoY: %</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{y:.1f}</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">%&lt;extra&gt;&lt;/extra&gt;"</span></span>
+<span id="cb3-14">    ))</span>
+<span id="cb3-15">    first <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">False</span></span>
+<span id="cb3-16"></span>
+<span id="cb3-17"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Build dropdown buttons — one per category</span></span>
+<span id="cb3-18">buttons <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> []</span>
+<span id="cb3-19"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> i, cat <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">enumerate</span>(categories):</span>
+<span id="cb3-20">    visibility <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [j <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> i <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> j <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">range</span>(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">len</span>(categories))]</span>
+<span id="cb3-21">    buttons.append(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">dict</span>(</span>
+<span id="cb3-22">        label<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>cat,</span>
+<span id="cb3-23">        method<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"update"</span>,</span>
+<span id="cb3-24">        args<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>[{<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"visible"</span>: visibility},</span>
+<span id="cb3-25">              {<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"title"</span>: <span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"YoY CPI Inflation — </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>cat<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>}]</span>
+<span id="cb3-26">    ))</span>
+<span id="cb3-27"></span>
+<span id="cb3-28">fig.update_layout(</span>
+<span id="cb3-29">    title<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"YoY CPI Inflation — </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>categories[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>]<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>,</span>
+<span id="cb3-30">    xaxis_title<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">""</span>,</span>
+<span id="cb3-31">    yaxis_title<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Year-on-Year % Change"</span>,</span>
+<span id="cb3-32">    updatemenus<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>[<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">dict</span>(</span>
+<span id="cb3-33">        buttons<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>buttons,</span>
+<span id="cb3-34">        direction<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"down"</span>,</span>
+<span id="cb3-35">        showactive<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>,</span>
+<span id="cb3-36">        x<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.01</span>, xanchor<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"left"</span>,</span>
+<span id="cb3-37">        y<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1.15</span>, yanchor<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"top"</span></span>
+<span id="cb3-38">    )],</span>
+<span id="cb3-39">    height<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">450</span></span>
+<span id="cb3-40">)</span>
+<span id="cb3-41"></span>
+<span id="cb3-42">fig.show()</span></code></pre></div></div>
+</details>
+<div id="fig-dropdown" class="cell-output cell-output-display quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-dropdown-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div>            <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_SVG"></script><script>if (window.MathJax && window.MathJax.Hub && window.MathJax.Hub.Config) {window.MathJax.Hub.Config({SVG: {font: "STIX-Web"}});}</script>                <script>window.PlotlyConfig = {MathJaxConfig: 'local'};</script>
+        <script charset="utf-8" src="https://cdn.plot.ly/plotly-3.5.0.min.js" integrity="sha256-fHbNLP+GlIXN+efbQec78UkemUz3NJp7UmfGxC1tNxs=" crossorigin="anonymous"></script>                <div id="2ad30fd7-8e8c-4f3e-909f-6b3d7c591b49" class="plotly-graph-div" style="height:450px; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("2ad30fd7-8e8c-4f3e-909f-6b3d7c591b49")) {                    Plotly.newPlot(                        "2ad30fd7-8e8c-4f3e-909f-6b3d7c591b49",                        [{"hovertemplate":"%{x|%b %Y}\u003cbr\u003eYoY: %{y:.1f}%\u003cextra\u003e\u003c\u002fextra\u003e","marker":{"size":4},"mode":"lines+markers","name":"Food & Non-Alcoholic Beverages","visible":true,"x":["2019-01-01T00:00:00.000000","2019-02-01T00:00:00.000000","2019-03-01T00:00:00.000000","2019-04-01T00:00:00.000000","2019-05-01T00:00:00.000000","2019-06-01T00:00:00.000000","2019-07-01T00:00:00.000000","2019-08-01T00:00:00.000000","2019-09-01T00:00:00.000000","2019-10-01T00:00:00.000000","2019-11-01T00:00:00.000000","2019-12-01T00:00:00.000000","2020-01-01T00:00:00.000000","2020-02-01T00:00:00.000000","2020-03-01T00:00:00.000000","2020-04-01T00:00:00.000000","2020-05-01T00:00:00.000000","2020-06-01T00:00:00.000000","2020-07-01T00:00:00.000000","2020-08-01T00:00:00.000000","2020-09-01T00:00:00.000000","2020-10-01T00:00:00.000000","2020-11-01T00:00:00.000000","2020-12-01T00:00:00.000000","2021-01-01T00:00:00.000000","2021-02-01T00:00:00.000000","2021-03-01T00:00:00.000000","2021-04-01T00:00:00.000000","2021-05-01T00:00:00.000000","2021-06-01T00:00:00.000000","2021-07-01T00:00:00.000000","2021-08-01T00:00:00.000000","2021-09-01T00:00:00.000000","2021-10-01T00:00:00.000000","2021-11-01T00:00:00.000000","2021-12-01T00:00:00.000000","2022-01-01T00:00:00.000000","2022-02-01T00:00:00.000000","2022-03-01T00:00:00.000000","2022-04-01T00:00:00.000000","2022-05-01T00:00:00.000000","2022-06-01T00:00:00.000000","2022-07-01T00:00:00.000000","2022-08-01T00:00:00.000000","2022-09-01T00:00:00.000000","2022-10-01T00:00:00.000000","2022-11-01T00:00:00.000000","2022-12-01T00:00:00.000000","2023-01-01T00:00:00.000000","2023-02-01T00:00:00.000000","2023-03-01T00:00:00.000000","2023-04-01T00:00:00.000000","2023-05-01T00:00:00.000000","2023-06-01T00:00:00.000000","2023-07-01T00:00:00.000000","2023-08-01T00:00:00.000000","2023-09-01T00:00:00.000000","2023-10-01T00:00:00.000000","2023-11-01T00:00:00.000000","2023-12-01T00:00:00.000000","2024-01-01T00:00:00.000000","2024-02-01T00:00:00.000000","2024-03-01T00:00:00.000000","2024-04-01T00:00:00.000000","2024-05-01T00:00:00.000000","2024-06-01T00:00:00.000000","2024-07-01T00:00:00.000000","2024-08-01T00:00:00.000000","2024-09-01T00:00:00.000000","2024-10-01T00:00:00.000000","2024-11-01T00:00:00.000000","2024-12-01T00:00:00.000000"],"y":{"dtype":"f8","bdata":"4XoUrkfhIkAfhetRuB4iQBSuR+F6FCFArkfhehQuIEC4HoXrUbgfQJqZmZmZGSBAFK5H4XoUHkAzMzMzMzMcQNejcD0K1x1AMzMzMzMzHUCkcD0K16MdQNejcD0K1xxAH4XrUbgeHEDhehSuR+EdQGZmZmZmZh5AMzMzMzMzH0CF61G4HoUfQAAAAAAAAB9ASOF6FK5HH0AK16NwPQohQGZmZmZmZiBACtejcD0KIEDhehSuR2EgQPYoXI\u002fCdSBASOF6FK7HIEDNzMzMzMwfQJqZmZmZmR9AexSuR+F6H0BSuB6F61EgQAAAAAAAgCBAuB6F61G4IECPwvUoXI8fQFyPwvUoXB5ApHA9CtejHkCPwvUoXI8dQHsUrkfheh9AmpmZmZmZH0DD9Shcj8IfQJqZmZmZmSBA16NwPQpXIEB7FK5H4XofQNejcD0K1x9A7FG4HoVrIEBxPQrXo\u002fAgQLgehetROCFAZmZmZmZmIUA9CtejcL0hQDMzMzMzsyFAXI\u002fC9ShcIUAK16NwPQoiQOxRuB6FayFAj8L1KFwPIUAzMzMzM7MhQIXrUbgeBSJAj8L1KFyPIUCamZmZmZkhQJqZmZmZGSJA9ihcj8L1IUB7FK5H4fohQLgehetROCJAZmZmZmZmIkApXI\u002fC9SgjQIXrUbgehSJA4XoUrkdhI0CPwvUoXA8jQFyPwvUoXCJA7FG4HoVrIkAfhetRuB4hQOF6FK5H4SBAzczMzMxMIUBI4XoUrschQGZmZmZm5iBA"},"type":"scatter"},{"hovertemplate":"%{x|%b %Y}\u003cbr\u003eYoY: %{y:.1f}%\u003cextra\u003e\u003c\u002fextra\u003e","marker":{"size":4},"mode":"lines+markers","name":"Housing & Utilities","visible":false,"x":["2019-01-01T00:00:00.000000","2019-02-01T00:00:00.000000","2019-03-01T00:00:00.000000","2019-04-01T00:00:00.000000","2019-05-01T00:00:00.000000","2019-06-01T00:00:00.000000","2019-07-01T00:00:00.000000","2019-08-01T00:00:00.000000","2019-09-01T00:00:00.000000","2019-10-01T00:00:00.000000","2019-11-01T00:00:00.000000","2019-12-01T00:00:00.000000","2020-01-01T00:00:00.000000","2020-02-01T00:00:00.000000","2020-03-01T00:00:00.000000","2020-04-01T00:00:00.000000","2020-05-01T00:00:00.000000","2020-06-01T00:00:00.000000","2020-07-01T00:00:00.000000","2020-08-01T00:00:00.000000","2020-09-01T00:00:00.000000","2020-10-01T00:00:00.000000","2020-11-01T00:00:00.000000","2020-12-01T00:00:00.000000","2021-01-01T00:00:00.000000","2021-02-01T00:00:00.000000","2021-03-01T00:00:00.000000","2021-04-01T00:00:00.000000","2021-05-01T00:00:00.000000","2021-06-01T00:00:00.000000","2021-07-01T00:00:00.000000","2021-08-01T00:00:00.000000","2021-09-01T00:00:00.000000","2021-10-01T00:00:00.000000","2021-11-01T00:00:00.000000","2021-12-01T00:00:00.000000","2022-01-01T00:00:00.000000","2022-02-01T00:00:00.000000","2022-03-01T00:00:00.000000","2022-04-01T00:00:00.000000","2022-05-01T00:00:00.000000","2022-06-01T00:00:00.000000","2022-07-01T00:00:00.000000","2022-08-01T00:00:00.000000","2022-09-01T00:00:00.000000","2022-10-01T00:00:00.000000","2022-11-01T00:00:00.000000","2022-12-01T00:00:00.000000","2023-01-01T00:00:00.000000","2023-02-01T00:00:00.000000","2023-03-01T00:00:00.000000","2023-04-01T00:00:00.000000","2023-05-01T00:00:00.000000","2023-06-01T00:00:00.000000","2023-07-01T00:00:00.000000","2023-08-01T00:00:00.000000","2023-09-01T00:00:00.000000","2023-10-01T00:00:00.000000","2023-11-01T00:00:00.000000","2023-12-01T00:00:00.000000","2024-01-01T00:00:00.000000","2024-02-01T00:00:00.000000","2024-03-01T00:00:00.000000","2024-04-01T00:00:00.000000","2024-05-01T00:00:00.000000","2024-06-01T00:00:00.000000","2024-07-01T00:00:00.000000","2024-08-01T00:00:00.000000","2024-09-01T00:00:00.000000","2024-10-01T00:00:00.000000","2024-11-01T00:00:00.000000","2024-12-01T00:00:00.000000"],"y":{"dtype":"f8","bdata":"AAAAAAAAGECamZmZmZkYQNejcD0K1xdAZmZmZmZmF0CkcD0K16MWQNejcD0K1xVAexSuR+F6FUAK16NwPQoUQHE9CtejcBRAFK5H4XoUFUD2KFyPwvUWQFyPwvUoXBhAUrgehetRGEAUrkfhehQYQHE9CtejcBZAmpmZmZmZFkDXo3A9CtcXQEjhehSuRxpAcT0K16NwGkBcj8L1KFwbQHE9CtejcBtAH4XrUbgeGkCF61G4HoUZQAAAAAAAABpAZmZmZmZmGkC4HoXrUbgZQI\u002fC9ShcjxxAZmZmZmZmG0DXo3A9CtcbQJqZmZmZmRtA4XoUrkfhGkApXI\u002fC9SgaQFK4HoXrURpA16NwPQrXGkCPwvUoXI8YQAAAAAAAABhAcT0K16NwFkCamZmZmZkXQKRwPQrXoxVAH4XrUbgeGED2KFyPwvUWQOF6FK5H4RRAZmZmZmZmFkDXo3A9CtcVQOxRuB6F6xVAexSuR+F6F0BmZmZmZmYXQHsUrkfhehdApHA9CtejGEDhehSuR+EYQJqZmZmZmRhAMzMzMzMzFkBI4XoUrkcXQM3MzMzMzBdAXI\u002fC9ShcF0CuR+F6FK4YQOxRuB6F6xdA9ihcj8L1FkCamZmZmZkYQOF6FK5H4RdAMzMzMzMzGUDsUbgehesYQAAAAAAAABlApHA9CtejGkBmZmZmZmYZQM3MzMzMzBlAmpmZmZmZGkCPwvUoXI8ZQPYoXI\u002fC9RpAH4XrUbgeG0CPwvUoXI8bQMP1KFyPwh1A"},"type":"scatter"},{"hovertemplate":"%{x|%b %Y}\u003cbr\u003eYoY: %{y:.1f}%\u003cextra\u003e\u003c\u002fextra\u003e","marker":{"size":4},"mode":"lines+markers","name":"Transport","visible":false,"x":["2019-01-01T00:00:00.000000","2019-02-01T00:00:00.000000","2019-03-01T00:00:00.000000","2019-04-01T00:00:00.000000","2019-05-01T00:00:00.000000","2019-06-01T00:00:00.000000","2019-07-01T00:00:00.000000","2019-08-01T00:00:00.000000","2019-09-01T00:00:00.000000","2019-10-01T00:00:00.000000","2019-11-01T00:00:00.000000","2019-12-01T00:00:00.000000","2020-01-01T00:00:00.000000","2020-02-01T00:00:00.000000","2020-03-01T00:00:00.000000","2020-04-01T00:00:00.000000","2020-05-01T00:00:00.000000","2020-06-01T00:00:00.000000","2020-07-01T00:00:00.000000","2020-08-01T00:00:00.000000","2020-09-01T00:00:00.000000","2020-10-01T00:00:00.000000","2020-11-01T00:00:00.000000","2020-12-01T00:00:00.000000","2021-01-01T00:00:00.000000","2021-02-01T00:00:00.000000","2021-03-01T00:00:00.000000","2021-04-01T00:00:00.000000","2021-05-01T00:00:00.000000","2021-06-01T00:00:00.000000","2021-07-01T00:00:00.000000","2021-08-01T00:00:00.000000","2021-09-01T00:00:00.000000","2021-10-01T00:00:00.000000","2021-11-01T00:00:00.000000","2021-12-01T00:00:00.000000","2022-01-01T00:00:00.000000","2022-02-01T00:00:00.000000","2022-03-01T00:00:00.000000","2022-04-01T00:00:00.000000","2022-05-01T00:00:00.000000","2022-06-01T00:00:00.000000","2022-07-01T00:00:00.000000","2022-08-01T00:00:00.000000","2022-09-01T00:00:00.000000","2022-10-01T00:00:00.000000","2022-11-01T00:00:00.000000","2022-12-01T00:00:00.000000","2023-01-01T00:00:00.000000","2023-02-01T00:00:00.000000","2023-03-01T00:00:00.000000","2023-04-01T00:00:00.000000","2023-05-01T00:00:00.000000","2023-06-01T00:00:00.000000","2023-07-01T00:00:00.000000","2023-08-01T00:00:00.000000","2023-09-01T00:00:00.000000","2023-10-01T00:00:00.000000","2023-11-01T00:00:00.000000","2023-12-01T00:00:00.000000","2024-01-01T00:00:00.000000","2024-02-01T00:00:00.000000","2024-03-01T00:00:00.000000","2024-04-01T00:00:00.000000","2024-05-01T00:00:00.000000","2024-06-01T00:00:00.000000","2024-07-01T00:00:00.000000","2024-08-01T00:00:00.000000","2024-09-01T00:00:00.000000","2024-10-01T00:00:00.000000","2024-11-01T00:00:00.000000","2024-12-01T00:00:00.000000"],"y":{"dtype":"f8","bdata":"XI\u002fC9ShcIEBSuB6F61EgQLgehetROCBAzczMzMzMIEC4HoXrUbggQGZmZmZm5iBAexSuR+H6IECamZmZmZkgQLgehetROCBA7FG4HoXrHUDD9Shcj8IdQDMzMzMzMxxAzczMzMzMG0B7FK5H4XobQI\u002fC9ShcjxxAcT0K16NwHEDhehSuR+EbQGZmZmZmZhtACtejcD0KG0ApXI\u002fC9SgaQClcj8L1KBtA9ihcj8L1HEBI4XoUrkceQGZmZmZmZh5ACtejcD0KHUBSuB6F61EdQJqZmZmZmR1AuB6F61G4HUD2KFyPwvUeQI\u002fC9ShcDyFASOF6FK5HIUDD9Shcj0IiQIXrUbgehSJACtejcD2KIkBxPQrXo\u002fAhQFK4HoXr0SFAFK5H4XoUIkDhehSuR2EiQHE9Ctej8CFAw\u002fUoXI\u002fCIUAK16NwPYoiQBSuR+F6FCBAH4XrUbgeIEDhehSuR+EdQK5H4XoUrhxACtejcD0KHUBcj8L1KFwdQM3MzMzMzBtA4XoUrkfhG0CkcD0K16McQGZmZmZmZhxAhetRuB6FHECamZmZmZkaQKRwPQrXoxtA4XoUrkfhHEDXo3A9CtceQHsUrkfheh1AuB6F61G4HEAfhetRuB4cQMP1KFyPwh1ApHA9CtejHUAAAAAAAAAdQBSuR+F6FB5AmpmZmZmZHkCPwvUoXI8dQNejcD0K1x1Aj8L1KFyPG0B7FK5H4XoaQLgehetRuB1A4XoUrkfhHUBcj8L1KFwdQHE9CtejcB1A"},"type":"scatter"},{"hovertemplate":"%{x|%b %Y}\u003cbr\u003eYoY: %{y:.1f}%\u003cextra\u003e\u003c\u002fextra\u003e","marker":{"size":4},"mode":"lines+markers","name":"Education","visible":false,"x":["2019-01-01T00:00:00.000000","2019-02-01T00:00:00.000000","2019-03-01T00:00:00.000000","2019-04-01T00:00:00.000000","2019-05-01T00:00:00.000000","2019-06-01T00:00:00.000000","2019-07-01T00:00:00.000000","2019-08-01T00:00:00.000000","2019-09-01T00:00:00.000000","2019-10-01T00:00:00.000000","2019-11-01T00:00:00.000000","2019-12-01T00:00:00.000000","2020-01-01T00:00:00.000000","2020-02-01T00:00:00.000000","2020-03-01T00:00:00.000000","2020-04-01T00:00:00.000000","2020-05-01T00:00:00.000000","2020-06-01T00:00:00.000000","2020-07-01T00:00:00.000000","2020-08-01T00:00:00.000000","2020-09-01T00:00:00.000000","2020-10-01T00:00:00.000000","2020-11-01T00:00:00.000000","2020-12-01T00:00:00.000000","2021-01-01T00:00:00.000000","2021-02-01T00:00:00.000000","2021-03-01T00:00:00.000000","2021-04-01T00:00:00.000000","2021-05-01T00:00:00.000000","2021-06-01T00:00:00.000000","2021-07-01T00:00:00.000000","2021-08-01T00:00:00.000000","2021-09-01T00:00:00.000000","2021-10-01T00:00:00.000000","2021-11-01T00:00:00.000000","2021-12-01T00:00:00.000000","2022-01-01T00:00:00.000000","2022-02-01T00:00:00.000000","2022-03-01T00:00:00.000000","2022-04-01T00:00:00.000000","2022-05-01T00:00:00.000000","2022-06-01T00:00:00.000000","2022-07-01T00:00:00.000000","2022-08-01T00:00:00.000000","2022-09-01T00:00:00.000000","2022-10-01T00:00:00.000000","2022-11-01T00:00:00.000000","2022-12-01T00:00:00.000000","2023-01-01T00:00:00.000000","2023-02-01T00:00:00.000000","2023-03-01T00:00:00.000000","2023-04-01T00:00:00.000000","2023-05-01T00:00:00.000000","2023-06-01T00:00:00.000000","2023-07-01T00:00:00.000000","2023-08-01T00:00:00.000000","2023-09-01T00:00:00.000000","2023-10-01T00:00:00.000000","2023-11-01T00:00:00.000000","2023-12-01T00:00:00.000000","2024-01-01T00:00:00.000000","2024-02-01T00:00:00.000000","2024-03-01T00:00:00.000000","2024-04-01T00:00:00.000000","2024-05-01T00:00:00.000000","2024-06-01T00:00:00.000000","2024-07-01T00:00:00.000000","2024-08-01T00:00:00.000000","2024-09-01T00:00:00.000000","2024-10-01T00:00:00.000000","2024-11-01T00:00:00.000000","2024-12-01T00:00:00.000000"],"y":{"dtype":"f8","bdata":"cT0K16NwD0CamZmZmZkLQHE9CtejcBBASOF6FK5HD0BmZmZmZmYMQOxRuB6F6w1AhetRuB6FD0DXo3A9CtcLQEjhehSuRw9AcT0K16NwD0CamZmZmZkRQM3MzMzMzBJAMzMzMzMzE0DD9Shcj8ITQHsUrkfhehJAUrgehetRE0DNzMzMzMwTQD0K16NwPRRAXI\u002fC9ShcFECF61G4HoUUQFK4HoXrURVArkfhehSuE0Bcj8L1KFwUQHsUrkfhehRAj8L1KFyPFECF61G4HoUUQEjhehSuRxRAPQrXo3A9FECamZmZmZkTQMP1KFyPwhNAuB6F61G4EkAzMzMzMzMTQDMzMzMzMxJACtejcD0KFEDXo3A9CtcUQOF6FK5H4RRAAAAAAAAAFEAK16NwPQoUQNejcD0K1xRAuB6F61G4FUA9CtejcD0WQJqZmZmZmRVAZmZmZmZmFkCF61G4HoUWQClcj8L1KBZAuB6F61G4FUDhehSuR+EUQFK4HoXrURVArkfhehSuFkDXo3A9CtcXQEjhehSuRxhAzczMzMzMF0BmZmZmZmYYQArXo3A9ChhAPQrXo3A9F0CamZmZmZkXQD0K16NwPRdA7FG4HoXrF0BmZmZmZmYXQD0K16NwPRhAuB6F61G4FkAAAAAAAAAVQNejcD0K1xRAhetRuB6FFUB7FK5H4XoVQD0K16NwPRZA9ihcj8L1FUBSuB6F61EVQFK4HoXrURVAPQrXo3A9FEC4HoXrUbgVQOF6FK5H4RNA"},"type":"scatter"},{"hovertemplate":"%{x|%b %Y}\u003cbr\u003eYoY: %{y:.1f}%\u003cextra\u003e\u003c\u002fextra\u003e","marker":{"size":4},"mode":"lines+markers","name":"Health","visible":false,"x":["2019-01-01T00:00:00.000000","2019-02-01T00:00:00.000000","2019-03-01T00:00:00.000000","2019-04-01T00:00:00.000000","2019-05-01T00:00:00.000000","2019-06-01T00:00:00.000000","2019-07-01T00:00:00.000000","2019-08-01T00:00:00.000000","2019-09-01T00:00:00.000000","2019-10-01T00:00:00.000000","2019-11-01T00:00:00.000000","2019-12-01T00:00:00.000000","2020-01-01T00:00:00.000000","2020-02-01T00:00:00.000000","2020-03-01T00:00:00.000000","2020-04-01T00:00:00.000000","2020-05-01T00:00:00.000000","2020-06-01T00:00:00.000000","2020-07-01T00:00:00.000000","2020-08-01T00:00:00.000000","2020-09-01T00:00:00.000000","2020-10-01T00:00:00.000000","2020-11-01T00:00:00.000000","2020-12-01T00:00:00.000000","2021-01-01T00:00:00.000000","2021-02-01T00:00:00.000000","2021-03-01T00:00:00.000000","2021-04-01T00:00:00.000000","2021-05-01T00:00:00.000000","2021-06-01T00:00:00.000000","2021-07-01T00:00:00.000000","2021-08-01T00:00:00.000000","2021-09-01T00:00:00.000000","2021-10-01T00:00:00.000000","2021-11-01T00:00:00.000000","2021-12-01T00:00:00.000000","2022-01-01T00:00:00.000000","2022-02-01T00:00:00.000000","2022-03-01T00:00:00.000000","2022-04-01T00:00:00.000000","2022-05-01T00:00:00.000000","2022-06-01T00:00:00.000000","2022-07-01T00:00:00.000000","2022-08-01T00:00:00.000000","2022-09-01T00:00:00.000000","2022-10-01T00:00:00.000000","2022-11-01T00:00:00.000000","2022-12-01T00:00:00.000000","2023-01-01T00:00:00.000000","2023-02-01T00:00:00.000000","2023-03-01T00:00:00.000000","2023-04-01T00:00:00.000000","2023-05-01T00:00:00.000000","2023-06-01T00:00:00.000000","2023-07-01T00:00:00.000000","2023-08-01T00:00:00.000000","2023-09-01T00:00:00.000000","2023-10-01T00:00:00.000000","2023-11-01T00:00:00.000000","2023-12-01T00:00:00.000000","2024-01-01T00:00:00.000000","2024-02-01T00:00:00.000000","2024-03-01T00:00:00.000000","2024-04-01T00:00:00.000000","2024-05-01T00:00:00.000000","2024-06-01T00:00:00.000000","2024-07-01T00:00:00.000000","2024-08-01T00:00:00.000000","2024-09-01T00:00:00.000000","2024-10-01T00:00:00.000000","2024-11-01T00:00:00.000000","2024-12-01T00:00:00.000000"],"y":{"dtype":"f8","bdata":"XI\u002fC9ShcFEBxPQrXo3AUQFyPwvUoXBRAFK5H4XoUFkCF61G4HoUXQClcj8L1KBdA7FG4HoXrFkCF61G4HoUWQOF6FK5H4RZAcT0K16NwFkDsUbgehesXQGZmZmZmZhhAexSuR+F6GUD2KFyPwvUaQJqZmZmZmRpArkfhehSuGUCF61G4HoUZQFyPwvUoXBlAj8L1KFyPGUBxPQrXo3AaQIXrUbgehRpAH4XrUbgeGkDXo3A9CtcZQAAAAAAAABtAw\u002fUoXI\u002fCG0BI4XoUrkcbQDMzMzMzMx1AMzMzMzMzHEBcj8L1KFwcQNejcD0K1xxAhetRuB6FHkDXo3A9CtcdQArXo3A9Ch1AKVyPwvUoHUBcj8L1KFwbQHsUrkfhehpAmpmZmZmZGEDsUbgehesXQGZmZmZmZhZApHA9CtejGECuR+F6FK4YQArXo3A9ChhAexSuR+F6FUCF61G4HoUWQClcj8L1KBZAMzMzMzMzGED2KFyPwvUaQAAAAAAAABtAMzMzMzMzGkA9CtejcD0bQNejcD0K1xpAUrgehetRGkApXI\u002fC9SgYQB+F61G4HhhA4XoUrkfhGECF61G4HoUYQD0K16NwPRlAPQrXo3A9GEBcj8L1KFwWQKRwPQrXoxZAKVyPwvUoGEB7FK5H4XoXQClcj8L1KBhAKVyPwvUoFkAzMzMzMzMWQNejcD0K1xdAFK5H4XoUGEBmZmZmZmYXQB+F61G4HhlArkfhehSuGECPwvUoXI8aQMP1KFyPwhpA"},"type":"scatter"},{"hovertemplate":"%{x|%b %Y}\u003cbr\u003eYoY: %{y:.1f}%\u003cextra\u003e\u003c\u002fextra\u003e","marker":{"size":4},"mode":"lines+markers","name":"Clothing & Footwear","visible":false,"x":["2019-01-01T00:00:00.000000","2019-02-01T00:00:00.000000","2019-03-01T00:00:00.000000","2019-04-01T00:00:00.000000","2019-05-01T00:00:00.000000","2019-06-01T00:00:00.000000","2019-07-01T00:00:00.000000","2019-08-01T00:00:00.000000","2019-09-01T00:00:00.000000","2019-10-01T00:00:00.000000","2019-11-01T00:00:00.000000","2019-12-01T00:00:00.000000","2020-01-01T00:00:00.000000","2020-02-01T00:00:00.000000","2020-03-01T00:00:00.000000","2020-04-01T00:00:00.000000","2020-05-01T00:00:00.000000","2020-06-01T00:00:00.000000","2020-07-01T00:00:00.000000","2020-08-01T00:00:00.000000","2020-09-01T00:00:00.000000","2020-10-01T00:00:00.000000","2020-11-01T00:00:00.000000","2020-12-01T00:00:00.000000","2021-01-01T00:00:00.000000","2021-02-01T00:00:00.000000","2021-03-01T00:00:00.000000","2021-04-01T00:00:00.000000","2021-05-01T00:00:00.000000","2021-06-01T00:00:00.000000","2021-07-01T00:00:00.000000","2021-08-01T00:00:00.000000","2021-09-01T00:00:00.000000","2021-10-01T00:00:00.000000","2021-11-01T00:00:00.000000","2021-12-01T00:00:00.000000","2022-01-01T00:00:00.000000","2022-02-01T00:00:00.000000","2022-03-01T00:00:00.000000","2022-04-01T00:00:00.000000","2022-05-01T00:00:00.000000","2022-06-01T00:00:00.000000","2022-07-01T00:00:00.000000","2022-08-01T00:00:00.000000","2022-09-01T00:00:00.000000","2022-10-01T00:00:00.000000","2022-11-01T00:00:00.000000","2022-12-01T00:00:00.000000","2023-01-01T00:00:00.000000","2023-02-01T00:00:00.000000","2023-03-01T00:00:00.000000","2023-04-01T00:00:00.000000","2023-05-01T00:00:00.000000","2023-06-01T00:00:00.000000","2023-07-01T00:00:00.000000","2023-08-01T00:00:00.000000","2023-09-01T00:00:00.000000","2023-10-01T00:00:00.000000","2023-11-01T00:00:00.000000","2023-12-01T00:00:00.000000","2024-01-01T00:00:00.000000","2024-02-01T00:00:00.000000","2024-03-01T00:00:00.000000","2024-04-01T00:00:00.000000","2024-05-01T00:00:00.000000","2024-06-01T00:00:00.000000","2024-07-01T00:00:00.000000","2024-08-01T00:00:00.000000","2024-09-01T00:00:00.000000","2024-10-01T00:00:00.000000","2024-11-01T00:00:00.000000","2024-12-01T00:00:00.000000"],"y":{"dtype":"f8","bdata":"SOF6FK5HDUCF61G4HoULQHsUrkfheg5A9ihcj8L1DECkcD0K16MOQBSuR+F6FApA4XoUrkfhCECuR+F6FK4HQI\u002fC9ShcjwZAXI\u002fC9ShcCUDXo3A9CtcHQB+F61G4HgtAcT0K16NwCUBcj8L1KFwJQIXrUbgehQdA16NwPQrXBUA9CtejcD0CQOF6FK5H4QJAhetRuB6FBUAfhetRuB4HQOF6FK5H4QRA16NwPQrXBUBmZmZmZmYIQDMzMzMzMwdAH4XrUbgeCUBmZmZmZmYGQOF6FK5H4QRAZmZmZmZmBECPwvUoXI8IQD0K16NwPQpASOF6FK5HCUAAAAAAAAAIQHE9CtejcAlAPQrXo3A9CEAUrkfhehQKQLgehetRuAxAAAAAAAAADEC4HoXrUbgMQDMzMzMzMw1AcT0K16NwC0CuR+F6FK4FQNejcD0K1wdAw\u002fUoXI\u002fCC0D2KFyPwvUKQClcj8L1KAxA9ihcj8L1DECF61G4HoUQQM3MzMzMzBBAKVyPwvUoEUDXo3A9CtcQQHE9CtejcA9A16NwPQrXEUBxPQrXo3ASQB+F61G4HhBAexSuR+F6DEAfhetRuB4LQOF6FK5H4QxA16NwPQrXDUDNzMzMzMwIQHE9CtejcAlAw\u002fUoXI\u002fCCUDsUbgehesJQPYoXI\u002fC9Q5AhetRuB6FD0AfhetRuB4PQJqZmZmZmRBAZmZmZmZmEEApXI\u002fC9SgQQArXo3A9Cg9AZmZmZmZmEEBmZmZmZmYOQOF6FK5H4QxA"},"type":"scatter"},{"hovertemplate":"%{x|%b %Y}\u003cbr\u003eYoY: %{y:.1f}%\u003cextra\u003e\u003c\u002fextra\u003e","marker":{"size":4},"mode":"lines+markers","name":"Miscellaneous","visible":false,"x":["2019-01-01T00:00:00.000000","2019-02-01T00:00:00.000000","2019-03-01T00:00:00.000000","2019-04-01T00:00:00.000000","2019-05-01T00:00:00.000000","2019-06-01T00:00:00.000000","2019-07-01T00:00:00.000000","2019-08-01T00:00:00.000000","2019-09-01T00:00:00.000000","2019-10-01T00:00:00.000000","2019-11-01T00:00:00.000000","2019-12-01T00:00:00.000000","2020-01-01T00:00:00.000000","2020-02-01T00:00:00.000000","2020-03-01T00:00:00.000000","2020-04-01T00:00:00.000000","2020-05-01T00:00:00.000000","2020-06-01T00:00:00.000000","2020-07-01T00:00:00.000000","2020-08-01T00:00:00.000000","2020-09-01T00:00:00.000000","2020-10-01T00:00:00.000000","2020-11-01T00:00:00.000000","2020-12-01T00:00:00.000000","2021-01-01T00:00:00.000000","2021-02-01T00:00:00.000000","2021-03-01T00:00:00.000000","2021-04-01T00:00:00.000000","2021-05-01T00:00:00.000000","2021-06-01T00:00:00.000000","2021-07-01T00:00:00.000000","2021-08-01T00:00:00.000000","2021-09-01T00:00:00.000000","2021-10-01T00:00:00.000000","2021-11-01T00:00:00.000000","2021-12-01T00:00:00.000000","2022-01-01T00:00:00.000000","2022-02-01T00:00:00.000000","2022-03-01T00:00:00.000000","2022-04-01T00:00:00.000000","2022-05-01T00:00:00.000000","2022-06-01T00:00:00.000000","2022-07-01T00:00:00.000000","2022-08-01T00:00:00.000000","2022-09-01T00:00:00.000000","2022-10-01T00:00:00.000000","2022-11-01T00:00:00.000000","2022-12-01T00:00:00.000000","2023-01-01T00:00:00.000000","2023-02-01T00:00:00.000000","2023-03-01T00:00:00.000000","2023-04-01T00:00:00.000000","2023-05-01T00:00:00.000000","2023-06-01T00:00:00.000000","2023-07-01T00:00:00.000000","2023-08-01T00:00:00.000000","2023-09-01T00:00:00.000000","2023-10-01T00:00:00.000000","2023-11-01T00:00:00.000000","2023-12-01T00:00:00.000000","2024-01-01T00:00:00.000000","2024-02-01T00:00:00.000000","2024-03-01T00:00:00.000000","2024-04-01T00:00:00.000000","2024-05-01T00:00:00.000000","2024-06-01T00:00:00.000000","2024-07-01T00:00:00.000000","2024-08-01T00:00:00.000000","2024-09-01T00:00:00.000000","2024-10-01T00:00:00.000000","2024-11-01T00:00:00.000000","2024-12-01T00:00:00.000000"],"y":{"dtype":"f8","bdata":"KVyPwvUoEUDD9Shcj8IQQEjhehSuRxFApHA9CtejEkA9CtejcD0RQFyPwvUoXBJAj8L1KFyPEUAUrkfhehQSQK5H4XoUrhFA9ihcj8L1EEAK16NwPQoQQOF6FK5H4Q5Aj8L1KFyPDkC4HoXrUbgOQIXrUbgehQ9AmpmZmZmZC0A9CtejcD0OQEjhehSuRwtAXI\u002fC9ShcC0B7FK5H4XoKQD0K16NwPQpApHA9CtejDECF61G4HoUQQAAAAAAAABBAexSuR+F6EEA9CtejcD0QQDMzMzMzMxBAw\u002fUoXI\u002fCEkDD9Shcj8IQQB+F61G4HhFAH4XrUbgeEkDsUbgehesRQPYoXI\u002fC9RJAw\u002fUoXI\u002fCEkAAAAAAAAASQFyPwvUoXBJAmpmZmZmZEkDNzMzMzMwTQJqZmZmZmRNAFK5H4XoUEkDD9Shcj8ITQArXo3A9ChRA7FG4HoXrE0C4HoXrUbgTQKRwPQrXoxNA4XoUrkfhFUCPwvUoXI8WQGZmZmZmZhZAZmZmZmZmFkDhehSuR+EVQOF6FK5H4RNAXI\u002fC9ShcE0AzMzMzMzMSQEjhehSuRxJA9ihcj8L1EUC4HoXrUbgTQMP1KFyPwhNA16NwPQrXEUDNzMzMzMwRQD0K16NwPRBA9ihcj8L1DkBmZmZmZmYQQOF6FK5H4RBArkfhehSuEkCPwvUoXI8UQHE9CtejcBRA9ihcj8L1FEB7FK5H4XoVQFyPwvUoXBVAuB6F61G4FUCuR+F6FK4UQM3MzMzMzBVA"},"type":"scatter"}],                        {"template":{"data":{"histogram2dcontour":[{"type":"histogram2dcontour","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"choropleth":[{"type":"choropleth","colorbar":{"outlinewidth":0,"ticks":""}}],"histogram2d":[{"type":"histogram2d","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"heatmap":[{"type":"heatmap","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"contourcarpet":[{"type":"contourcarpet","colorbar":{"outlinewidth":0,"ticks":""}}],"contour":[{"type":"contour","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"surface":[{"type":"surface","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"mesh3d":[{"type":"mesh3d","colorbar":{"outlinewidth":0,"ticks":""}}],"scatter":[{"fillpattern":{"fillmode":"overlay","size":10,"solidity":0.2},"type":"scatter"}],"parcoords":[{"type":"parcoords","line":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterpolargl":[{"type":"scatterpolargl","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"bar":[{"error_x":{"color":"#2a3f5f"},"error_y":{"color":"#2a3f5f"},"marker":{"line":{"color":"#E5ECF6","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"scattergeo":[{"type":"scattergeo","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterpolar":[{"type":"scatterpolar","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"scattergl":[{"type":"scattergl","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatter3d":[{"type":"scatter3d","line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattermap":[{"type":"scattermap","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattermapbox":[{"type":"scattermapbox","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterternary":[{"type":"scatterternary","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattercarpet":[{"type":"scattercarpet","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"carpet":[{"aaxis":{"endlinecolor":"#2a3f5f","gridcolor":"white","linecolor":"white","minorgridcolor":"white","startlinecolor":"#2a3f5f"},"baxis":{"endlinecolor":"#2a3f5f","gridcolor":"white","linecolor":"white","minorgridcolor":"white","startlinecolor":"#2a3f5f"},"type":"carpet"}],"table":[{"cells":{"fill":{"color":"#EBF0F8"},"line":{"color":"white"}},"header":{"fill":{"color":"#C8D4E3"},"line":{"color":"white"}},"type":"table"}],"barpolar":[{"marker":{"line":{"color":"#E5ECF6","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"pie":[{"automargin":true,"type":"pie"}]},"layout":{"autotypenumbers":"strict","colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#2a3f5f"},"hovermode":"closest","hoverlabel":{"align":"left"},"paper_bgcolor":"white","plot_bgcolor":"#E5ECF6","polar":{"bgcolor":"#E5ECF6","angularaxis":{"gridcolor":"white","linecolor":"white","ticks":""},"radialaxis":{"gridcolor":"white","linecolor":"white","ticks":""}},"ternary":{"bgcolor":"#E5ECF6","aaxis":{"gridcolor":"white","linecolor":"white","ticks":""},"baxis":{"gridcolor":"white","linecolor":"white","ticks":""},"caxis":{"gridcolor":"white","linecolor":"white","ticks":""}},"coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]]},"xaxis":{"gridcolor":"white","linecolor":"white","ticks":"","title":{"standoff":15},"zerolinecolor":"white","automargin":true,"zerolinewidth":2},"yaxis":{"gridcolor":"white","linecolor":"white","ticks":"","title":{"standoff":15},"zerolinecolor":"white","automargin":true,"zerolinewidth":2},"scene":{"xaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2},"yaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2},"zaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2}},"shapedefaults":{"line":{"color":"#2a3f5f"}},"annotationdefaults":{"arrowcolor":"#2a3f5f","arrowhead":0,"arrowwidth":1},"geo":{"bgcolor":"white","landcolor":"#E5ECF6","subunitcolor":"white","showland":true,"showlakes":true,"lakecolor":"white"},"title":{"x":0.05},"mapbox":{"style":"light"},"margin":{"b":0,"l":0,"r":0,"t":30}}},"title":{"text":"YoY CPI Inflation \u2014 Food & Non-Alcoholic Beverages"},"xaxis":{"title":{"text":""}},"yaxis":{"title":{"text":"Year-on-Year % Change"}},"updatemenus":[{"buttons":[{"args":[{"visible":[true,false,false,false,false,false,false]},{"title":"YoY CPI Inflation \u2014 Food & Non-Alcoholic Beverages"}],"label":"Food & Non-Alcoholic Beverages","method":"update"},{"args":[{"visible":[false,true,false,false,false,false,false]},{"title":"YoY CPI Inflation \u2014 Housing & Utilities"}],"label":"Housing & Utilities","method":"update"},{"args":[{"visible":[false,false,true,false,false,false,false]},{"title":"YoY CPI Inflation \u2014 Transport"}],"label":"Transport","method":"update"},{"args":[{"visible":[false,false,false,true,false,false,false]},{"title":"YoY CPI Inflation \u2014 Education"}],"label":"Education","method":"update"},{"args":[{"visible":[false,false,false,false,true,false,false]},{"title":"YoY CPI Inflation \u2014 Health"}],"label":"Health","method":"update"},{"args":[{"visible":[false,false,false,false,false,true,false]},{"title":"YoY CPI Inflation \u2014 Clothing & Footwear"}],"label":"Clothing & Footwear","method":"update"},{"args":[{"visible":[false,false,false,false,false,false,true]},{"title":"YoY CPI Inflation \u2014 Miscellaneous"}],"label":"Miscellaneous","method":"update"}],"direction":"down","showactive":true,"x":0.01,"xanchor":"left","y":1.15,"yanchor":"top"}],"height":450},                        {"responsive": true}                    ).then(function(){
+                            
+var gd = document.getElementById('2ad30fd7-8e8c-4f3e-909f-6b3d7c591b49');
+var x = new MutationObserver(function (mutations, observer) {{
+        var display = window.getComputedStyle(gd).display;
+        if (!display || display === 'none') {{
+            console.log([gd, 'removed!']);
+            Plotly.purge(gd);
+            observer.disconnect();
+        }}
+}});
+
+// Listen for the removal of the full notebook cells
+var notebookContainer = gd.closest('#notebook-container');
+if (notebookContainer) {{
+    x.observe(notebookContainer, {childList: true});
+}}
+
+// Listen for the clearing of the current output cell
+var outputEl = gd.closest('.output');
+if (outputEl) {{
+    x.observe(outputEl, {childList: true});
+}}
+
+                        })                };            </script>        </div>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-dropdown-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;1: Year-on-year CPI inflation — use the dropdown to change category
+</figcaption>
+</figure>
+</div>
+</div>
+<hr>
+</section>
+<section id="all-categories-heatmap-overview" class="level2">
+<h2 class="anchored" data-anchor-id="all-categories-heatmap-overview">All Categories: Heatmap Overview</h2>
+<div id="cell-fig-heatmap" class="cell" data-execution_count="4">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1">df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"year"</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"date"</span>].dt.year</span>
+<span id="cb4-2">annual <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> (df.dropna(subset<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"yoy_pct"</span>])</span>
+<span id="cb4-3">          .groupby([<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"category"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"year"</span>])[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"yoy_pct"</span>]</span>
+<span id="cb4-4">          .mean()</span>
+<span id="cb4-5">          .reset_index())</span>
+<span id="cb4-6"></span>
+<span id="cb4-7">pivot <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> annual.pivot(index<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"category"</span>, columns<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"year"</span>, values<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"yoy_pct"</span>).<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">round</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>)</span>
+<span id="cb4-8"></span>
+<span id="cb4-9">fig2 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> px.imshow(</span>
+<span id="cb4-10">    pivot,</span>
+<span id="cb4-11">    text_auto<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>,</span>
+<span id="cb4-12">    color_continuous_scale<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"RdYlGn_r"</span>,</span>
+<span id="cb4-13">    title<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Average Annual YoY CPI Inflation by Category (%)"</span>,</span>
+<span id="cb4-14">    labels<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">dict</span>(x<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Year"</span>, y<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">""</span>, color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"YoY %"</span>)</span>
+<span id="cb4-15">)</span>
+<span id="cb4-16">fig2.update_layout(height<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">400</span>)</span>
+<span id="cb4-17">fig2.show()</span></code></pre></div></div>
+</details>
+<div id="fig-heatmap" class="cell-output cell-output-display quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-heatmap-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div>            <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_SVG"></script><script>if (window.MathJax && window.MathJax.Hub && window.MathJax.Hub.Config) {window.MathJax.Hub.Config({SVG: {font: "STIX-Web"}});}</script>                <script>window.PlotlyConfig = {MathJaxConfig: 'local'};</script>
+        <script charset="utf-8" src="https://cdn.plot.ly/plotly-3.5.0.min.js" integrity="sha256-fHbNLP+GlIXN+efbQec78UkemUz3NJp7UmfGxC1tNxs=" crossorigin="anonymous"></script>                <div id="7dc721f3-3bea-4c53-808c-f4f676905261" class="plotly-graph-div" style="height:400px; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("7dc721f3-3bea-4c53-808c-f4f676905261")) {                    Plotly.newPlot(                        "7dc721f3-3bea-4c53-808c-f4f676905261",                        [{"coloraxis":"coloraxis","name":"0","texttemplate":"%{z}","x":{"dtype":"i4","bdata":"4wcAAOQHAADlBwAA5gcAAOcHAADoBwAA"},"y":["Clothing & Footwear","Education","Food & Non-Alcoholic Beverages","Health","Housing & Utilities","Miscellaneous","Transport"],"z":{"dtype":"f8","bdata":"ZmZmZmZmCkBmZmZmZmYGQM3MzMzMzAhAAAAAAAAADEBmZmZmZmYOQGZmZmZmZg5AMzMzMzMzD0AAAAAAAAAUQAAAAAAAABRAmpmZmZmZFUCamZmZmZkXQDMzMzMzMxVAmpmZmZmZH0CamZmZmZkfQJqZmZmZmR9AmpmZmZmZIEDNzMzMzMwhQDMzMzMzMyJAZmZmZmZmFkAAAAAAAAAaQGZmZmZmZhxAAAAAAAAAGEDNzMzMzMwYQGZmZmZmZhhAZmZmZmZmFkAzMzMzMzMZQGZmZmZmZhpAzczMzMzMFkAAAAAAAAAYQGZmZmZmZhpAMzMzMzMzEUCamZmZmZkNQJqZmZmZmRFAAAAAAAAAFEAzMzMzMzMTQJqZmZmZmRNAAAAAAAAAIEAAAAAAAAAcQJqZmZmZmSBAMzMzMzMzIEDNzMzMzMwcQDMzMzMzMx1A","shape":"7, 6"},"type":"heatmap","xaxis":"x","yaxis":"y","hovertemplate":"Year: %{x}\u003cbr\u003ey: %{y}\u003cbr\u003eYoY %: %{z}\u003cextra\u003e\u003c\u002fextra\u003e"}],                        {"template":{"data":{"histogram2dcontour":[{"type":"histogram2dcontour","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"choropleth":[{"type":"choropleth","colorbar":{"outlinewidth":0,"ticks":""}}],"histogram2d":[{"type":"histogram2d","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"heatmap":[{"type":"heatmap","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"contourcarpet":[{"type":"contourcarpet","colorbar":{"outlinewidth":0,"ticks":""}}],"contour":[{"type":"contour","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"surface":[{"type":"surface","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"mesh3d":[{"type":"mesh3d","colorbar":{"outlinewidth":0,"ticks":""}}],"scatter":[{"fillpattern":{"fillmode":"overlay","size":10,"solidity":0.2},"type":"scatter"}],"parcoords":[{"type":"parcoords","line":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterpolargl":[{"type":"scatterpolargl","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"bar":[{"error_x":{"color":"#2a3f5f"},"error_y":{"color":"#2a3f5f"},"marker":{"line":{"color":"#E5ECF6","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"scattergeo":[{"type":"scattergeo","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterpolar":[{"type":"scatterpolar","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"scattergl":[{"type":"scattergl","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatter3d":[{"type":"scatter3d","line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattermap":[{"type":"scattermap","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattermapbox":[{"type":"scattermapbox","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterternary":[{"type":"scatterternary","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattercarpet":[{"type":"scattercarpet","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"carpet":[{"aaxis":{"endlinecolor":"#2a3f5f","gridcolor":"white","linecolor":"white","minorgridcolor":"white","startlinecolor":"#2a3f5f"},"baxis":{"endlinecolor":"#2a3f5f","gridcolor":"white","linecolor":"white","minorgridcolor":"white","startlinecolor":"#2a3f5f"},"type":"carpet"}],"table":[{"cells":{"fill":{"color":"#EBF0F8"},"line":{"color":"white"}},"header":{"fill":{"color":"#C8D4E3"},"line":{"color":"white"}},"type":"table"}],"barpolar":[{"marker":{"line":{"color":"#E5ECF6","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"pie":[{"automargin":true,"type":"pie"}]},"layout":{"autotypenumbers":"strict","colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#2a3f5f"},"hovermode":"closest","hoverlabel":{"align":"left"},"paper_bgcolor":"white","plot_bgcolor":"#E5ECF6","polar":{"bgcolor":"#E5ECF6","angularaxis":{"gridcolor":"white","linecolor":"white","ticks":""},"radialaxis":{"gridcolor":"white","linecolor":"white","ticks":""}},"ternary":{"bgcolor":"#E5ECF6","aaxis":{"gridcolor":"white","linecolor":"white","ticks":""},"baxis":{"gridcolor":"white","linecolor":"white","ticks":""},"caxis":{"gridcolor":"white","linecolor":"white","ticks":""}},"coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]]},"xaxis":{"gridcolor":"white","linecolor":"white","ticks":"","title":{"standoff":15},"zerolinecolor":"white","automargin":true,"zerolinewidth":2},"yaxis":{"gridcolor":"white","linecolor":"white","ticks":"","title":{"standoff":15},"zerolinecolor":"white","automargin":true,"zerolinewidth":2},"scene":{"xaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2},"yaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2},"zaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2}},"shapedefaults":{"line":{"color":"#2a3f5f"}},"annotationdefaults":{"arrowcolor":"#2a3f5f","arrowhead":0,"arrowwidth":1},"geo":{"bgcolor":"white","landcolor":"#E5ECF6","subunitcolor":"white","showland":true,"showlakes":true,"lakecolor":"white"},"title":{"x":0.05},"mapbox":{"style":"light"},"margin":{"b":0,"l":0,"r":0,"t":30}}},"xaxis":{"anchor":"y","domain":[0.0,1.0],"scaleanchor":"y","constrain":"domain","title":{"text":"Year"}},"yaxis":{"anchor":"x","domain":[0.0,1.0],"autorange":"reversed","constrain":"domain"},"coloraxis":{"colorbar":{"title":{"text":"YoY %"}},"colorscale":[[0.0,"rgb(0,104,55)"],[0.1,"rgb(26,152,80)"],[0.2,"rgb(102,189,99)"],[0.3,"rgb(166,217,106)"],[0.4,"rgb(217,239,139)"],[0.5,"rgb(255,255,191)"],[0.6,"rgb(254,224,139)"],[0.7,"rgb(253,174,97)"],[0.8,"rgb(244,109,67)"],[0.9,"rgb(215,48,39)"],[1.0,"rgb(165,0,38)"]]},"title":{"text":"Average Annual YoY CPI Inflation by Category (%)"},"height":400},                        {"responsive": true}                    ).then(function(){
+                            
+var gd = document.getElementById('7dc721f3-3bea-4c53-808c-f4f676905261');
+var x = new MutationObserver(function (mutations, observer) {{
+        var display = window.getComputedStyle(gd).display;
+        if (!display || display === 'none') {{
+            console.log([gd, 'removed!']);
+            Plotly.purge(gd);
+            observer.disconnect();
+        }}
+}});
+
+// Listen for the removal of the full notebook cells
+var notebookContainer = gd.closest('#notebook-container');
+if (notebookContainer) {{
+    x.observe(notebookContainer, {childList: true});
+}}
+
+// Listen for the clearing of the current output cell
+var outputEl = gd.closest('.output');
+if (outputEl) {{
+    x.observe(outputEl, {childList: true});
+}}
+
+                        })                };            </script>        </div>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-heatmap-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;2: Annual average YoY inflation across all categories
+</figcaption>
+</figure>
+</div>
+</div>
+<hr>
+</section>
+<section id="key-points" class="level2">
+<h2 class="anchored" data-anchor-id="key-points">Key Points</h2>
+<ul>
+<li><strong>Food</strong> and <strong>Transport</strong> show the highest inflation volatility</li>
+<li><strong>Education</strong> costs have risen steadily with little variation</li>
+<li>The post-2022 global inflation pulse is visible across all categories</li>
+</ul>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>All data is simulated for illustration. In a production post, replace with actual Stats SA CPI series data downloadable from <a href="https://www.statssa.gov.za">statssa.gov.za</a>.</p>
+</div>
+</div>
+
+
+<!-- -->
+
+</section>
+
+ ]]></description>
+  <category>Python</category>
+  <category>Plotly</category>
+  <category>Interactive</category>
+  <category>Economics</category>
+  <category>South Africa</category>
+  <guid>https://rossouwvanjaarsveld-lang.github.io/website/posts/python-inflation-tracker/</guid>
+  <pubDate>Mon, 10 Mar 2025 00:00:00 GMT</pubDate>
+  <media:content url="https://rossouwvanjaarsveld-lang.github.io/website/posts/python-inflation-tracker/thumbnail.png" medium="image" type="image/png"/>
+</item>
+<item>
+  <title>SA Housing Market: Interactive Price Trends</title>
+  <link>https://rossouwvanjaarsveld-lang.github.io/website/posts/housing-market-analysis/</link>
+  <description><![CDATA[ 
+
+
+
+
+<section id="overview" class="level2">
+<h2 class="anchored" data-anchor-id="overview">Overview</h2>
+<p>This post explores simulated residential property price indices across four major South African metros. The charts here are <strong>fully interactive</strong> — hover to see values, click the legend to toggle metros, and zoom in on any period.</p>
+<hr>
+</section>
+<section id="setup" class="level2">
+<h2 class="anchored" data-anchor-id="setup">Setup</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(tidyverse)</span>
+<span id="cb1-2"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(plotly)</span>
+<span id="cb1-3"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(scales)</span></code></pre></div></div>
+</details>
+</div>
+<hr>
+</section>
+<section id="data" class="level2">
+<h2 class="anchored" data-anchor-id="data">Data</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">set.seed</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">7</span>)</span>
+<span id="cb2-2"></span>
+<span id="cb2-3">metros <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Johannesburg"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Cape Town"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Durban"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Pretoria"</span>)</span>
+<span id="cb2-4">quarters <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">seq</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">as.Date</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"2015-01-01"</span>), <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">as.Date</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"2024-10-01"</span>), <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">by =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"quarter"</span>)</span>
+<span id="cb2-5"></span>
+<span id="cb2-6"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Simulate price index (base = 100 at start) with different growth paths</span></span>
+<span id="cb2-7">df <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">expand_grid</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">metro =</span> metros, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">date =</span> quarters) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb2-8">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">arrange</span>(metro, date) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb2-9">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">group_by</span>(metro) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb2-10">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mutate</span>(</span>
+<span id="cb2-11">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">base_growth =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">case_when</span>(</span>
+<span id="cb2-12">      metro <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Cape Town"</span>     <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.025</span>,</span>
+<span id="cb2-13">      metro <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Johannesburg"</span>  <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.015</span>,</span>
+<span id="cb2-14">      metro <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Pretoria"</span>      <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.018</span>,</span>
+<span id="cb2-15">      metro <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Durban"</span>        <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.010</span></span>
+<span id="cb2-16">    ),</span>
+<span id="cb2-17">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">noise       =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">cumsum</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rnorm</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">n</span>(), <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.8</span>)),</span>
+<span id="cb2-18">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">index       =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">100</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">cumprod</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> base_growth <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">4</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rnorm</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">n</span>(), <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.005</span>))</span>
+<span id="cb2-19">  ) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb2-20">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">ungroup</span>()</span></code></pre></div></div>
+</details>
+</div>
+<hr>
+</section>
+<section id="interactive-price-index-chart" class="level2">
+<h2 class="anchored" data-anchor-id="interactive-price-index-chart">Interactive Price Index Chart</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">plot_ly</span>(</span>
+<span id="cb3-2">  df,</span>
+<span id="cb3-3">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">x     =</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span>date,</span>
+<span id="cb3-4">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">y     =</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">round</span>(index, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>),</span>
+<span id="cb3-5">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">color =</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span>metro,</span>
+<span id="cb3-6">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">type  =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"scatter"</span>,</span>
+<span id="cb3-7">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">mode  =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"lines"</span>,</span>
+<span id="cb3-8">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">hovertemplate =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"&lt;b&gt;%{fullData.name}&lt;/b&gt;&lt;br&gt;%{x|%b %Y}&lt;br&gt;Index: %{y}&lt;extra&gt;&lt;/extra&gt;"</span></span>
+<span id="cb3-9">) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb3-10">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">layout</span>(</span>
+<span id="cb3-11">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">title   =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">list</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">text =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"SA Residential Property Price Index (Base = 100, Q1 2015)"</span>),</span>
+<span id="cb3-12">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">xaxis   =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">list</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">title =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">""</span>),</span>
+<span id="cb3-13">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">yaxis   =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">list</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">title =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Price Index"</span>),</span>
+<span id="cb3-14">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">legend  =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">list</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">title =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">list</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">text =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Metro"</span>)),</span>
+<span id="cb3-15">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">hovermode =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"x unified"</span></span>
+<span id="cb3-16">  )</span></code></pre></div></div>
+</details>
+<div id="fig-interactive" class="cell-output-display quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-interactive-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="plotly html-widget html-fill-item" id="htmlwidget-402c69fdf9a4f1c553b0" style="width:100%;height:464px;"></div>
+<script type="application/json" data-for="htmlwidget-402c69fdf9a4f1c553b0">{"x":{"visdat":{"13d818cb7885":["function () ","plotlyVisDat"]},"cur_data":"13d818cb7885","attrs":{"13d818cb7885":{"x":{},"y":{},"mode":"lines","hovertemplate":"<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","color":{},"alpha_stroke":1,"sizes":[10,100],"spans":[1,20],"type":"scatter"}},"layout":{"margin":{"b":40,"l":60,"t":25,"r":10},"title":{"text":"SA Residential Property Price Index (Base = 100, Q1 2015)"},"xaxis":{"domain":[0,1],"automargin":true,"title":""},"yaxis":{"domain":[0,1],"automargin":true,"title":"Price Index"},"legend":{"title":{"text":"Metro"}},"hovermode":"x unified","showlegend":true},"source":"A","config":{"modeBarButtonsToAdd":["hoverclosest","hovercompare"],"showSendToCloud":false},"data":[{"x":["2015-01-01","2015-04-01","2015-07-01","2015-10-01","2016-01-01","2016-04-01","2016-07-01","2016-10-01","2017-01-01","2017-04-01","2017-07-01","2017-10-01","2018-01-01","2018-04-01","2018-07-01","2018-10-01","2019-01-01","2019-04-01","2019-07-01","2019-10-01","2020-01-01","2020-04-01","2020-07-01","2020-10-01","2021-01-01","2021-04-01","2021-07-01","2021-10-01","2022-01-01","2022-04-01","2022-07-01","2022-10-01","2023-01-01","2023-04-01","2023-07-01","2023-10-01","2024-01-01","2024-04-01","2024-07-01","2024-10-01"],"y":[100.8,101.5,102.09999999999999,103.09999999999999,104.3,104.8,105.59999999999999,106.59999999999999,107.5,107.09999999999999,106.5,107.5,108.8,108.7,109.8,110.59999999999999,111.7,113.09999999999999,113.90000000000001,114.3,116.2,118.3,119.7,120.40000000000001,121.40000000000001,121.8,123.2,124.3,123.90000000000001,124.3,123.8,125.40000000000001,126,126.09999999999999,126.8,127.8,128,128.80000000000001,129.19999999999999,130.5],"mode":"lines","hovertemplate":["<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>"],"type":"scatter","name":"Cape Town","marker":{"color":"rgba(102,194,165,1)","line":{"color":"rgba(102,194,165,1)"}},"textfont":{"color":"rgba(102,194,165,1)"},"error_y":{"color":"rgba(102,194,165,1)"},"error_x":{"color":"rgba(102,194,165,1)"},"line":{"color":"rgba(102,194,165,1)"},"xaxis":"x","yaxis":"y","frame":null},{"x":["2015-01-01","2015-04-01","2015-07-01","2015-10-01","2016-01-01","2016-04-01","2016-07-01","2016-10-01","2017-01-01","2017-04-01","2017-07-01","2017-10-01","2018-01-01","2018-04-01","2018-07-01","2018-10-01","2019-01-01","2019-04-01","2019-07-01","2019-10-01","2020-01-01","2020-04-01","2020-07-01","2020-10-01","2021-01-01","2021-04-01","2021-07-01","2021-10-01","2022-01-01","2022-04-01","2022-07-01","2022-10-01","2023-01-01","2023-04-01","2023-07-01","2023-10-01","2024-01-01","2024-04-01","2024-07-01","2024-10-01"],"y":[101.3,102,102.2,102.8,103.59999999999999,103.3,103.2,103.7,103.2,104.09999999999999,104.40000000000001,103.8,103.7,103.7,103.5,104.5,104.7,105,104.7,104.8,104.90000000000001,104.5,105.3,105.8,105.7,106.7,106.90000000000001,106.8,106.8,106.09999999999999,106.90000000000001,106.90000000000001,107.09999999999999,107.3,108.3,107.8,108.09999999999999,108.40000000000001,108.59999999999999,108.7],"mode":"lines","hovertemplate":["<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>"],"type":"scatter","name":"Durban","marker":{"color":"rgba(252,141,98,1)","line":{"color":"rgba(252,141,98,1)"}},"textfont":{"color":"rgba(252,141,98,1)"},"error_y":{"color":"rgba(252,141,98,1)"},"error_x":{"color":"rgba(252,141,98,1)"},"line":{"color":"rgba(252,141,98,1)"},"xaxis":"x","yaxis":"y","frame":null},{"x":["2015-01-01","2015-04-01","2015-07-01","2015-10-01","2016-01-01","2016-04-01","2016-07-01","2016-10-01","2017-01-01","2017-04-01","2017-07-01","2017-10-01","2018-01-01","2018-04-01","2018-07-01","2018-10-01","2019-01-01","2019-04-01","2019-07-01","2019-10-01","2020-01-01","2020-04-01","2020-07-01","2020-10-01","2021-01-01","2021-04-01","2021-07-01","2021-10-01","2022-01-01","2022-04-01","2022-07-01","2022-10-01","2023-01-01","2023-04-01","2023-07-01","2023-10-01","2024-01-01","2024-04-01","2024-07-01","2024-10-01"],"y":[100.2,100.59999999999999,100.5,101.7,101.90000000000001,103.2,103.3,103.7,103.09999999999999,103.90000000000001,103.5,102.40000000000001,102.09999999999999,102.3,102.5,102.59999999999999,102.59999999999999,103.90000000000001,104.3,104.8,104.8,104.3,106.2,107.09999999999999,108,108.7,108.8,109.2,109.09999999999999,110.2,111.09999999999999,111.7,112,111.8,112.3,114.09999999999999,115.09999999999999,115.90000000000001,117.2,118.40000000000001],"mode":"lines","hovertemplate":["<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>"],"type":"scatter","name":"Johannesburg","marker":{"color":"rgba(141,160,203,1)","line":{"color":"rgba(141,160,203,1)"}},"textfont":{"color":"rgba(141,160,203,1)"},"error_y":{"color":"rgba(141,160,203,1)"},"error_x":{"color":"rgba(141,160,203,1)"},"line":{"color":"rgba(141,160,203,1)"},"xaxis":"x","yaxis":"y","frame":null},{"x":["2015-01-01","2015-04-01","2015-07-01","2015-10-01","2016-01-01","2016-04-01","2016-07-01","2016-10-01","2017-01-01","2017-04-01","2017-07-01","2017-10-01","2018-01-01","2018-04-01","2018-07-01","2018-10-01","2019-01-01","2019-04-01","2019-07-01","2019-10-01","2020-01-01","2020-04-01","2020-07-01","2020-10-01","2021-01-01","2021-04-01","2021-07-01","2021-10-01","2022-01-01","2022-04-01","2022-07-01","2022-10-01","2023-01-01","2023-04-01","2023-07-01","2023-10-01","2024-01-01","2024-04-01","2024-07-01","2024-10-01"],"y":[101.5,102.3,102,102.2,102.7,102.90000000000001,103.5,104.2,104.5,105.5,105.59999999999999,107,106.90000000000001,107.40000000000001,106.8,107.3,107.7,107.7,107,107.09999999999999,107.90000000000001,108.2,108.7,109,109.3,109.09999999999999,110.59999999999999,110.90000000000001,110.90000000000001,112,113.09999999999999,114.3,115.8,114.8,115.7,116.90000000000001,117.59999999999999,117.5,117.8,117.40000000000001],"mode":"lines","hovertemplate":["<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>","<b>%{fullData.name}<\/b><br>%{x|%b %Y}<br>Index: %{y}<extra><\/extra>"],"type":"scatter","name":"Pretoria","marker":{"color":"rgba(231,138,195,1)","line":{"color":"rgba(231,138,195,1)"}},"textfont":{"color":"rgba(231,138,195,1)"},"error_y":{"color":"rgba(231,138,195,1)"},"error_x":{"color":"rgba(231,138,195,1)"},"line":{"color":"rgba(231,138,195,1)"},"xaxis":"x","yaxis":"y","frame":null}],"highlight":{"on":"plotly_click","persistent":false,"dynamic":false,"selectize":false,"opacityDim":0.20000000000000001,"selected":{"opacity":1},"debounce":0},"shinyEvents":["plotly_hover","plotly_click","plotly_selected","plotly_relayout","plotly_brushed","plotly_brushing","plotly_clickannotation","plotly_doubleclick","plotly_deselect","plotly_afterplot","plotly_sunburstclick"],"base_url":"https://plot.ly"},"evals":[],"jsHooks":[]}</script>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-interactive-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;1: Residential property price index by metro (hover to explore)
+</figcaption>
+</figure>
+</div>
+</div>
+<hr>
+</section>
+<section id="interactive-bar-latest-index-values" class="level2">
+<h2 class="anchored" data-anchor-id="interactive-bar-latest-index-values">Interactive Bar: Latest Index Values</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1">latest <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> df <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb4-2">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">group_by</span>(metro) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb4-3">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">slice_max</span>(date, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">n =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>)</span>
+<span id="cb4-4"></span>
+<span id="cb4-5"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">plot_ly</span>(</span>
+<span id="cb4-6">  latest,</span>
+<span id="cb4-7">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">x    =</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">reorder</span>(metro, index),</span>
+<span id="cb4-8">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">y    =</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">round</span>(index, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>),</span>
+<span id="cb4-9">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">type =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"bar"</span>,</span>
+<span id="cb4-10">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">color =</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span>metro,</span>
+<span id="cb4-11">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">text =</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">paste0</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">round</span>(index, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>)),</span>
+<span id="cb4-12">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">textposition =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"outside"</span>,</span>
+<span id="cb4-13">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">hovertemplate =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"&lt;b&gt;%{x}&lt;/b&gt;&lt;br&gt;Index: %{y}&lt;extra&gt;&lt;/extra&gt;"</span></span>
+<span id="cb4-14">) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb4-15">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">layout</span>(</span>
+<span id="cb4-16">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">title  =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Latest Residential Price Index by Metro"</span>,</span>
+<span id="cb4-17">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">xaxis  =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">list</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">title =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">""</span>),</span>
+<span id="cb4-18">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">yaxis  =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">list</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">title =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Index Value"</span>),</span>
+<span id="cb4-19">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">showlegend =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">FALSE</span></span>
+<span id="cb4-20">  )</span></code></pre></div></div>
+</details>
+<div id="fig-bar" class="cell-output-display quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-bar-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="plotly html-widget html-fill-item" id="htmlwidget-17fb83fbeaa919a17ffe" style="width:100%;height:464px;"></div>
+<script type="application/json" data-for="htmlwidget-17fb83fbeaa919a17ffe">{"x":{"visdat":{"13d814375735":["function () ","plotlyVisDat"]},"cur_data":"13d814375735","attrs":{"13d814375735":{"x":{},"y":{},"text":{},"textposition":"outside","hovertemplate":"<b>%{x}<\/b><br>Index: %{y}<extra><\/extra>","color":{},"alpha_stroke":1,"sizes":[10,100],"spans":[1,20],"type":"bar"}},"layout":{"margin":{"b":40,"l":60,"t":25,"r":10},"title":"Latest Residential Price Index by Metro","xaxis":{"domain":[0,1],"automargin":true,"title":"","type":"category","categoryorder":"array","categoryarray":["Durban","Pretoria","Johannesburg","Cape Town"]},"yaxis":{"domain":[0,1],"automargin":true,"title":"Index Value"},"showlegend":false,"hovermode":"closest"},"source":"A","config":{"modeBarButtonsToAdd":["hoverclosest","hovercompare"],"showSendToCloud":false},"data":[{"x":["Cape Town"],"y":[130.5],"text":"130.5","textposition":"outside","hovertemplate":"<b>%{x}<\/b><br>Index: %{y}<extra><\/extra>","type":"bar","name":"Cape Town","marker":{"color":"rgba(102,194,165,1)","line":{"color":"rgba(102,194,165,1)"}},"textfont":{"color":"rgba(102,194,165,1)"},"error_y":{"color":"rgba(102,194,165,1)"},"error_x":{"color":"rgba(102,194,165,1)"},"xaxis":"x","yaxis":"y","frame":null},{"x":["Durban"],"y":[108.7],"text":"108.7","textposition":"outside","hovertemplate":"<b>%{x}<\/b><br>Index: %{y}<extra><\/extra>","type":"bar","name":"Durban","marker":{"color":"rgba(252,141,98,1)","line":{"color":"rgba(252,141,98,1)"}},"textfont":{"color":"rgba(252,141,98,1)"},"error_y":{"color":"rgba(252,141,98,1)"},"error_x":{"color":"rgba(252,141,98,1)"},"xaxis":"x","yaxis":"y","frame":null},{"x":["Johannesburg"],"y":[118.40000000000001],"text":"118.4","textposition":"outside","hovertemplate":"<b>%{x}<\/b><br>Index: %{y}<extra><\/extra>","type":"bar","name":"Johannesburg","marker":{"color":"rgba(141,160,203,1)","line":{"color":"rgba(141,160,203,1)"}},"textfont":{"color":"rgba(141,160,203,1)"},"error_y":{"color":"rgba(141,160,203,1)"},"error_x":{"color":"rgba(141,160,203,1)"},"xaxis":"x","yaxis":"y","frame":null},{"x":["Pretoria"],"y":[117.40000000000001],"text":"117.4","textposition":"outside","hovertemplate":"<b>%{x}<\/b><br>Index: %{y}<extra><\/extra>","type":"bar","name":"Pretoria","marker":{"color":"rgba(231,138,195,1)","line":{"color":"rgba(231,138,195,1)"}},"textfont":{"color":"rgba(231,138,195,1)"},"error_y":{"color":"rgba(231,138,195,1)"},"error_x":{"color":"rgba(231,138,195,1)"},"xaxis":"x","yaxis":"y","frame":null}],"highlight":{"on":"plotly_click","persistent":false,"dynamic":false,"selectize":false,"opacityDim":0.20000000000000001,"selected":{"opacity":1},"debounce":0},"shinyEvents":["plotly_hover","plotly_click","plotly_selected","plotly_relayout","plotly_brushed","plotly_brushing","plotly_clickannotation","plotly_doubleclick","plotly_deselect","plotly_afterplot","plotly_sunburstclick"],"base_url":"https://plot.ly"},"evals":[],"jsHooks":[]}</script>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-bar-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;2: Latest index value per metro
+</figcaption>
+</figure>
+</div>
+</div>
+<hr>
+</section>
+<section id="takeaways" class="level2">
+<h2 class="anchored" data-anchor-id="takeaways">Takeaways</h2>
+<ul>
+<li><strong>Cape Town</strong> has seen the strongest cumulative price growth since 2015</li>
+<li><strong>Durban</strong> has lagged significantly, with the lowest current index</li>
+<li>All metros show post-2020 acceleration followed by softening into 2024</li>
+</ul>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span>Interact with the charts
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Click a city name in the legend to hide/show it. Drag on the chart to zoom in. Double-click to reset the view.</p>
+</div>
+</div>
+
+
+<!-- -->
+
+</section>
+
+ ]]></description>
+  <category>R</category>
+  <category>Plotly</category>
+  <category>Interactive</category>
+  <category>Real Estate</category>
+  <category>South Africa</category>
+  <guid>https://rossouwvanjaarsveld-lang.github.io/website/posts/housing-market-analysis/</guid>
+  <pubDate>Thu, 20 Feb 2025 00:00:00 GMT</pubDate>
+  <media:content url="https://rossouwvanjaarsveld-lang.github.io/website/posts/housing-market-analysis/thumbnail.png" medium="image" type="image/png"/>
+</item>
+<item>
+  <title>South Africa’s Load Shedding: A Data Story</title>
+  <link>https://rossouwvanjaarsveld-lang.github.io/website/posts/sa-load-shedding/</link>
+  <description><![CDATA[ 
+
+
+
+
+<section id="background" class="level2">
+<h2 class="anchored" data-anchor-id="background">Background</h2>
+<p>Load shedding has become a defining feature of life in South Africa. In this post I use R to build a clear picture of how shedding frequency and severity changed over time, using publicly available Eskom stage data.</p>
+<hr>
+</section>
+<section id="setup" class="level2">
+<h2 class="anchored" data-anchor-id="setup">Setup</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(tidyverse)</span>
+<span id="cb1-2"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(lubridate)</span>
+<span id="cb1-3"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(scales)</span></code></pre></div></div>
+</details>
+</div>
+<hr>
+</section>
+<section id="simulated-data" class="level2">
+<h2 class="anchored" data-anchor-id="simulated-data">Simulated Data</h2>
+<p>For this example we simulate a plausible load shedding dataset. In a real post you would load actual Eskom data here (e.g.&nbsp;from an API or a downloaded CSV).</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">set.seed</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">42</span>)</span>
+<span id="cb2-2"></span>
+<span id="cb2-3"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Simulate daily load shedding stages across 2022–2024</span></span>
+<span id="cb2-4">dates <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">seq</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">as.Date</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"2022-01-01"</span>), <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">as.Date</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"2024-12-31"</span>), <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">by =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"day"</span>)</span>
+<span id="cb2-5"></span>
+<span id="cb2-6">stage <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">ifelse</span>(</span>
+<span id="cb2-7">  dates <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">as.Date</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"2022-06-01"</span>),</span>
+<span id="cb2-8">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sample</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>, <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">length</span>(dates), <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">replace =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">prob =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.5</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.3</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.2</span>)),</span>
+<span id="cb2-9">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">ifelse</span>(</span>
+<span id="cb2-10">    dates <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">as.Date</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"2023-06-01"</span>),</span>
+<span id="cb2-11">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sample</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">6</span>, <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">length</span>(dates), <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">replace =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">prob =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.1</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.15</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.2</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.25</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.15</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.1</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.05</span>)),</span>
+<span id="cb2-12">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sample</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">4</span>, <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">length</span>(dates), <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">replace =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">prob =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.3</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.25</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.2</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.15</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.1</span>))</span>
+<span id="cb2-13">  )</span>
+<span id="cb2-14">)</span>
+<span id="cb2-15"></span>
+<span id="cb2-16">df <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">tibble</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">date =</span> dates, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">stage =</span> stage)</span>
+<span id="cb2-17"></span>
+<span id="cb2-18"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">head</span>(df)</span></code></pre></div></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 6 × 2
+  date       stage
+  &lt;date&gt;     &lt;int&gt;
+1 2022-01-01     2
+2 2022-01-02     2
+3 2022-01-03     0
+4 2022-01-04     2
+5 2022-01-05     1
+6 2022-01-06     1</code></pre>
+</div>
+</div>
+<hr>
+</section>
+<section id="monthly-average-stage" class="level2">
+<h2 class="anchored" data-anchor-id="monthly-average-stage">Monthly Average Stage</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1">df_monthly <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> df <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb4-2">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mutate</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">month =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">floor_date</span>(date, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"month"</span>)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb4-3">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">group_by</span>(month) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb4-4">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">summarise</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">avg_stage =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mean</span>(stage), <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">.groups =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"drop"</span>)</span>
+<span id="cb4-5"></span>
+<span id="cb4-6"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">ggplot</span>(df_monthly, <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">aes</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">x =</span> month, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">y =</span> avg_stage, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">fill =</span> avg_stage)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb4-7">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">geom_col</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">width =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">25</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb4-8">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">scale_fill_gradient</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">low =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"#ffe599"</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">high =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"#cc0000"</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">name =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Avg Stage"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb4-9">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">scale_x_date</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">date_breaks =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"3 months"</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">date_labels =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"%b %Y"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb4-10">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">scale_y_continuous</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">breaks =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">6</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb4-11">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">labs</span>(</span>
+<span id="cb4-12">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">title    =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Monthly Average Load Shedding Stage"</span>,</span>
+<span id="cb4-13">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">subtitle =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"South Africa · Simulated data for illustration"</span>,</span>
+<span id="cb4-14">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">x        =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">NULL</span>,</span>
+<span id="cb4-15">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">y        =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Average Stage"</span></span>
+<span id="cb4-16">  ) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb4-17">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">theme_minimal</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">base_size =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">13</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb4-18">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">theme</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">axis.text.x =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">element_text</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">angle =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">45</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">hjust =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>))</span></code></pre></div></div>
+</details>
+<div class="cell-output-display">
+<div id="fig-monthly" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-monthly-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="https://rossouwvanjaarsveld-lang.github.io/website/posts/sa-load-shedding/index_files/figure-html/fig-monthly-1.png" class="img-fluid figure-img" width="960">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-monthly-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;1: Average daily load shedding stage by month
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<hr>
+</section>
+<section id="days-at-each-stage-per-year" class="level2">
+<h2 class="anchored" data-anchor-id="days-at-each-stage-per-year">Days at Each Stage Per Year</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1">df <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb5-2">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mutate</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">year =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">year</span>(date)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb5-3">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">count</span>(year, stage) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb5-4">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mutate</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">stage =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">factor</span>(stage)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb5-5">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">ggplot</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">aes</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">x =</span> stage, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">y =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">factor</span>(year), <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">fill =</span> n)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb5-6">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">geom_tile</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">colour =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"white"</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">linewidth =</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.5</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb5-7">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">geom_text</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">aes</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">label =</span> n), <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">size =</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3.5</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb5-8">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">scale_fill_gradient</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">low =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"#fff7bc"</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">high =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"#d7191c"</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">name =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Days"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb5-9">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">labs</span>(</span>
+<span id="cb5-10">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">title =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Days Spent at Each Load Shedding Stage"</span>,</span>
+<span id="cb5-11">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">x     =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Stage"</span>,</span>
+<span id="cb5-12">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">y     =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Year"</span></span>
+<span id="cb5-13">  ) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb5-14">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">theme_minimal</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">base_size =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">13</span>)</span></code></pre></div></div>
+</details>
+<div class="cell-output-display">
+<div id="fig-heatmap" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-heatmap-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="https://rossouwvanjaarsveld-lang.github.io/website/posts/sa-load-shedding/index_files/figure-html/fig-heatmap-1.png" class="img-fluid figure-img" width="768">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-heatmap-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;2: Distribution of load shedding stages per year
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<hr>
+</section>
+<section id="key-observations" class="level2">
+<h2 class="anchored" data-anchor-id="key-observations">Key Observations</h2>
+<ul>
+<li>2022 saw a dramatic escalation into higher stages from mid-year</li>
+<li>2023 was the worst year on record, with frequent Stage 4–6 events</li>
+<li>2024 showed tentative improvement, with more Stage 0 days returning</li>
+</ul>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>This post uses <strong>simulated</strong> data for illustration purposes. Replace the data block with real Eskom data for a production analysis.</p>
+</div>
+</div>
+
+
+<!-- -->
+
+</section>
+
+ ]]></description>
+  <category>R</category>
+  <category>ggplot2</category>
+  <category>South Africa</category>
+  <category>Energy</category>
+  <guid>https://rossouwvanjaarsveld-lang.github.io/website/posts/sa-load-shedding/</guid>
+  <pubDate>Wed, 15 Jan 2025 00:00:00 GMT</pubDate>
+  <media:content url="https://rossouwvanjaarsveld-lang.github.io/website/posts/sa-load-shedding/thumbnail.png" medium="image" type="image/png"/>
+</item>
+</channel>
+</rss>

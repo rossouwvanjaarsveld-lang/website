@@ -1,0 +1,66 @@
+/* ── Google Font import ─────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap');
+
+/* ── Apply font site-wide ───────────────────────────────── */
+body, p, li, td, th, .navbar, .quarto-title, h1, h2, h3, h4, h5 {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* ── Brighter white body text on slate theme ────────────── */
+body {
+  color: #e8e8e8;
+  font-size: 1.0rem;
+  line-height: 1.75;
+  letter-spacing: -0.01em;   /* tighten spacing slightly for mono fonts */
+}
+
+/* ── Headings: full white for contrast ──────────────────── */
+h1, h2, h3, h4, h5, h6 {
+  color: #ffffff;
+  font-weight: 500;
+}
+
+/* ── Navbar text ────────────────────────────────────────── */
+.navbar-dark .navbar-nav .nav-link,
+.navbar-brand {
+  color: #ffffff !important;
+}
+
+/* ── Card text on the landing page grid ─────────────────── */
+.card-title {
+  color: #ffffff;
+  font-weight: 500;
+}
+
+.card-text, .listing-description {
+  color: #cccccc;
+}
+
+/* ── Code blocks: differentiate from body text ──────────── */
+pre, code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.875rem;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+/* ── Card hover effect ───────────────────────────────────── */
+.quarto-grid-item:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* ── Table of contents text ─────────────────────────────── */
+#TOC a {
+  color: #cccccc;
+}
+
+#TOC a:hover {
+  color: #ffffff;
+}
+
+/* ── Footer ─────────────────────────────────────────────── */
+.nav-footer {
+  color: #aaaaaa;
+}
