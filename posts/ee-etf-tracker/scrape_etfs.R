@@ -1,21 +1,24 @@
 # =============================================================================
 # Easy Equities TFSA ETF  —  Data Pipeline
 # =============================================================================
-# CHANGELOG (latest)
-#  - PRICE DATA: Yahoo Finance primary, Stooq fallback for missing tickers
-#  - HOLDINGS: Diagnostic multi-source scraper (verbose error reporting)
-#  - PARTIAL OUTPUT: ETFs without price data still get JSON with metadata
-#                    + holdings + index rules (so they appear in tables)
-#  - HOLDINGS_VERIFIED date — tells you how stale the fallback data is
+# DATA SOURCES
+#   - ETF list:      posts/ee-etf-tracker/data/easy_equities_tfsa_etfs.csv
+#                    (Provider, ETF Name, Ticker)
+#   - Live data:     justonelap.com/{ticker}/  (benchmark, classification,
+#                    top holdings, TIC/TER, distribution, description)
+#                    Just One Lap aggregates Minimum Disclosure Documents
+#                    that all JSE ETF issuers are legally required to publish.
+#   - Prices:        Yahoo Finance (primary), Stooq (fallback)
 #
-# HONEST CAVEAT
-#  Live scraping of JSE ETF holdings is unreliable from free sources
-#  (Cloudflare, JS-rendered pages, paywalls). The hardcoded fallback is
-#  the practical source of truth — review it quarterly after index rebalances.
+# OUTPUTS
+#   posts/ee-etf-tracker/data/
+#     etf_list.json        — full catalogue with EE display names + aliases
+#     summary.json         — one row per ETF for the comparison table
+#     <TICKER>.json        — full payload per ETF
 #
 # DEPENDENCIES
 #   install.packages(c("tidyverse","tidyquant","quantmod","lubridate",
-#                      "slider","jsonlite","glue","here","rvest","httr"))
+#                      "slider","jsonlite","glue","here","rvest","httr","stringi"))
 # =============================================================================
 
 suppressPackageStartupMessages({
@@ -29,601 +32,551 @@ suppressPackageStartupMessages({
   library(here)
   library(rvest)
   library(httr)
+  library(stringi)
 })
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
-OUTPUT_DIR        <- here("posts", "ee-etf-tracker", "data")
-START_DATE        <- as.Date("2019-01-01")
-END_DATE          <- Sys.Date()
-RISK_FREE_ANN     <- 0.0825
-DAILY_RF          <- RISK_FREE_ANN / 252
-MIN_ROWS          <- 20
-HOLDINGS_VERIFIED <- "2025-01-15"   # update this date when you manually review holdings
+POST_DIR     <- here("posts", "ee-etf-tracker")
+DATA_DIR     <- file.path(POST_DIR, "data")
+CSV_PATH     <- file.path(DATA_DIR, "easy_equities_tfsa_etfs.csv")
+START_DATE   <- as.Date("2019-01-01")
+END_DATE     <- Sys.Date()
+RISK_FREE    <- 0.0825
+DAILY_RF     <- RISK_FREE / 252
+MIN_ROWS     <- 20
 
 UA <- paste0("Mozilla/5.0 (Windows NT 10.0; Win64; x64) ",
              "AppleWebKit/537.36 (KHTML, like Gecko) ",
              "Chrome/121.0.0.0 Safari/537.36")
 
-dir.create(OUTPUT_DIR, recursive = TRUE, showWarnings = FALSE)
+dir.create(DATA_DIR, recursive = TRUE, showWarnings = FALSE)
 
-# =============================================================================
-# ETF CATALOGUE — all Easy Equities TFSA-eligible ETFs as of April 2025
-# =============================================================================
+# ── Read the master CSV (the source of truth for what's available) ───────────
 
-etf_catalogue <- list(
-  list(ticker="STX40",  yf="STX40.JO",  name="Satrix 40 ETF",
-       provider="Satrix", category="SA Broad Equity", ter=0.0010, dividend="Pays",
-       index="FTSE/JSE Top 40 Index",
-       index_rules="Tracks the 40 largest JSE companies by investable market cap. No SWIX adjustment — full float-adjusted global market cap weighting. 10% individual stock cap. Reviewed quarterly by the FTSE/JSE Advisory Committee.",
-       rebalancing="Quarterly"),
-  list(ticker="STXSWX", yf="STXSWX.JO", name="Satrix SWIX Top 40 ETF",
-       provider="Satrix", category="SA Broad Equity", ter=0.0010, dividend="Pays",
-       index="FTSE/JSE SWIX Top 40 Index",
-       index_rules="Same 40 constituents as Top 40 but weighted by shares held on the South African share register (STRATE), reducing exposure to dual-listed rand hedges like BHP and Richemont.",
-       rebalancing="Quarterly"),
-  list(ticker="STXCAP", yf="STXCAP.JO", name="Satrix Capped All Share ETF",
-       provider="Satrix", category="SA Broad Equity", ter=0.0025, dividend="Pays",
-       index="FTSE/JSE Capped All Share Index (CAPI)",
-       index_rules="Tracks ~140 JSE All Share companies with a 10% per-stock cap. Broader than Top 40, capturing mid-cap JSE exposure.",
-       rebalancing="Quarterly"),
-  list(ticker="STXJGE", yf="STXJGE.JO", name="Satrix JSE Global Equity ETF",
-       provider="Satrix", category="SA Broad Equity", ter=0.0015, dividend="Pays",
-       index="FTSE/JSE Global Investor Index (J501)",
-       index_rules="Listed March 2024. The 50 largest JSE-listed companies weighted by GLOBAL free-float market cap (not SWIX). This upweights dual-listed companies like BHP, Glencore and Richemont, providing the highest rand-hedge exposure of any JSE broad equity ETF. 10% cap.",
-       rebalancing="Quarterly"),
-  list(ticker="STXRAF", yf="STXRAF.JO", name="Satrix RAFI 40 ETF",
-       provider="Satrix", category="SA Smart Beta", ter=0.0051, dividend="Pays",
-       index="FTSE/JSE RAFI 40 Index",
-       index_rules="Fundamental indexing — constituents ranked by dividends, cash flow, sales and book value rather than market cap. Creates a structural value tilt.",
-       rebalancing="Annual"),
-  list(ticker="ETFT40", yf="ETFT40.JO", name="1nvest Top 40 ETF",
-       provider="1nvest", category="SA Broad Equity", ter=0.0010, dividend="Pays",
-       index="FTSE/JSE Top 40 Index",
-       index_rules="Identical benchmark to STX40. Managed by Standard Bank's 1nvest division.",
-       rebalancing="Quarterly"),
-  list(ticker="ETFSWX", yf="ETFSWX.JO", name="1nvest Capped SWIX ETF",
-       provider="1nvest", category="SA Broad Equity", ter=0.0010, dividend="Pays",
-       index="FTSE/JSE Capped SWIX All Share Index",
-       index_rules="SWIX-weighted All Share universe with 10% single-stock cap. Combines SA-register weighting with broad equity coverage including mid-caps.",
-       rebalancing="Quarterly"),
-  list(ticker="CTOP50", yf="CTOP50.JO", name="10X Top 50 ETF",
-       provider="10X (CoreShares)", category="SA Broad Equity", ter=0.0025, dividend="Pays",
-       index="S&P South Africa Top 50 Index",
-       index_rules="Tracks the 50 largest JSE companies by market cap with a 10% individual stock cap. Note: tracks S&P index, not FTSE/JSE.",
-       rebalancing="Quarterly"),
-  list(ticker="SYGT40", yf="SYGT40.JO", name="Sygnia Itrix Top 40 ETF",
-       provider="Sygnia", category="SA Broad Equity", ter=0.0010, dividend="Pays",
-       index="FTSE/JSE Top 40 Index",
-       index_rules="Tracks the FTSE/JSE Top 40 Index. Managed by Sygnia. Pays dividends bi-annually.",
-       rebalancing="Quarterly"),
-  list(ticker="STXFIN", yf="STXFIN.JO", name="Satrix Financials ETF",
-       provider="Satrix", category="SA Sector", ter=0.0010, dividend="Pays",
-       index="FTSE/JSE Capped Financials 15 Index",
-       index_rules="The 15 largest JSE financial sector companies. 15% per-stock cap.",
-       rebalancing="Quarterly"),
-  list(ticker="STXIND", yf="STXIND.JO", name="Satrix Capped Industrials ETF",
-       provider="Satrix", category="SA Sector", ter=0.0010, dividend="Pays",
-       index="FTSE/JSE Capped Industrials 25 Index",
-       index_rules="25 JSE Industrial sector companies (consumer discretionary, media, telecoms). Naspers dominates. 20% per-stock cap.",
-       rebalancing="Quarterly"),
-  list(ticker="STXRES", yf="STXRES.JO", name="Satrix Capped Resources ETF",
-       provider="Satrix", category="SA Sector", ter=0.0010, dividend="Pays",
-       index="FTSE/JSE Capped Resources 10 Index",
-       index_rules="The 10 largest JSE resources (mining) companies. 20% per-constituent cap.",
-       rebalancing="Quarterly"),
-  list(ticker="STXDIV", yf="STXDIV.JO", name="Satrix Divi Plus ETF",
-       provider="Satrix", category="SA Dividend", ter=0.0010, dividend="Pays",
-       index="FTSE/JSE Dividend Plus Index",
-       index_rules="The 30 highest dividend-yielding shares from the All Share Index, weighted by yield.",
-       rebalancing="Semi-annual"),
-  list(ticker="STXQUA", yf="STXQUA.JO", name="Satrix Quality SA ETF",
-       provider="Satrix", category="SA Smart Beta", ter=0.0020, dividend="Pays",
-       index="S&P SA Quality Index",
-       index_rules="SA stocks scored on ROE, accruals ratio and financial leverage. Top 20% quality stocks weighted by quality score × market cap.",
-       rebalancing="Annual"),
-  list(ticker="STXMMT", yf="STXMMT.JO", name="Satrix Momentum ETF",
-       provider="Satrix", category="SA Smart Beta", ter=0.0020, dividend="Pays",
-       index="S&P SA Momentum Index",
-       index_rules="SA stocks with the strongest 12-month risk-adjusted price momentum (excluding most recent month).",
-       rebalancing="Semi-annual"),
-  list(ticker="STXLVL", yf="STXLVL.JO", name="Satrix Low Volatility ETF",
-       provider="Satrix", category="SA Smart Beta", ter=0.0020, dividend="Pays",
-       index="S&P SA Low Volatility Index",
-       index_rules="The 30 least volatile SA stocks over trailing 252 days. Weighted inversely by volatility.",
-       rebalancing="Quarterly"),
-  list(ticker="STXPRO", yf="STXPRO.JO", name="Satrix Property ETF",
-       provider="Satrix", category="SA Property", ter=0.0010, dividend="Pays",
-       index="FTSE/JSE SA Listed Property Index (SAPY)",
-       index_rules="All JSE-listed REITs and property companies by float-adjusted market cap, 20% per-stock cap.",
-       rebalancing="Quarterly"),
-  list(ticker="CSPROP", yf="CSPROP.JO", name="10X SA Property Income ETF",
-       provider="10X (CoreShares)", category="SA Property", ter=0.0045, dividend="Pays",
-       index="FTSE/JSE SA Listed Property Index (SAPY)",
-       index_rules="Same benchmark as STXPRO, managed by 10X.",
-       rebalancing="Quarterly"),
-  list(ticker="STXILB", yf="STXILB.JO", name="Satrix ILBI ETF",
-       provider="Satrix", category="SA Bond", ter=0.0025, dividend="Pays",
-       index="FTSE/JSE ILBI Index",
-       index_rules="SA government inflation-linked bonds weighted by market value. Real returns above CPI.",
-       rebalancing="Monthly"),
-  list(ticker="CSGOVI", yf="CSGOVI.JO", name="10X Wealth Govi Bond ETF",
-       provider="10X (CoreShares)", category="SA Bond", ter=0.0024, dividend="Pays",
-       index="FTSE/JSE GOVI Index",
-       index_rules="SA government nominal bonds, weighted by outstanding market value.",
-       rebalancing="Monthly"),
-  list(ticker="PREFTX", yf="PREFTX.JO", name="10X Yield Selected Bond ETF",
-       provider="10X (CoreShares)", category="SA Bond", ter=0.0035, dividend="Pays",
-       index="Custom: 8 Highest-Yielding SA Government Bonds",
-       index_rules="Previously the CoreShares PrefTrax (preference share tracker). Remandated April 2023 after the preference share market shrank due to Basel III. Now tracks a custom index of the 8 highest-yielding SA government bonds.",
-       rebalancing="Quarterly"),
-  list(ticker="STX500", yf="STX500.JO", name="Satrix S&P 500 Feeder ETF",
-       provider="Satrix", category="Global Equity", ter=0.0035, dividend="Reinvests",
-       index="S&P 500 Index",
-       index_rules="Feeder into Vanguard S&P 500 UCITS ETF. 500 large US companies.",
-       rebalancing="Quarterly"),
-  list(ticker="SYG500", yf="SYG500.JO", name="Sygnia Itrix S&P 500 ETF",
-       provider="Sygnia", category="Global Equity", ter=0.0015, dividend="Reinvests",
-       index="S&P 500 Index",
-       index_rules="Tracks the S&P 500 via iShares S&P 500 UCITS ETF. Lowest-cost S&P 500 product on the TFSA.",
-       rebalancing="Quarterly"),
-  list(ticker="ETF500", yf="ETF500.JO", name="1nvest S&P 500 Feeder ETF",
-       provider="1nvest", category="Global Equity", ter=0.0020, dividend="Reinvests",
-       index="S&P 500 Index",
-       index_rules="Feeder into iShares Core S&P 500 UCITS ETF.",
-       rebalancing="Quarterly"),
-  list(ticker="CSP500", yf="CSP500.JO", name="10X S&P 500 ETF",
-       provider="10X (CoreShares)", category="Global Equity", ter=0.0037, dividend="Reinvests",
-       index="S&P 500 Index",
-       index_rules="Feeder into iShares S&P 500 UCITS ETF, managed by 10X.",
-       rebalancing="Quarterly"),
-  list(ticker="ETF5IT", yf="ETF5IT.JO", name="1nvest S&P 500 Info Tech Feeder ETF",
-       provider="1nvest", category="Global Equity", ter=0.0025, dividend="Reinvests",
-       index="S&P 500 Information Technology Sector Index",
-       index_rules="Only the IT sector of the S&P 500 (~70 companies). Concentrated in Apple, Microsoft, Nvidia.",
-       rebalancing="Quarterly"),
-  list(ticker="STXNDQ", yf="STXNDQ.JO", name="Satrix Nasdaq 100 Feeder ETF",
-       provider="Satrix", category="Global Equity", ter=0.0048, dividend="Reinvests",
-       index="Nasdaq-100 Index",
-       index_rules="Feeder into Invesco Nasdaq-100 UCITS ETF. The 100 largest non-financial Nasdaq companies. Reviewed annually in December.",
-       rebalancing="Annual (December)"),
-  list(ticker="STXWDM", yf="STXWDM.JO", name="Satrix MSCI World Feeder ETF",
-       provider="Satrix", category="Global Equity", ter=0.0035, dividend="Reinvests",
-       index="MSCI World Index",
-       index_rules="Feeder into Vanguard MSCI World UCITS ETF. ~1,500 large/mid caps across 23 developed markets. US ≈ 70%.",
-       rebalancing="Quarterly"),
-  list(ticker="SYGWD", yf="SYGWD.JO", name="Sygnia Itrix MSCI World ETF",
-       provider="Sygnia", category="Global Equity", ter=0.0020, dividend="Reinvests",
-       index="MSCI World Index",
-       index_rules="Same benchmark as STXWDM via iShares Core MSCI World UCITS ETF.",
-       rebalancing="Quarterly"),
-  list(ticker="CTWRL", yf="CTWRL.JO", name="10X Total World ETF",
-       provider="10X (CoreShares)", category="Global Equity", ter=0.0025, dividend="Reinvests",
-       index="FTSE Global All Cap Index",
-       index_rules="Feeder into Vanguard Total World Stock UCITS ETF. 9,500+ stocks across 49 countries — developed AND emerging markets plus small/mid caps. Broadest single-fund global exposure on the TFSA.",
-       rebalancing="Quarterly"),
-  list(ticker="STXEMG", yf="STXEMG.JO", name="Satrix MSCI Emerging Markets Feeder ETF",
-       provider="Satrix", category="EM Equity", ter=0.0040, dividend="Reinvests",
-       index="MSCI Emerging Markets Index",
-       index_rules="Feeder into Vanguard MSCI EM UCITS ETF. ~1,400 large/mid caps in 24 EM countries.",
-       rebalancing="Quarterly"),
-  list(ticker="ASHGEQ", yf="ASHGEQ.JO", name="Ashburton Global 1200 ETF",
-       provider="Ashburton (FNB)", category="Global Equity", ter=0.0075, dividend="Reinvests",
-       index="S&P Global 1200 Index",
-       index_rules="Composite of 7 regional indices covering 31 countries and ~1,200 companies.",
-       rebalancing="Quarterly"),
-  list(ticker="SYGJP", yf="SYGJP.JO", name="Sygnia Itrix MSCI Japan ETF",
-       provider="Sygnia", category="Global Equity", ter=0.0020, dividend="Reinvests",
-       index="MSCI Japan Index",
-       index_rules="Tracks MSCI Japan via iShares Core MSCI Japan IMI UCITS ETF.",
-       rebalancing="Quarterly"),
-  list(ticker="SYGEU", yf="SYGEU.JO", name="Sygnia Itrix MSCI Europe ETF",
-       provider="Sygnia", category="Global Equity", ter=0.0020, dividend="Reinvests",
-       index="MSCI Europe Index",
-       index_rules="Tracks MSCI Europe via iShares Core MSCI Europe UCITS ETF. ~430 companies across 15 European developed markets.",
-       rebalancing="Quarterly"),
-  list(ticker="SYGUK", yf="SYGUK.JO", name="Sygnia Itrix MSCI UK ETF",
-       provider="Sygnia", category="Global Equity", ter=0.0020, dividend="Reinvests",
-       index="MSCI United Kingdom Index",
-       index_rules="Tracks MSCI UK via iShares Core MSCI UK IMI UCITS ETF. ~250 UK companies.",
-       rebalancing="Quarterly"),
-  list(ticker="GLPROP", yf="GLPROP.JO", name="10X S&P Global Property ETF",
-       provider="10X (CoreShares)", category="Global Property", ter=0.0051, dividend="Pays",
-       index="S&P Global Property 40 Index",
-       index_rules="40 largest global REITs and real estate companies by float-adjusted market cap.",
-       rebalancing="Quarterly"),
-  list(ticker="ETFGPR", yf="ETFGPR.JO", name="1nvest Global REIT Index Feeder ETF",
-       provider="1nvest", category="Global Property", ter=0.0025, dividend="Pays",
-       index="FTSE EPRA/NAREIT Global REIT Index",
-       index_rules="~300 REITs across 25 countries via iShares Global REIT ETF.",
-       rebalancing="Quarterly"),
-  list(ticker="GLODIV", yf="GLODIV.JO", name="10X S&P Global Dividend ETF",
-       provider="10X (CoreShares)", category="Global Income", ter=0.0054, dividend="Pays",
-       index="S&P Global Dividend Aristocrats Index",
-       index_rules="Global stocks with 7+ consecutive years of non-decreasing dividends, weighted by dividend yield.",
-       rebalancing="Annual"),
-  list(ticker="ETFUSG", yf="ETFUSG.JO", name="1nvest ICE US Treasury Short Bond Feeder ETF",
-       provider="1nvest", category="Global Bond", ter=0.0020, dividend="Pays",
-       index="ICE US Treasury Short Bond Index",
-       index_rules="Short-dated US Treasury bonds (1-3 year maturities). Low-risk USD-denominated income.",
-       rebalancing="Monthly"),
-  list(ticker="ETFGLD", yf="ETFGLD.JO", name="1nvest Gold ETF",
-       provider="1nvest", category="Commodity", ter=0.0040, dividend="None",
-       index="ZAR Gold Spot Price",
-       index_rules="Physically-backed gold ETF. Each debenture = 1/100th troy oz gold in SA Reserve Bank vaults.",
-       rebalancing="N/A"),
-  list(ticker="NGPLT", yf="NGPLT.JO", name="NewPlat ETF",
-       provider="Absa (NewGold)", category="Commodity", ter=0.0040, dividend="None",
-       index="ZAR Platinum Spot Price",
-       index_rules="Physically-backed platinum ETF. Each debenture = 1/100th troy oz physical platinum in SA vaults.",
-       rebalancing="N/A"),
-  list(ticker="ETFPLT", yf="ETFPLT.JO", name="1nvest Platinum ETF",
-       provider="1nvest", category="Commodity", ter=0.0040, dividend="None",
-       index="ZAR Platinum Spot Price",
-       index_rules="Physically-backed platinum ETF managed by Standard Bank's 1nvest.",
-       rebalancing="N/A"),
-  list(ticker="ETFPLD", yf="ETFPLD.JO", name="1nvest Palladium ETF",
-       provider="1nvest", category="Commodity", ter=0.0040, dividend="None",
-       index="ZAR Palladium Spot Price",
-       index_rules="Physically-backed palladium ETF. Supply concentrated in Russia and SA.",
-       rebalancing="N/A"),
-  list(ticker="ETFRHO", yf="ETFRHO.JO", name="1nvest Rhodium ETF",
-       provider="1nvest", category="Commodity", ter=0.0040, dividend="None",
-       index="ZAR Rhodium Spot Price",
-       index_rules="Physically-backed rhodium ETF. Rarest PGM, used in catalytic converters.",
-       rebalancing="N/A"),
-  list(ticker="MAPPSG", yf="MAPPSG.JO", name="Satrix MAPPS Growth ETF",
-       provider="Satrix", category="Multi-Asset", ter=0.0025, dividend="Pays",
-       index="MAPPS Growth Index",
-       index_rules="Multi-asset blend: SA Equity 75%, Nominal Bonds 10%, Inflation-Linked Bonds 10%, Cash 5%. Transferred from NewFunds to Satrix March 2023.",
-       rebalancing="Monthly"),
-  list(ticker="MAPPSP", yf="MAPPSP.JO", name="Satrix MAPPS Protect ETF",
-       provider="Satrix", category="Multi-Asset", ter=0.0025, dividend="Pays",
-       index="MAPPS Protect Index",
-       index_rules="Conservative blend: SA Equity 40%, ILBs 35%, Nominal Bonds 15%, Cash 10%.",
-       rebalancing="Monthly")
+if (!file.exists(CSV_PATH)) {
+  stop(glue("CSV not found at {CSV_PATH}\nPlace easy_equities_tfsa_etfs.csv there before running."))
+}
+
+# ── Ticker corrections ────────────────────────────────────────────────────────
+# Yahoo Finance and JSE codes don't always match. This map overrides the
+# default `{ticker}.JO` for known mismatches. Verified manually — see notes.
+# Values of NA mean "no Yahoo Finance equivalent exists" (typically AMETFs
+# too new for Yahoo's coverage).
+
+YF_TICKER_OVERRIDES <- c(
+  # ── Wrong Yahoo symbol (JSE code differs from Yahoo's symbol) ───────────────
+  STXVLE   = "STXVEQ.JO",  # Satrix Value Equity
+  STXINF   = "STXIFR.JO",  # Satrix Global Infrastructure Feeder
+  STXSCF   = "STXCTY.JO",  # Satrix Smart City Infrastructure
+  STXWESG  = "STXESG.JO",  # Satrix MSCI World ESG Enhanced
+  STXINDI  = "STXNDA.JO",  # Satrix MSCI India Feeder
+  FNB40    = "FNBT40.JO",  # FNB Top 40
+  FNBGLO   = "FNBEQF.JO",  # FNB Global 1200 (was ASHGEQ → ASHEQF → FNBEQF)
+  REITGP   = "RWAGP.JO",   # Reitway Global Property Actively Managed Prescient
+  SYGEMF50 = "SYGEMF.JO",  # Sygnia MSCI EM 50 (CSV had spurious "50" suffix)
+  SYGHLT   = "SYGH.JO",    # Sygnia Itrix Solactive Healthcare 150
+  
+  # ── Renamed / amalgamated since the CSV was published ──────────────────────
+  STXSWX   = "STXSAI.JO",  # Renamed to Satrix SAI on 16 Jan 2026
+  STXMAP   = "STXGLB.JO",  # Amalgamated with STXGLB on 30 Jun 2025
+  STXMPF   = "STXGLB.JO"   # Old code → STXMAP → STXGLB
+  # Note: STXHLT and STXTRC use their default {ticker}.JO — both exist on Yahoo.
+  # AMETFs like APACXJ, INCOME, DIVTRX, SMART also exist as {ticker}.JO so we
+  # let the default through. Funds that genuinely have no Yahoo coverage
+  # (PIPF, PMXINC, ETFBAF, EASYAI, EASYB, EASYBAL, EASYGE) will simply fail
+  # the price fetch gracefully and pick up returns from EasyCompare instead.
 )
 
-etf_df <- map_dfr(etf_catalogue, ~tibble(
-  ticker=.x$ticker, yf=.x$yf, name=.x$name, provider=.x$provider,
-  category=.x$category, ter=.x$ter, dividend=.x$dividend,
-  index=.x$index, index_rules=.x$index_rules, rebalancing=.x$rebalancing
-))
-
-# =============================================================================
-# HARDCODED HOLDINGS (verified manually — see HOLDINGS_VERIFIED above)
-# =============================================================================
-
-HOLDINGS_FALLBACK <- list(
-  STX40   = list(Naspers=10.0,`BHP Group`=9.8,`Anglo American`=8.1,Glencore=7.9,
-                 Richemont=7.2,`Gold Fields`=5.4,`Anglo Gold Ashanti`=4.9,
-                 `Standard Bank`=4.6,FirstRand=4.2,`Anglo Platinum`=3.8),
-  STXJGE  = list(`BHP Group`=10.0,Glencore=10.0,Richemont=10.0,`British American Tobacco`=9.8,
-                 Naspers=8.4,`Anglo American`=7.2,Prosus=4.8,`Standard Bank`=3.9,
-                 FirstRand=3.5,MTN=3.1),
-  STXSWX  = list(`Standard Bank`=8.1,Naspers=7.9,FirstRand=7.2,`Absa Group`=5.8,
-                 `Anglo American`=5.5,`MTN Group`=5.1,Nedbank=4.4,Sanlam=4.0,
-                 `BHP Group`=3.9,Vodacom=3.6),
-  STXCAP  = list(Naspers=10.0,`BHP Group`=7.8,`Anglo American`=6.1,Richemont=5.9,
-                 `Standard Bank`=4.9,FirstRand=4.4,Glencore=4.1,`MTN Group`=3.7,
-                 `Absa Group`=3.3,Prosus=2.9),
-  STXRAF  = list(`Anglo American`=9.2,`BHP Group`=8.9,Naspers=7.4,`Standard Bank`=7.1,
-                 FirstRand=6.5,Glencore=5.8,`Absa Group`=5.3,`MTN Group`=4.7,
-                 Sanlam=3.9,Nedbank=3.6),
-  ETFT40  = list(Naspers=10.0,`BHP Group`=9.8,`Anglo American`=8.1,Glencore=7.9,
-                 Richemont=7.2,`Gold Fields`=5.4,`Anglo Gold Ashanti`=4.9,
-                 `Standard Bank`=4.6,FirstRand=4.2,`Anglo Platinum`=3.8),
-  ETFSWX  = list(`Standard Bank`=8.0,Naspers=7.8,FirstRand=7.1,`Absa Group`=5.7,
-                 `Anglo American`=5.4,`MTN Group`=5.0,Nedbank=4.3,Sanlam=3.9,
-                 `BHP Group`=3.8,Vodacom=3.5),
-  CTOP50  = list(Naspers=10.0,`BHP Group`=8.2,`Anglo American`=6.5,Richemont=6.2,
-                 `Standard Bank`=5.0,FirstRand=4.6,Glencore=4.3,`MTN Group`=3.8,
-                 `Absa Group`=3.2,Prosus=2.9),
-  SYGT40  = list(Naspers=10.0,`BHP Group`=9.8,`Anglo American`=8.1,Glencore=7.9,
-                 Richemont=7.2,`Gold Fields`=5.4,`AngloGold Ashanti`=4.9,
-                 `Standard Bank`=4.6,FirstRand=4.2,`Anglo Platinum`=3.8),
-  STXFIN  = list(FirstRand=15.0,`Standard Bank`=15.0,`Absa Group`=14.2,Nedbank=12.8,
-                 Sanlam=10.5,Discovery=8.8,`Old Mutual`=7.4,Momentum=5.9,
-                 Capitec=5.6,RMH=4.8),
-  STXIND  = list(Naspers=20.0,Richemont=18.9,`MTN Group`=12.6,Vodacom=10.3,
-                 Prosus=8.8,Shoprite=6.2,`Pick n Pay`=4.1,Woolworths=3.9,
-                 `Mr Price`=3.5,Truworths=2.9),
-  STXRES  = list(`BHP Group`=20.0,`Anglo American`=20.0,Glencore=18.5,
-                 `Anglo Platinum`=12.8,`Impala Platinum`=10.6,`Sibanye-Stillwater`=8.4,
-                 South32=5.9,`African Rainbow`=3.8),
-  STXDIV  = list(`Standard Bank`=8.9,FirstRand=8.5,`Absa Group`=7.8,Nedbank=7.2,
-                 `BHP Group`=6.9,`Anglo American`=5.8,`MTN Group`=5.5,Sanlam=5.1,
-                 Vodacom=4.8,Momentum=4.4),
-  STXQUA  = list(Capitec=12.4,Richemont=11.8,Shoprite=9.6,Discovery=8.3,
-                 FirstRand=7.9,`Clicks Group`=6.5,`Mr Price`=5.8,`Standard Bank`=5.2,
-                 Naspers=4.9,Sanlam=4.1),
-  STXMMT  = list(Naspers=15.3,Capitec=11.7,Richemont=10.2,`Anglo American`=8.9,
-                 Shoprite=7.6,`Standard Bank`=6.8,`BHP Group`=6.1,FirstRand=5.4,
-                 `Gold Fields`=4.8,Discovery=4.2),
-  STXLVL  = list(Vodacom=8.4,Shoprite=7.9,`Clicks Group`=7.5,Nedbank=7.1,
-                 Sanlam=6.8,`Old Mutual`=6.4,Momentum=6.0,Woolworths=5.7,
-                 Bidvest=5.3,`Tiger Brands`=5.0),
-  STXPRO  = list(Growthpoint=16.5,Redefine=14.2,Emira=10.8,Resilient=10.4,
-                 `Fortress A`=9.6,Hyprop=8.9,`SA Corp`=6.7,Attacq=5.8,
-                 `Investec Property`=4.9,Equites=4.5),
-  CSPROP  = list(Growthpoint=16.5,Redefine=14.2,Emira=10.8,Resilient=10.4,
-                 `Fortress A`=9.6,Hyprop=8.9,`SA Corp`=6.7,Attacq=5.8,
-                 `Investec Property`=4.9,Equites=4.5),
-  STXILB  = list(`R197 ILB (2023)`=18.5,`R210 ILB (2028)`=16.2,`R202 ILB (2033)`=14.8,
-                 `R212 ILB (2038)`=13.7,`R218 ILB (2025)`=12.4,`R222 ILB (2031)`=11.9,
-                 `I2025`=7.6,`I2038`=4.9),
-  CSGOVI  = list(`R186 (2026)`=18.9,`R2030 (2030)`=16.5,`R2032 (2032)`=14.2,
-                 `R2035 (2035)`=12.8,`R2037 (2037)`=11.6,`R2040 (2040)`=10.4,
-                 `R2044 (2044)`=8.7,`R2048 (2048)`=6.9),
-  PREFTX  = list(`RSA Govt Bond R186`=16.2,`RSA Govt Bond R2030`=15.8,
-                 `RSA Govt Bond R213`=14.5,`RSA Govt Bond R2032`=13.9,
-                 `RSA Govt Bond R2035`=12.6,`RSA Govt Bond R2037`=11.4,
-                 `RSA Govt Bond R2040`=9.8,`RSA Govt Bond R2044`=5.8),
-  STX500  = list(Apple=7.1,Microsoft=6.4,Nvidia=6.0,Amazon=3.9,Meta=2.8,
-                 `Alphabet A`=2.1,`Alphabet C`=1.8,`Berkshire Hathaway`=1.7,
-                 `Eli Lilly`=1.6,Broadcom=1.5),
-  SYG500  = list(Apple=7.1,Microsoft=6.4,Nvidia=6.0,Amazon=3.9,Meta=2.8,
-                 `Alphabet A`=2.1,`Alphabet C`=1.8,`Berkshire Hathaway`=1.7,
-                 `Eli Lilly`=1.6,Broadcom=1.5),
-  ETF500  = list(Apple=7.1,Microsoft=6.4,Nvidia=6.0,Amazon=3.9,Meta=2.8,
-                 `Alphabet A`=2.1,`Alphabet C`=1.8,`Berkshire Hathaway`=1.7,
-                 `Eli Lilly`=1.6,Broadcom=1.5),
-  CSP500  = list(Apple=7.1,Microsoft=6.4,Nvidia=6.0,Amazon=3.9,Meta=2.8,
-                 `Alphabet A`=2.1,`Alphabet C`=1.8,`Berkshire Hathaway`=1.7,
-                 `Eli Lilly`=1.6,Broadcom=1.5),
-  ETF5IT  = list(Apple=21.5,Microsoft=19.8,Nvidia=18.2,Broadcom=5.4,
-                 `TSMC ADR`=3.1,Salesforce=2.8,AMD=2.5,Qualcomm=2.2,
-                 Oracle=2.1,`Texas Instruments`=1.8),
-  STXNDQ  = list(Apple=9.1,Microsoft=8.5,Nvidia=8.2,Amazon=5.3,Meta=4.8,
-                 `Alphabet A`=3.4,Broadcom=3.1,Tesla=2.9,Costco=2.6,Netflix=2.3),
-  STXWDM  = list(Apple=4.9,Microsoft=4.4,Nvidia=4.1,Amazon=2.7,Meta=1.9,
-                 `Alphabet A`=1.5,`Berkshire Hathaway`=1.2,`Eli Lilly`=1.1,
-                 Broadcom=1.0,LVMH=0.9),
-  SYGWD   = list(Apple=4.9,Microsoft=4.4,Nvidia=4.1,Amazon=2.7,Meta=1.9,
-                 `Alphabet A`=1.5,`Berkshire Hathaway`=1.2,`Eli Lilly`=1.1,
-                 Broadcom=1.0,LVMH=0.9),
-  CTWRL   = list(Apple=4.2,Microsoft=3.8,Nvidia=3.5,Amazon=2.3,Meta=1.6,
-                 `Alphabet A`=1.3,`Taiwan Semiconductor`=1.0,`Berkshire Hathaway`=1.0,
-                 `Eli Lilly`=0.9,Samsung=0.8),
-  STXEMG  = list(`Taiwan Semiconductor`=8.5,`Samsung Electronics`=4.1,Tencent=3.8,
-                 Alibaba=2.9,Meituan=2.4,`HDFC Bank`=2.1,`Reliance Industries`=2.0,
-                 Infosys=1.8,`SK Hynix`=1.6,`ICICI Bank`=1.5),
-  ASHGEQ  = list(Apple=4.5,Microsoft=4.0,Nvidia=3.8,Amazon=2.6,Meta=1.8,
-                 `Alphabet A`=1.4,`Berkshire Hathaway`=1.1,ASML=0.9,
-                 `Eli Lilly`=0.9,`Novo Nordisk`=0.8),
-  SYGJP   = list(`Toyota Motor`=4.8,Sony=3.6,Keyence=3.1,`Recruit Holdings`=2.8,
-                 `Shin-Etsu Chemical`=2.5,`Tokyo Electron`=2.3,KDDI=2.1,
-                 `Honda Motor`=1.9,`SoftBank Group`=1.8,`Mitsubishi UFJ`=1.6),
-  SYGEU   = list(ASML=4.2,`Nestlé`=3.8,LVMH=3.5,`Novo Nordisk`=3.3,SAP=2.9,
-                 Roche=2.6,AstraZeneca=2.4,Shell=2.2,`Hermès`=2.0,Siemens=1.9),
-  SYGUK   = list(AstraZeneca=9.8,Shell=8.5,HSBC=7.2,Unilever=6.4,BP=5.1,
-                 `Rio Tinto`=4.8,GSK=4.4,Diageo=4.1,`BHP (UK)`=3.8,RELX=3.4),
-  GLPROP  = list(Prologis=8.2,`American Tower`=7.4,Equinix=6.8,`Simon Property`=5.9,
-                 `Crown Castle`=5.1,`Public Storage`=4.8,`Realty Income`=4.5,
-                 Welltower=4.2,AvalonBay=3.8,`Digital Realty`=3.5),
-  ETFGPR  = list(Prologis=8.5,`American Tower`=6.9,Equinix=6.4,`Simon Property`=5.5,
-                 `Public Storage`=4.9,`Crown Castle`=4.7,`Realty Income`=4.2,
-                 Welltower=3.9,Ventas=3.6,`Alexandria RE`=3.2),
-  GLODIV  = list(`Fortescue Metals`=4.8,`Altria Group`=4.4,`T. Rowe Price`=3.9,
-                 `Realty Income`=3.7,Enbridge=3.5,`AT&T`=3.1,`BCE Inc`=2.9,
-                 `Kinder Morgan`=2.7,`Eversource Energy`=2.5,`Leggett & Platt`=2.3),
-  ETFUSG  = list(`US Treasury 2Y`=19.5,`US Treasury 1Y`=18.2,`US Treasury 18M`=16.8,
-                 `US Treasury 3Y`=15.1,`US T-Bill 6M`=12.6,`US T-Bill 3M`=10.9,
-                 `US T-Bill 1M`=6.9),
-  ETFGLD  = list(`Physical Gold (100%)`=100.0),
-  NGPLT   = list(`Physical Platinum (100%)`=100.0),
-  ETFPLT  = list(`Physical Platinum (100%)`=100.0),
-  ETFPLD  = list(`Physical Palladium (100%)`=100.0),
-  ETFRHO  = list(`Physical Rhodium (100%)`=100.0),
-  MAPPSG  = list(`SA Equity Basket`=75.0,`SA Nominal Bonds`=10.0,
-                 `SA Inflation Bonds`=10.0,`Cash / Money Market`=5.0),
-  MAPPSP  = list(`SA Equity Basket`=40.0,`SA Inflation Bonds`=35.0,
-                 `SA Nominal Bonds`=15.0,`Cash / Money Market`=10.0)
+# JOL slug overrides (their URL is /{ticker}/ but a few use different slugs)
+JOL_SLUG_OVERRIDES <- c(
+  STXSWX   = "stxsai",  # JOL follows the new Satrix SAI page
+  STXMAP   = "stxglb",
+  STXMPF   = "stxglb",
+  STXVLE   = "stxveq",
+  STXINF   = "stxifr",
+  STXSCF   = "stxcty",
+  STXWESG  = "stxesg",
+  STXINDI  = "stxnda",  # Satrix MSCI India
+  FNB40    = "fnbt40",
+  FNBGLO   = "fnbeqf",  # FNB Global 1200
+  REITGP   = "rwagp",
+  SYGEMF50 = "sygemf",  # Sygnia EM 50
+  SYGHLT   = "sygh"     # Sygnia Healthcare
 )
 
+# EasyETFs instrument page slugs — for AMETFs published by EasyAssetManagement.
+# Found by inspecting etfs.easyequities.co.za. Empty string = no instrument page.
+EASYETF_PAGE_SLUGS <- c(
+  EASYAI  = "easyai",
+  EASYB   = "easybf",
+  EASYBAL = "cartbl",
+  EASYGE  = "easyge"
+)
+
+etf_csv <- read_csv(CSV_PATH, show_col_types = FALSE) |>
+  rename(provider = Provider, name = `ETF Name`, ticker = Ticker) |>
+  mutate(
+    ticker   = str_trim(ticker),
+    name     = str_trim(name),
+    provider = str_trim(provider),
+    # Apply ticker overrides — falls back to {ticker}.JO if no override
+    yf = map_chr(ticker, function(t) {
+      if (t %in% names(YF_TICKER_OVERRIDES)) {
+        v <- YF_TICKER_OVERRIDES[[t]]
+        if (is.na(v)) return(NA_character_) else return(v)
+      }
+      paste0(t, ".JO")
+    }),
+    # JOL slug override
+    jol_slug = map_chr(ticker, function(t) {
+      if (t %in% names(JOL_SLUG_OVERRIDES)) JOL_SLUG_OVERRIDES[[t]] else tolower(t)
+    })
+  ) |>
+  distinct(ticker, .keep_all = TRUE) |>
+  arrange(provider, ticker)
+
+message(glue("Loaded {nrow(etf_csv)} ETFs from CSV"))
+message(glue("  · {sum(!is.na(etf_csv$yf))} have Yahoo Finance tickers configured"))
+message(glue("  · {sum(is.na(etf_csv$yf))} flagged as no-Yahoo-data (AMETFs / too new)"))
+
 # =============================================================================
-# HOLDINGS SCRAPER (diagnostic — shows real error reasons)
+# EASY EQUITIES DISPLAY NAME ALIASES
+# =============================================================================
+# Easy Equities often abbreviates or restructures fund names compared to the
+# manager's official / EasyCompare name. Where we know an alternative, we add
+# it here so search works either way. Update as new aliases are discovered.
 # =============================================================================
 
-safe_get <- function(url, timeout = 20) {
+EE_ALIASES <- list(
+  STX40    = c("Satrix Top 40 ETF", "Satrix 40", "Top 40 Satrix"),
+  STXSWX   = c("Satrix SWIX 40", "Satrix Swix Top 40"),
+  STXCAP   = c("Satrix Capped All Share", "Satrix CAPI"),
+  STXDIV   = c("Satrix Dividend Plus", "Satrix Divi", "Satrix Dividend"),
+  STXFIN   = c("Satrix Financials", "Satrix FINI"),
+  STXIND   = c("Satrix Industrials", "Satrix INDI"),
+  STXRES   = c("Satrix Resources", "Satrix RESI"),
+  STXMMT   = c("Satrix Momentum"),
+  STXLVL   = c("Satrix Low Vol", "Satrix Lo Vol"),
+  STXQUA   = c("Satrix Quality"),
+  STXRAF   = c("Satrix RAFI", "Satrix Rafi 40"),
+  STXPRO   = c("Satrix SA Property", "Satrix Property"),
+  STXILB   = c("Satrix Inflation Linked Bond", "Satrix ILBI"),
+  STXGOV   = c("Satrix GOVI", "Satrix Government Bond"),
+  STX500   = c("Satrix S&P500", "Satrix 500"),
+  STXNDQ   = c("Satrix Nasdaq", "Satrix Nasdaq 100 Feeder"),
+  STXWDM   = c("Satrix MSCI World", "Satrix World"),
+  STXEMG   = c("Satrix Emerging Markets", "Satrix MSCI EM"),
+  STXCHN   = c("Satrix MSCI China"),
+  STXINDI  = c("Satrix India", "Satrix MSCI India"),
+  STXSCF   = c("Satrix Smart City"),
+  STXHLT   = c("Satrix Healthcare"),
+  STXSHA   = c("Satrix Shariah Top 40", "Satrix Shari'ah", "Satrix Shariah"),
+  STXVLE   = c("Satrix Value"),
+  STXID    = c("Satrix Inclusion Diversity"),
+  STXEME   = c("Satrix EM ESG"),
+  STXWESG  = c("Satrix World ESG"),
+  STXNAM   = c("Satrix Namibia Bond"),
+  STXMAP   = c("Satrix MAPPS Growth"),
+  STXMPF   = c("Satrix MAPPS Protect"),
+  STXTRC   = c("Satrix TRACI"),
+  STXGBD   = c("Satrix Global Bond"),
+  STXINF   = c("Satrix Global Infrastructure"),
+  
+  CSP500   = c("10X S&P500", "CoreShares S&P 500"),
+  CTOP50   = c("10X Top 50", "CoreShares Top 50"),
+  GLPROP   = c("10X Global Property", "CoreShares Global Property"),
+  GLODIV   = c("10X Global Dividend", "CoreShares Global Dividend"),
+  GLOBAL   = c("10X Total World", "CoreShares Total World"),
+  CSPROP   = c("10X SA Property", "CoreShares SA Property"),
+  CSGOVI   = c("10X Govi", "CoreShares Govi"),
+  CSYSB    = c("10X Yield Selected", "10X PrefTrax Successor", "PrefTrax replaced"),
+  DIVTRX   = c("10X DivTrax", "CoreShares DivTrax"),
+  SMART    = c("10X Multi Factor", "10X Smart Beta", "Scientific Beta"),
+  INCOME   = c("10X Income", "Active Income"),
+  APACXJ   = c("10X All Asia"),
+  
+  ETFT40   = c("1nvest Top 40", "Stanlib Top 40"),
+  ETF500   = c("1nvest S&P 500", "Stanlib S&P 500"),
+  ETF5IT   = c("1nvest S&P 500 IT", "1nvest Tech"),
+  ETFWLD   = c("1nvest MSCI World", "1nvest World"),
+  ETFGRE   = c("1nvest Global REIT", "1nvest REIT"),
+  ETFEMA   = c("1nvest EM Asia", "1nvest Asia"),
+  ETFGGB   = c("1nvest Global Govt Bond"),
+  ETFUSD   = c("1nvest US Treasury Short", "1nvest USD Bond"),
+  ETFSRI   = c("1nvest SRI", "1nvest World Socially Responsible"),
+  ETFBND   = c("1nvest SA Bond"),
+  ETFSAP   = c("1nvest SA Property"),
+  
+  SYG500   = c("Sygnia S&P 500", "Sygnia 500"),
+  SYGWD    = c("Sygnia MSCI World", "Sygnia World"),
+  SYGUS    = c("Sygnia MSCI US", "Sygnia US"),
+  SYGEU    = c("Sygnia Eurostoxx", "Sygnia Europe"),
+  SYGUK    = c("Sygnia FTSE 100", "Sygnia UK"),
+  SYGJP    = c("Sygnia Japan", "Sygnia MSCI Japan"),
+  SYGCN    = c("Sygnia China", "Sygnia New China"),
+  SYGT40   = c("Sygnia Top 40"),
+  SYGP     = c("Sygnia Global Property"),
+  SYGEMF50 = c("Sygnia EM 50", "Sygnia Emerging Markets 50"),
+  SYGESG   = c("Sygnia ESG", "Sygnia 1200 ESG"),
+  SYG4IR   = c("Sygnia 4IR", "Sygnia 4th Industrial"),
+  SYGHLT   = c("Sygnia Healthcare", "Sygnia Solactive Healthcare"),
+  
+  FNB40    = c("FNB Top 40", "Ashburton Top 40"),
+  FNBGLO   = c("FNB Global 1200", "Ashburton Global 1200"),
+  FNBINF   = c("FNB Inflation"),
+  FNBMID   = c("FNB MidCap"),
+  FNBWGB   = c("FNB World Government Bond"),
+  
+  EASYAI   = c("EasyETFs AI"),
+  EASYB    = c("EasyETFs Balanced"),
+  EASYBAL  = c("Cartesian Balanced"),
+  EASYGE   = c("EasyETFs Global Equity"),
+  ETFBAF   = c("ETFSA Balanced"),
+  PMXINC   = c("PortfolioMetrix Active Income"),
+  PIPF     = c("Prescient Income Provider"),
+  REITGP   = c("Reitway Global Property")
+)
+
+# Add aliases column to catalogue
+etf_csv <- etf_csv |>
+  rowwise() |>
+  mutate(
+    ee_aliases = list(EE_ALIASES[[ticker]] %||% character(0))
+  ) |>
+  ungroup()
+
+# =============================================================================
+# JUST ONE LAP SCRAPER  —  pulls live data from MDD-derived pages
+# =============================================================================
+
+safe_get <- function(url, timeout = 25) {
   tryCatch(
     GET(url, timeout(timeout),
-        add_headers(
-          `User-Agent`      = UA,
-          `Accept`          = "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-          `Accept-Language` = "en-US,en;q=0.9",
-          `Accept-Encoding` = "gzip, deflate, br"
-        )),
-    error = function(e) structure(list(error = e$message), class = "fail")
+        add_headers(`User-Agent` = UA,
+                    `Accept` = "text/html,application/xhtml+xml,*/*;q=0.8",
+                    `Accept-Language` = "en-US,en;q=0.9")),
+    error = function(e) structure(list(error = e$message), class = "fetch_fail")
   )
 }
 
-#' Try multiple HTML scraping sources, returning detailed diagnostics
-scrape_holdings_live <- function(ticker) {
-  attempts <- list()
+#' Scrape the EasyCompare Finder page — a SINGLE page with performance
+#' data for every TFSA-eligible ETF. We parse it once and cache the result
+#' so we hit the network exactly one time per pipeline run.
+#'
+#' Returns a tibble keyed on ticker with: ter, isin, ytd, return_1y,
+#' return_3y, return_5y, return_10y, return_3m, return_1m, return_1w
+#'
+#' The page renders ETF cards as repeating Markdown blocks; we extract them
+#' by finding the logo URL (which always contains the ticker like
+#' EQU.ZA.STX40.png) and the percentage values that follow.
+scrape_easycompare_finder <- local({
+  cache <- NULL
+  function() {
+    if (!is.null(cache)) return(cache)
+    
+    url <- "https://compare.easyequities.co.za/finder"
+    resp <- safe_get(url, timeout = 40)
+    if (inherits(resp, "fetch_fail") || status_code(resp) != 200) {
+      message("    ⚠ EasyCompare finder fetch failed — falling back")
+      cache <<- tibble()
+      return(tibble())
+    }
+    
+    raw <- content(resp, "text", encoding = "UTF-8")
+    
+    # The page is built from HubSpot; ETF cards repeat with a logo image
+    # whose path encodes the ticker. Extract those first as anchors.
+    # Pattern: /logos/EQU.ZA.{TICKER}.png   OR   /logos/TFSA.{TICKER}.png
+    logo_pattern <- "logos/(?:EQU\\.ZA|TFSA)\\.([A-Z0-9]+)\\.png"
+    matches <- str_match_all(raw, logo_pattern)[[1]]
+    if (nrow(matches) == 0) {
+      message("    ⚠ EasyCompare finder: no ETF cards parsed")
+      cache <<- tibble()
+      return(tibble())
+    }
+    
+    tickers_in_order <- matches[, 2]
+    
+    # For each ticker, slice the chunk of HTML between this card and the next,
+    # then pull out: TER, the named performance numbers, and the ISIN.
+    positions <- str_locate_all(raw, logo_pattern)[[1]][, "start"]
+    chunks <- map(seq_along(positions), function(i) {
+      end <- if (i < length(positions)) positions[i+1] - 1 else nchar(raw)
+      substr(raw, positions[i], end)
+    })
+    
+    extract_pct <- function(chunk, label) {
+      # Look for "**LABEL Performance:** \nNUM%" with arbitrary whitespace
+      pat <- glue("\\*\\*{label} Performance:\\*\\*\\s*\\n?\\s*([\\-0-9.]+)%")
+      m <- str_match(chunk, pat)
+      if (!is.na(m[1, 2])) return(as.numeric(m[1, 2]) / 100)
+      NA_real_
+    }
+    extract_ter <- function(chunk) {
+      m <- str_match(chunk, "\\*\\*TER:\\*\\*\\s*([0-9.]+)")
+      if (!is.na(m[1, 2])) return(as.numeric(m[1, 2]) / 100)
+      NA_real_
+    }
+    extract_isin <- function(chunk) {
+      m <- str_match(chunk, "isin=([A-Z0-9]+)")
+      if (!is.na(m[1, 2])) m[1, 2] else NA_character_
+    }
+    extract_name <- function(chunk) {
+      # The card name follows the logo image in a markdown line of plain text
+      m <- str_match(chunk, "(?s)logos/[^)]+\\)\\s*\\n+\\s*([^\\n]+?)\\s*\\n")
+      if (!is.na(m[1, 2])) str_trim(m[1, 2]) else NA_character_
+    }
+    
+    out <- tibble(
+      ticker      = tickers_in_order,
+      ec_name     = map_chr(chunks, extract_name),
+      ter         = map_dbl(chunks, extract_ter),
+      isin        = map_chr(chunks, extract_isin),
+      ytd_return  = map_dbl(chunks, ~extract_pct(.x, "YTD")),
+      return_10y  = map_dbl(chunks, ~extract_pct(.x, "10Y")),
+      return_5y   = map_dbl(chunks, ~extract_pct(.x, "5Y")),
+      return_3y   = map_dbl(chunks, ~extract_pct(.x, "3Y")),
+      return_1y   = map_dbl(chunks, ~extract_pct(.x, "1Y")),
+      return_3m   = map_dbl(chunks, ~extract_pct(.x, "3M")),
+      return_1m   = map_dbl(chunks, ~extract_pct(.x, "1M")),
+      return_1w   = map_dbl(chunks, ~extract_pct(.x, "1W"))
+    ) |> distinct(ticker, .keep_all = TRUE)
+    
+    message(glue("    ✓ EasyCompare finder: parsed {nrow(out)} ETFs"))
+    cache <<- out
+    out
+  }
+})
+
+#' Scrape the EasyETFs instrument page for AMETFs published by
+#' EasyAssetManagement (Cloud Atlas). Slug is e.g. 'easyai', 'cartbl', 'easybf'.
+#' Returns full holdings table + benchmark + classification + manager fee.
+scrape_easyetf_page <- function(slug) {
+  url <- glue("https://etfs.easyequities.co.za/easyetf-instrument-page/{slug}")
+  resp <- safe_get(url, timeout = 25)
+  if (inherits(resp, "fetch_fail")) {
+    return(list(success = FALSE, error = glue("network: {resp$error}")))
+  }
+  if (status_code(resp) != 200) {
+    return(list(success = FALSE, error = glue("HTTP {status_code(resp)}")))
+  }
   
-  # ── Source 1: stockanalysis.com ─────────────────────────────────────────────
-  url <- glue("https://stockanalysis.com/quote/jse/{ticker}/holdings/")
-  resp <- safe_get(url)
-  if (inherits(resp, "fail")) {
-    attempts[[length(attempts)+1]] <- glue("stockanalysis: {resp$error}")
-  } else {
-    sc <- status_code(resp)
-    if (sc != 200) {
-      attempts[[length(attempts)+1]] <- glue("stockanalysis: HTTP {sc}")
-    } else {
-      page <- tryCatch(read_html(content(resp, "text", encoding = "UTF-8")), error = function(e) NULL)
-      if (is.null(page)) {
-        attempts[[length(attempts)+1]] <- "stockanalysis: HTML parse failed"
-      } else {
-        tbls <- tryCatch(html_elements(page, "table") |> map(html_table, fill = TRUE), error = function(e) list())
-        tbl <- tbls |>
-          keep(~any(str_detect(names(.x), regex("%|weight|assets", ignore_case = TRUE)))) |>
-          first()
-        if (is.null(tbl) || nrow(tbl) == 0) {
-          attempts[[length(attempts)+1]] <- "stockanalysis: no holdings table found"
-        } else {
-          names(tbl) <- tolower(str_replace_all(names(tbl), "[^a-z0-9]", "_"))
-          name_col <- names(tbl)[str_detect(names(tbl), "name|company|holding")][1]
-          weight_col <- names(tbl)[str_detect(names(tbl), "asset|weight|alloc|pct|percent")][1]
-          if (is.na(name_col)) name_col <- names(tbl)[2]
-          if (is.na(weight_col)) weight_col <- names(tbl)[ncol(tbl)]
-          h <- tbl |>
-            select(name = all_of(name_col), weight = all_of(weight_col)) |>
-            mutate(name = str_squish(as.character(name)),
-                   weight = as.numeric(str_remove_all(as.character(weight), "[^0-9.]"))) |>
-            filter(!is.na(weight), weight > 0, nchar(name) > 1) |>
-            slice_max(weight, n = 10, with_ties = FALSE)
-          if (nrow(h) >= 3) return(list(
-            holdings = set_names(as.list(h$weight), h$name),
-            source   = "stockanalysis.com",
-            attempts = attempts
-          ))
-          attempts[[length(attempts)+1]] <- "stockanalysis: only got <3 holdings"
+  raw <- content(resp, "text", encoding = "UTF-8")
+  
+  pluck <- function(label) {
+    # Field labels appear as headings, with the value on the line below
+    pat <- glue("(?s){label}\\s*\\n+\\s*([^\\n]+?)\\s*\\n")
+    m <- str_match(raw, pat)
+    if (!is.na(m[1, 2])) str_trim(m[1, 2]) else NA_character_
+  }
+  
+  benchmark      <- pluck("Benchmark")
+  classification <- pluck("Classification")
+  distribution   <- pluck("Distribution Dates")
+  asset_manager  <- pluck("Asset Manager")
+  risk_profile   <- pluck("Risk Profile")
+  mgmt_fee_str   <- pluck("Management Fee \\(including VAT\\)")
+  
+  # NAV / price snapshot
+  price_str      <- pluck("Price / NAV \\(ZAC\\)")
+  fund_size_str  <- pluck("Fund Size \\(ZAR\\)")
+  
+  # Full holdings table — rendered as a markdown table with columns
+  # Instrument | Currency | Weight
+  holdings <- list()
+  table_match <- str_match(raw, "(?s)\\| Instrument.*?Weight \\|\\s*\\n.*?\\n((?:\\|.*?\\n)+)")
+  if (!is.na(table_match[1, 2])) {
+    table_body <- table_match[1, 2]
+    rows <- str_split(table_body, "\\n")[[1]] |> discard(~!str_detect(.x, "\\|"))
+    for (row in rows) {
+      cells <- str_split(row, "\\|")[[1]] |> str_trim()
+      cells <- cells[cells != ""]
+      if (length(cells) >= 3) {
+        weight_str <- cells[length(cells)]
+        weight <- as.numeric(str_remove_all(weight_str, "[^0-9.]"))
+        if (!is.na(weight) && weight > 0) {
+          holdings[[length(holdings) + 1]] <- list(
+            name = cells[1],
+            currency = cells[2],
+            weight = weight
+          )
         }
       }
     }
   }
   
-  # ── Source 2: Yahoo Finance holdings page ──────────────────────────────────
-  url <- glue("https://finance.yahoo.com/quote/{ticker}.JO/holdings/")
+  parse_pct <- function(s) {
+    if (is.na(s)) return(NA_real_)
+    n <- as.numeric(str_remove_all(s, "[^0-9.]"))
+    if (!is.na(n)) n / 100 else NA_real_
+  }
+  parse_num <- function(s) {
+    if (is.na(s)) return(NA_real_)
+    as.numeric(str_remove_all(s, "[^0-9.\\-]"))
+  }
+  
+  list(
+    success        = TRUE,
+    benchmark      = benchmark,
+    classification = classification,
+    distribution   = distribution,
+    asset_manager  = asset_manager,
+    risk_profile   = risk_profile,
+    mgmt_fee       = parse_pct(mgmt_fee_str),
+    price          = parse_num(price_str),
+    fund_size      = parse_num(fund_size_str),
+    holdings       = holdings
+  )
+}
+
+
+#' Pages live at https://justonelap.com/{lowercase_ticker}/ and contain a
+#' standard 2-column table with: Type, JSE code, Benchmark, Classification,
+#' Tax-free investing, Market cap, TIC/TER, Distribution, Top holdings,
+#' MDD updated, Description.
+scrape_jol <- function(ticker, slug = NULL) {
+  url_slug <- if (!is.null(slug) && nzchar(slug)) slug else tolower(ticker)
+  url <- glue("https://justonelap.com/{url_slug}/")
   resp <- safe_get(url)
-  if (inherits(resp, "fail")) {
-    attempts[[length(attempts)+1]] <- glue("yahoo: {resp$error}")
-  } else {
-    sc <- status_code(resp)
-    if (sc != 200) {
-      attempts[[length(attempts)+1]] <- glue("yahoo: HTTP {sc}")
-    } else {
-      # Yahoo typically requires JS for holdings, but try anyway
-      page <- tryCatch(read_html(content(resp, "text", encoding = "UTF-8")), error = function(e) NULL)
-      if (is.null(page)) {
-        attempts[[length(attempts)+1]] <- "yahoo: HTML parse failed"
-      } else {
-        # Look for holdings list with class or section pattern
-        rows <- tryCatch(html_elements(page, "section[data-test='top-holdings'] tr, table.W\\(100\\%\\) tr"),
-                         error = function(e) NULL)
-        if (is.null(rows) || length(rows) < 3) {
-          attempts[[length(attempts)+1]] <- "yahoo: no holdings rows found (likely JS-rendered)"
-        } else {
-          # Try to extract name/weight pairs
-          h <- map_dfr(rows, ~{
-            cells <- html_elements(.x, "td")
-            if (length(cells) < 2) return(NULL)
-            tibble(name = html_text2(cells[1]),
-                   weight = as.numeric(str_remove_all(html_text2(cells[length(cells)]), "[^0-9.]")))
-          }) |> filter(!is.na(weight), weight > 0, nchar(name) > 1) |>
-            slice_max(weight, n = 10, with_ties = FALSE)
-          if (nrow(h) >= 3) return(list(
-            holdings = set_names(as.list(h$weight), h$name),
-            source   = "finance.yahoo.com",
-            attempts = attempts
-          ))
-          attempts[[length(attempts)+1]] <- "yahoo: extracted <3 valid holdings"
-        }
+  if (inherits(resp, "fetch_fail")) {
+    return(list(success = FALSE, error = glue("network: {resp$error}")))
+  }
+  if (status_code(resp) != 200) {
+    return(list(success = FALSE, error = glue("HTTP {status_code(resp)}")))
+  }
+  
+  page <- tryCatch(read_html(content(resp, "text", encoding = "UTF-8")),
+                   error = function(e) NULL)
+  if (is.null(page)) return(list(success = FALSE, error = "html parse failed"))
+  
+  # Find all tables and pick the one with "JSE code" in its content
+  tbls <- tryCatch(html_elements(page, "table"), error = function(e) list())
+  if (length(tbls) == 0) return(list(success = FALSE, error = "no tables"))
+  
+  jol_tbl <- NULL
+  for (tbl in tbls) {
+    txt <- html_text(tbl)
+    if (str_detect(txt, "JSE code") && str_detect(txt, regex("Benchmark", ignore_case = TRUE))) {
+      jol_tbl <- tbl
+      break
+    }
+  }
+  if (is.null(jol_tbl)) return(list(success = FALSE, error = "no JOL data table"))
+  
+  # The JOL table has rows where each cell contains a "Field: Value" string.
+  # Parse all bolded labels and the text after them.
+  cells <- html_elements(jol_tbl, "td")
+  cell_texts <- map_chr(cells, ~html_text(.x, trim = TRUE))
+  
+  fields <- list()
+  for (txt in cell_texts) {
+    # Multiple "Label: value" pairs may be in one cell separated by line breaks
+    pairs <- str_split(txt, "(?<=\\.)\\s*(?=[A-Z][a-z])|\\n")[[1]] |> str_trim() |> discard(~.x == "")
+    for (p in pairs) {
+      m <- str_match(p, "^([^:]+?):\\s*(.+)$")
+      if (!is.na(m[1,2])) {
+        label <- str_trim(m[1,2])
+        value <- str_trim(m[1,3])
+        # Normalise the label
+        key <- label |> tolower() |> str_replace_all("[^a-z0-9]+", "_") |> str_remove_all("_+$")
+        if (!is.null(fields[[key]])) next  # keep first occurrence
+        fields[[key]] <- value
       }
     }
   }
   
-  # All sources failed
-  return(list(holdings = NULL, source = NULL, attempts = attempts))
+  if (length(fields) == 0) return(list(success = FALSE, error = "no fields parsed"))
+  
+  list(
+    success         = TRUE,
+    benchmark       = fields$benchmark %||% NA_character_,
+    classification  = fields$classification %||% NA_character_,
+    type            = fields$type %||% NA_character_,
+    tax_free        = fields$tax_free_investing %||% NA_character_,
+    market_cap      = fields$market_cap %||% NA_character_,
+    ter             = fields$tic_ter_where_tic_not_indicated %||%
+      fields$tic %||% fields$ter %||% NA_character_,
+    distribution    = fields$distribution %||% NA_character_,
+    top_holdings    = fields$top_holdings %||% NA_character_,
+    mdd_updated     = fields$mdd_updated %||% NA_character_,
+    description     = fields$description %||% NA_character_
+  )
 }
 
-fetch_holdings <- function(ticker, verbose = FALSE) {
-  message(glue("  Holdings [{ticker}]..."), appendLF = FALSE)
+#' Convert a raw "top holdings" comma-separated string into a list
+#' of {name, weight} entries. Weights are NA when JOL doesn't publish them
+#' (most cases) — the front-end handles missing weights gracefully.
+parse_holdings_str <- function(s) {
+  if (is.null(s) || is.na(s) || nchar(s) < 2) return(list())
+  # Split on common separators
+  items <- str_split(s, ",|·|·|/")[[1]] |> str_squish() |> discard(~.x == "")
+  if (length(items) == 0) return(list())
   
-  # Single-asset / fixed-allocation funds — skip scraping
-  if (ticker %in% c("ETFGLD","NGPLT","ETFPLT","ETFPLD","ETFRHO")) {
-    message(" (physical asset)")
-    return(HOLDINGS_FALLBACK[[ticker]])
-  }
-  if (ticker %in% c("MAPPSG","MAPPSP")) {
-    message(" (fixed allocation)")
-    return(HOLDINGS_FALLBACK[[ticker]])
-  }
-  
-  # Live scrape attempt
-  result <- tryCatch(scrape_holdings_live(ticker),
-                     error = function(e) list(holdings = NULL, attempts = list(glue("crash: {e$message}"))))
-  
-  if (!is.null(result$holdings)) {
-    message(glue(" ✓ {result$source} ({length(result$holdings)} holdings)"))
-    return(result$holdings)
-  }
-  
-  # All scraping failed — show why if verbose
-  if (verbose && length(result$attempts) > 0) {
-    message(" ⚠ fallback")
-    walk(result$attempts, ~message(glue("      ↳ {.x}")))
-  } else {
-    message(glue(" ⚠ fallback (verified {HOLDINGS_VERIFIED})"))
-  }
-  
-  # Cached previous result?
-  cached_file <- file.path(OUTPUT_DIR, glue("{ticker}.json"))
-  if (file.exists(cached_file)) {
-    cached <- tryCatch(fromJSON(cached_file, simplifyDataFrame = FALSE), error = function(e) NULL)
-    if (!is.null(cached$top_holdings) && length(cached$top_holdings) > 0 &&
-        !is.null(cached$holdings_source) && cached$holdings_source != "fallback") {
-      prev <- cached$top_holdings |>
-        map(~setNames(list(.x$weight), .x$name)) |>
-        reduce(c)
-      return(prev)
+  # Detect "Name 5.4%" pattern within each item
+  parsed <- map(items, function(it) {
+    m <- str_match(it, "^(.+?)\\s+([0-9]+\\.?[0-9]*)\\s*%?$")
+    if (!is.na(m[1,2])) {
+      list(name = str_trim(m[1,2]), weight = as.numeric(m[1,3]))
+    } else {
+      list(name = it, weight = NA_real_)
     }
-  }
+  })
   
-  HOLDINGS_FALLBACK[[ticker]] %||% list()
+  parsed |> keep(~nchar(.x$name) > 1)
+}
+
+#' Convert TER strings like "0.10%" / "0.25 %" / "10 bps" → numeric (decimal).
+parse_ter <- function(s) {
+  if (is.null(s) || is.na(s)) return(NA_real_)
+  s <- str_trim(s)
+  if (str_detect(s, "bps")) {
+    x <- as.numeric(str_remove_all(s, "[^0-9.]"))
+    return(x / 10000)
+  }
+  if (str_detect(s, "%")) {
+    x <- as.numeric(str_remove_all(s, "[^0-9.]"))
+    return(x / 100)
+  }
+  x <- as.numeric(str_remove_all(s, "[^0-9.]"))
+  if (!is.na(x) && x > 1) x <- x / 100
+  x
 }
 
 # =============================================================================
-# PRICE FETCHER — Yahoo Finance primary, Stooq fallback
+# PRICE FETCHER — Yahoo primary, Stooq fallback
 # =============================================================================
 
-fetch_prices <- function(yf_ticker, name) {
-  # Attempt 1: Yahoo Finance via tidyquant
-  result <- tryCatch({
+fetch_prices <- function(yf_ticker) {
+  out <- tryCatch({
     suppressWarnings(p <- tq_get(yf_ticker, from = START_DATE, to = END_DATE))
-    if (is.null(p) || !is.data.frame(p) || nrow(p) < MIN_ROWS) NULL else p
+    if (is.null(p) || !is.data.frame(p) || nrow(p) < MIN_ROWS) NULL else
+      list(data = p, source = "yahoo")
   }, error = function(e) NULL)
+  if (!is.null(out)) return(out)
   
-  if (!is.null(result)) {
-    message(glue("  Prices [{yf_ticker}]... ✓ Yahoo ({nrow(result)} rows)"))
-    return(result)
-  }
-  
-  # Attempt 2: Stooq via quantmod
-  message(glue("  Prices [{yf_ticker}]... Yahoo failed, trying Stooq..."), appendLF = FALSE)
-  result <- tryCatch({
+  out <- tryCatch({
     suppressWarnings(suppressMessages(
       x <- getSymbols(yf_ticker, src = "stooq", from = START_DATE, to = END_DATE,
                       auto.assign = FALSE)
     ))
-    if (is.null(x) || nrow(x) < MIN_ROWS) NULL else {
-      # Convert xts to tibble matching tidyquant format
-      tibble(
-        symbol   = yf_ticker,
-        date     = as.Date(zoo::index(x)),
-        open     = as.numeric(x[,1]),
-        high     = as.numeric(x[,2]),
-        low      = as.numeric(x[,3]),
-        close    = as.numeric(x[,4]),
-        volume   = as.numeric(x[,5]),
-        adjusted = as.numeric(x[,4])  # Stooq doesn't provide adjusted, use close
+    if (is.null(x) || nrow(x) < MIN_ROWS) NULL else
+      list(
+        data = tibble(
+          symbol = yf_ticker, date = as.Date(zoo::index(x)),
+          open = as.numeric(x[,1]), high = as.numeric(x[,2]),
+          low = as.numeric(x[,3]),  close = as.numeric(x[,4]),
+          volume = as.numeric(x[,5]),
+          adjusted = as.numeric(x[,4])
+        ),
+        source = "stooq"
       )
-    }
   }, error = function(e) NULL)
-  
-  if (!is.null(result)) {
-    message(glue(" ✓ Stooq ({nrow(result)} rows)"))
-    return(result)
-  }
-  
-  message(" ✗ both sources failed")
-  NULL
+  out
 }
 
 # =============================================================================
-# ANALYTICS
+# ANALYTICS HELPERS
 # =============================================================================
 
 compute_metrics <- function(prices) {
@@ -695,109 +648,229 @@ build_price_series <- function(prices) {
 # MAIN PIPELINE
 # =============================================================================
 
-# Set verbose=TRUE to see scraping diagnostics for every fallback
-VERBOSE_HOLDINGS <- FALSE
-
-message(glue(
-  "\n{'='<70}\n Easy Equities TFSA ETF Pipeline  |  {format(Sys.time(),'%Y-%m-%d %H:%M')}\n",
-  " ETFs       : {nrow(etf_df)}\n",
-  " Dates      : {START_DATE} to {END_DATE}\n",
-  " Output     : {OUTPUT_DIR}\n",
-  " Holdings as of : {HOLDINGS_VERIFIED} (manual review)\n{'='<70}\n"
-))
+message(glue("\n{'='<70}"))
+message(glue(" Easy Equities TFSA ETF Pipeline  |  {format(Sys.time(),'%Y-%m-%d %H:%M')}"))
+message(glue(" ETFs: {nrow(etf_csv)}  |  Range: {START_DATE} → {END_DATE}"))
+message(glue(" Output: {DATA_DIR}"))
+message(glue("{'='<70}\n"))
 
 summary_rows <- list()
 processed    <- character(0)
-analytics_only <- character(0)
-no_data      <- list()
+no_prices    <- character(0)
+scrape_fails <- character(0)
+ec_used      <- character(0)
+easyetf_used <- character(0)
 
-for (i in seq_len(nrow(etf_df))) {
-  row    <- etf_df[i, ]
+# Pre-fetch the EasyCompare Finder once (covers ALL ETFs in a single call)
+message("Fetching EasyCompare Finder (one-time bulk fetch)...")
+ec_data <- scrape_easycompare_finder()
+ec_lookup <- if (nrow(ec_data) > 0) {
+  setNames(split(ec_data, seq_len(nrow(ec_data))), ec_data$ticker)
+} else list()
+message("")
+
+for (i in seq_len(nrow(etf_csv))) {
+  row <- etf_csv[i, ]
   ticker <- row$ticker
-  message(glue("\n[{i}/{nrow(etf_df)}] {ticker} — {row$name}"))
   
-  # Holdings always attempted (independent of price availability)
-  holdings_raw <- fetch_holdings(ticker, verbose = VERBOSE_HOLDINGS)
-  holdings_arr <- imap(holdings_raw, ~list(name=.y, weight=.x)) |>
-    keep(~nchar(.x$name)>0 && is.finite(.x$weight) && .x$weight>0) |>
-    unname()
+  message(glue("[{i}/{nrow(etf_csv)}] {ticker} — {row$name}"))
   
-  # Try to fetch price data
-  prices <- fetch_prices(row$yf, row$name)
-  
-  if (is.null(prices)) {
-    # No price data → write metadata-only JSON so the ETF still appears in tables
-    no_data[[ticker]] <- row$yf
-    payload <- list(
-      ticker=ticker, name=row$name, provider=row$provider,
-      category=row$category, ter=row$ter, dividend=row$dividend,
-      index=row$index, index_rules=row$index_rules, rebalancing=row$rebalancing,
-      top_holdings=holdings_arr, has_price_data=FALSE,
-      last_updated=format(Sys.time(), "%Y-%m-%d %H:%M:%S")
-    )
-    write_json(payload, file.path(OUTPUT_DIR, glue("{ticker}.json")),
-               auto_unbox=TRUE, digits=6, pretty=FALSE)
-    summary_rows[[ticker]] <- tibble(
-      ticker=ticker, name=row$name, provider=row$provider,
-      category=row$category, ter=row$ter, dividend=row$dividend,
-      ytd_return=NA_real_, return_1y=NA_real_, return_3y=NA_real_,
-      cagr=NA_real_, ann_vol=NA_real_, sharpe=NA_real_, sortino=NA_real_,
-      calmar=NA_real_, max_drawdown=NA_real_, var_95=NA_real_,
-      n_trading_days=0L, last_updated=format(Sys.time(), "%Y-%m-%d")
-    )
-    processed <- c(processed, ticker)
-    next
+  # ────────────────────────────────────────────────────────────────────
+  # Source 1: Just One Lap (best for Satrix/Sygnia/1nvest/10X passive)
+  # ────────────────────────────────────────────────────────────────────
+  jol <- tryCatch(scrape_jol(ticker, slug = row$jol_slug),
+                  error = function(e) list(success=FALSE, error=e$message))
+  if (jol$success) {
+    message(glue("    ✓ JOL"))
+  } else {
+    message(glue("    ⚠ JOL failed: {jol$error}"))
+    scrape_fails <- c(scrape_fails, ticker)
   }
   
-  # Full analytics path
-  metrics  <- compute_metrics(prices)
-  monthly  <- compute_monthly_returns(prices)
-  rolling  <- compute_rolling_vol(prices)
-  drawdown <- compute_drawdown_series(prices)
-  price_ts <- build_price_series(prices)
+  # ────────────────────────────────────────────────────────────────────
+  # Source 2: EasyETFs instrument page (for Cloud Atlas / EasyAM AMETFs)
+  # ────────────────────────────────────────────────────────────────────
+  ee_slug <- EASYETF_PAGE_SLUGS[ticker] %||% NA
+  easyetf <- if (!is.na(ee_slug) && nzchar(ee_slug)) {
+    res <- tryCatch(scrape_easyetf_page(ee_slug),
+                    error = function(e) list(success=FALSE, error=e$message))
+    if (res$success) {
+      message(glue("    ✓ EasyETFs page ({length(res$holdings)} holdings)"))
+      easyetf_used <- c(easyetf_used, ticker)
+    } else {
+      message(glue("    ⚠ EasyETFs page failed: {res$error}"))
+    }
+    res
+  } else NULL
   
-  payload <- list(
-    ticker=ticker, name=row$name, provider=row$provider,
-    category=row$category, ter=row$ter, dividend=row$dividend,
-    index=row$index, index_rules=row$index_rules, rebalancing=row$rebalancing,
-    top_holdings=holdings_arr, has_price_data=TRUE,
-    metrics=metrics, prices=price_ts, monthly_returns=monthly,
-    rolling_vol=rolling, drawdown=drawdown,
-    last_updated=format(Sys.time(), "%Y-%m-%d %H:%M:%S")
+  # ────────────────────────────────────────────────────────────────────
+  # Source 3: EasyCompare row (already fetched in bulk)
+  # ────────────────────────────────────────────────────────────────────
+  ec_row <- ec_lookup[[ticker]]
+  if (!is.null(ec_row)) {
+    ec_used <- c(ec_used, ticker)
+    message(glue("    ✓ EasyCompare data"))
+  }
+  
+  # ────────────────────────────────────────────────────────────────────
+  # Merge metadata — preference order: EasyETFs page → JOL → EasyCompare
+  # ────────────────────────────────────────────────────────────────────
+  benchmark <- coalesce(
+    if (!is.null(easyetf) && easyetf$success) easyetf$benchmark else NA_character_,
+    if (jol$success) jol$benchmark else NA_character_
   )
-  write_json(payload, file.path(OUTPUT_DIR, glue("{ticker}.json")),
-             auto_unbox=TRUE, digits=6, pretty=FALSE)
+  classification <- coalesce(
+    if (!is.null(easyetf) && easyetf$success) easyetf$classification else NA_character_,
+    if (jol$success) jol$classification else NA_character_
+  )
+  description <- if (jol$success) jol$description else NA_character_
+  distribution <- coalesce(
+    if (!is.null(easyetf) && easyetf$success) easyetf$distribution else NA_character_,
+    if (jol$success) jol$distribution else NA_character_
+  )
+  fund_type <- if (jol$success) jol$type else NA_character_
+  mdd_updated <- if (jol$success) jol$mdd_updated else NA_character_
+  
+  # TER: EasyCompare is most authoritative (it's the EE platform's own data)
+  ter_dec <- coalesce(
+    if (!is.null(ec_row)) ec_row$ter else NA_real_,
+    if (jol$success) parse_ter(jol$ter) else NA_real_
+  )
+  
+  # Holdings: EasyETFs full table beats JOL's truncated list
+  holdings <- if (!is.null(easyetf) && easyetf$success && length(easyetf$holdings) > 0) {
+    easyetf$holdings
+  } else if (jol$success) {
+    parse_holdings_str(jol$top_holdings)
+  } else list()
+  
+  # ────────────────────────────────────────────────────────────────────
+  # Source 4: Yahoo / Stooq prices
+  # ────────────────────────────────────────────────────────────────────
+  px <- if (is.na(row$yf)) {
+    NULL
+  } else {
+    fetch_prices(row$yf)
+  }
+  has_prices <- !is.null(px)
+  
+  if (has_prices) {
+    message(glue("    ✓ prices: {px$source} ({nrow(px$data)} rows)"))
+    metrics  <- compute_metrics(px$data)
+    monthly  <- compute_monthly_returns(px$data)
+    rolling  <- compute_rolling_vol(px$data)
+    drawdown <- compute_drawdown_series(px$data)
+    price_ts <- build_price_series(px$data)
+  } else {
+    if (!is.na(row$yf)) message(glue("    ✗ no price series ({row$yf})"))
+    no_prices <- c(no_prices, ticker)
+    metrics <- monthly <- rolling <- drawdown <- price_ts <- NULL
+  }
+  
+  # ────────────────────────────────────────────────────────────────────
+  # Build the per-ETF JSON payload
+  # ────────────────────────────────────────────────────────────────────
+  payload <- list(
+    ticker = ticker, name = row$name, provider = row$provider,
+    ee_aliases = row$ee_aliases[[1]],
+    category = classification %||% "Unknown",
+    ter = ter_dec, dividend = distribution,
+    index = benchmark, index_rules = description,
+    rebalancing = NA_character_, fund_type = fund_type,
+    mdd_updated = mdd_updated,
+    top_holdings = holdings,
+    has_price_data = has_prices,
+    last_updated = format(Sys.time(), "%Y-%m-%d %H:%M:%S")
+  )
+  if (has_prices) {
+    payload$metrics <- metrics
+    payload$prices <- price_ts
+    payload$monthly_returns <- monthly
+    payload$rolling_vol <- rolling
+    payload$drawdown <- drawdown
+  }
+  if (!is.null(ec_row)) {
+    payload$ee_isin <- ec_row$isin
+  }
+  write_json(payload, file.path(DATA_DIR, glue("{ticker}.json")),
+             auto_unbox = TRUE, digits = 6, pretty = FALSE, na = "null")
+  
+  # ────────────────────────────────────────────────────────────────────
+  # Summary row — analytics from prices when available, else from
+  # EasyCompare's pre-computed returns. The leaderboard cards and table
+  # then have valid numbers for ALL ETFs in the universe.
+  # ────────────────────────────────────────────────────────────────────
+  summary_rows[[ticker]] <- tibble(
+    ticker     = ticker,
+    name       = row$name,
+    provider   = row$provider,
+    category   = classification %||% NA_character_,
+    ter        = ter_dec,
+    dividend   = distribution,
+    
+    # YTD / 1Y / 3Y returns — prefer EasyCompare (the official EE figures)
+    ytd_return = coalesce(
+      if (!is.null(ec_row)) ec_row$ytd_return else NA_real_,
+      if (has_prices) metrics$ytd_return else NA_real_
+    ),
+    return_1y  = coalesce(
+      if (!is.null(ec_row)) ec_row$return_1y else NA_real_,
+      if (has_prices) metrics$return_1y else NA_real_
+    ),
+    return_3y  = coalesce(
+      if (!is.null(ec_row)) ec_row$return_3y else NA_real_,
+      if (has_prices) metrics$return_3y else NA_real_
+    ),
+    
+    # CAGR / vol / risk-adjusted require a price series — only available
+    # for ETFs with Yahoo or Stooq coverage.
+    cagr           = if (has_prices) metrics$cagr else NA_real_,
+    ann_vol        = if (has_prices) metrics$ann_vol else NA_real_,
+    sharpe         = if (has_prices) metrics$sharpe else NA_real_,
+    sortino        = if (has_prices) metrics$sortino else NA_real_,
+    calmar         = if (has_prices) metrics$calmar else NA_real_,
+    max_drawdown   = if (has_prices) metrics$max_drawdown else NA_real_,
+    var_95         = if (has_prices) metrics$var_95 else NA_real_,
+    n_trading_days = if (has_prices) metrics$n_trading_days else 0L
+  )
   
   processed <- c(processed, ticker)
-  summary_rows[[ticker]] <- tibble(
-    ticker=ticker, name=row$name, provider=row$provider,
-    category=row$category, ter=row$ter, dividend=row$dividend,
-    ytd_return=metrics$ytd_return, return_1y=metrics$return_1y,
-    return_3y=metrics$return_3y, cagr=metrics$cagr,
-    ann_vol=metrics$ann_vol, sharpe=metrics$sharpe,
-    sortino=metrics$sortino, calmar=metrics$calmar,
-    max_drawdown=metrics$max_drawdown, var_95=metrics$var_95,
-    n_trading_days=metrics$n_trading_days,
-    last_updated=format(Sys.time(), "%Y-%m-%d")
-  )
+  
+  Sys.sleep(0.5)  # be polite to all upstream servers
 }
 
+# Master files
 summary_df <- bind_rows(summary_rows)
-write_json(summary_df,  file.path(OUTPUT_DIR,"summary.json"),  auto_unbox=TRUE, digits=6)
-write_json(etf_df |> filter(ticker %in% processed),
-           file.path(OUTPUT_DIR,"etf_list.json"), auto_unbox=TRUE, pretty=TRUE)
+write_json(summary_df, file.path(DATA_DIR,"summary.json"),
+           auto_unbox=TRUE, digits=6, na="null")
 
-# Final report
-message(glue("\n{'='<70}\n Pipeline complete  |  {format(Sys.time(),'%Y-%m-%d %H:%M:%S')}"))
-message(glue(" Total ETFs : {nrow(etf_df)}"))
-message(glue(" With prices: {length(processed) - length(no_data)} (full analytics)"))
-message(glue(" No prices  : {length(no_data)} (metadata + holdings only)"))
-if (length(no_data) > 0) {
-  message(" Tickers without price data:")
-  iwalk(no_data, ~message(glue("   {.y} ({.x})")))
+# etf_list with aliases (for client-side fuzzy search)
+etf_list_out <- etf_csv |>
+  filter(ticker %in% processed) |>
+  mutate(ee_aliases = map(ee_aliases, ~if (length(.x) == 0) list() else .x))
+
+write_json(etf_list_out, file.path(DATA_DIR,"etf_list.json"),
+           auto_unbox=TRUE, pretty=TRUE, na="null")
+
+# ── Final report ──────────────────────────────────────────────────────────────
+message(glue("\n{'='<70}"))
+message(glue(" Pipeline complete  |  {format(Sys.time(),'%Y-%m-%d %H:%M:%S')}"))
+message(glue("   Total ETFs        : {nrow(etf_csv)}"))
+message(glue("   Processed         : {length(processed)}"))
+message(glue("   With Yahoo prices : {length(processed) - length(no_prices)}"))
+message(glue("   EasyCompare data  : {length(ec_used)} (powers leaderboard for non-Yahoo funds)"))
+message(glue("   EasyETFs holdings : {length(easyetf_used)} (full constituent tables)"))
+message(glue("   JOL data          : {nrow(etf_csv) - length(scrape_fails)} of {nrow(etf_csv)}"))
+if (length(no_prices) > 0) {
+  message(glue("\n   No Yahoo/Stooq prices ({length(no_prices)}):"))
+  message(glue("     {paste(no_prices, collapse=', ')}"))
+  message("   ↳ These still appear in the comparison table with EasyCompare returns.")
 }
-message(glue("{'='<70}\n"))
-message("To see scraping diagnostics, set VERBOSE_HOLDINGS <- TRUE near the top.")
+if (length(scrape_fails) > 0) {
+  message(glue("\n   JOL not found ({length(scrape_fails)}):"))
+  message(glue("     {paste(scrape_fails, collapse=', ')}"))
+}
+message(glue("\n{'='<70}\n"))
 
 # =============================================================================
 # AUTO GIT COMMIT  (uncomment to enable)

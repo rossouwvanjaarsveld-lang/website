@@ -1,554 +1,658 @@
 [
   {
-    "ticker": "STX40",
-    "yf": "STX40.JO",
-    "name": "Satrix 40 ETF",
-    "provider": "Satrix",
-    "category": "SA Broad Equity",
-    "ter": 0.001,
-    "dividend": "Pays",
-    "index": "FTSE/JSE Top 40 Index",
-    "index_rules": "Tracks the 40 largest JSE companies by investable market cap. No SWIX adjustment — full float-adjusted global market cap weighting. 10% individual stock cap. Reviewed quarterly by the FTSE/JSE Advisory Committee.",
-    "rebalancing": "Quarterly"
+    "provider": "10X",
+    "name": "10X All Asia Actively Managed Exchange Traded Fund",
+    "ticker": "APACXJ",
+    "yf": "APACXJ.JO",
+    "jol_slug": "apacxj",
+    "ee_aliases": "10X All Asia"
   },
   {
-    "ticker": "STXSWX",
-    "yf": "STXSWX.JO",
-    "name": "Satrix SWIX Top 40 ETF",
-    "provider": "Satrix",
-    "category": "SA Broad Equity",
-    "ter": 0.001,
-    "dividend": "Pays",
-    "index": "FTSE/JSE SWIX Top 40 Index",
-    "index_rules": "Same 40 constituents as Top 40 but weighted by shares held on the South African share register (STRATE), reducing exposure to dual-listed rand hedges like BHP and Richemont.",
-    "rebalancing": "Quarterly"
-  },
-  {
-    "ticker": "STXCAP",
-    "yf": "STXCAP.JO",
-    "name": "Satrix Capped All Share ETF",
-    "provider": "Satrix",
-    "category": "SA Broad Equity",
-    "ter": 0.0025,
-    "dividend": "Pays",
-    "index": "FTSE/JSE Capped All Share Index (CAPI)",
-    "index_rules": "Tracks ~140 JSE All Share companies with a 10% per-stock cap. Broader than Top 40, capturing mid-cap JSE exposure.",
-    "rebalancing": "Quarterly"
-  },
-  {
-    "ticker": "STXJGE",
-    "yf": "STXJGE.JO",
-    "name": "Satrix JSE Global Equity ETF",
-    "provider": "Satrix",
-    "category": "SA Broad Equity",
-    "ter": 0.0015,
-    "dividend": "Pays",
-    "index": "FTSE/JSE Global Investor Index (J501)",
-    "index_rules": "Listed March 2024. The 50 largest JSE-listed companies weighted by GLOBAL free-float market cap (not SWIX). This upweights dual-listed companies like BHP, Glencore and Richemont, providing the highest rand-hedge exposure of any JSE broad equity ETF. 10% cap.",
-    "rebalancing": "Quarterly"
-  },
-  {
-    "ticker": "STXRAF",
-    "yf": "STXRAF.JO",
-    "name": "Satrix RAFI 40 ETF",
-    "provider": "Satrix",
-    "category": "SA Smart Beta",
-    "ter": 0.0051,
-    "dividend": "Pays",
-    "index": "FTSE/JSE RAFI 40 Index",
-    "index_rules": "Fundamental indexing — constituents ranked by dividends, cash flow, sales and book value rather than market cap. Creates a structural value tilt.",
-    "rebalancing": "Annual"
-  },
-  {
-    "ticker": "ETFT40",
-    "yf": "ETFT40.JO",
-    "name": "1nvest Top 40 ETF",
-    "provider": "1nvest",
-    "category": "SA Broad Equity",
-    "ter": 0.001,
-    "dividend": "Pays",
-    "index": "FTSE/JSE Top 40 Index",
-    "index_rules": "Identical benchmark to STX40. Managed by Standard Bank's 1nvest division.",
-    "rebalancing": "Quarterly"
-  },
-  {
-    "ticker": "ETFSWX",
-    "yf": "ETFSWX.JO",
-    "name": "1nvest Capped SWIX ETF",
-    "provider": "1nvest",
-    "category": "SA Broad Equity",
-    "ter": 0.001,
-    "dividend": "Pays",
-    "index": "FTSE/JSE Capped SWIX All Share Index",
-    "index_rules": "SWIX-weighted All Share universe with 10% single-stock cap. Combines SA-register weighting with broad equity coverage including mid-caps.",
-    "rebalancing": "Quarterly"
-  },
-  {
-    "ticker": "CTOP50",
-    "yf": "CTOP50.JO",
-    "name": "10X Top 50 ETF",
-    "provider": "10X (CoreShares)",
-    "category": "SA Broad Equity",
-    "ter": 0.0025,
-    "dividend": "Pays",
-    "index": "S&P South Africa Top 50 Index",
-    "index_rules": "Tracks the 50 largest JSE companies by market cap with a 10% individual stock cap. Note: tracks S&P index, not FTSE/JSE.",
-    "rebalancing": "Quarterly"
-  },
-  {
-    "ticker": "SYGT40",
-    "yf": "SYGT40.JO",
-    "name": "Sygnia Itrix Top 40 ETF",
-    "provider": "Sygnia",
-    "category": "SA Broad Equity",
-    "ter": 0.001,
-    "dividend": "Pays",
-    "index": "FTSE/JSE Top 40 Index",
-    "index_rules": "Tracks the FTSE/JSE Top 40 Index. Managed by Sygnia. Pays dividends bi-annually.",
-    "rebalancing": "Quarterly"
-  },
-  {
-    "ticker": "STXFIN",
-    "yf": "STXFIN.JO",
-    "name": "Satrix Financials ETF",
-    "provider": "Satrix",
-    "category": "SA Sector",
-    "ter": 0.001,
-    "dividend": "Pays",
-    "index": "FTSE/JSE Capped Financials 15 Index",
-    "index_rules": "The 15 largest JSE financial sector companies. 15% per-stock cap.",
-    "rebalancing": "Quarterly"
-  },
-  {
-    "ticker": "STXIND",
-    "yf": "STXIND.JO",
-    "name": "Satrix Capped Industrials ETF",
-    "provider": "Satrix",
-    "category": "SA Sector",
-    "ter": 0.001,
-    "dividend": "Pays",
-    "index": "FTSE/JSE Capped Industrials 25 Index",
-    "index_rules": "25 JSE Industrial sector companies (consumer discretionary, media, telecoms). Naspers dominates. 20% per-stock cap.",
-    "rebalancing": "Quarterly"
-  },
-  {
-    "ticker": "STXRES",
-    "yf": "STXRES.JO",
-    "name": "Satrix Capped Resources ETF",
-    "provider": "Satrix",
-    "category": "SA Sector",
-    "ter": 0.001,
-    "dividend": "Pays",
-    "index": "FTSE/JSE Capped Resources 10 Index",
-    "index_rules": "The 10 largest JSE resources (mining) companies. 20% per-constituent cap.",
-    "rebalancing": "Quarterly"
-  },
-  {
-    "ticker": "STXDIV",
-    "yf": "STXDIV.JO",
-    "name": "Satrix Divi Plus ETF",
-    "provider": "Satrix",
-    "category": "SA Dividend",
-    "ter": 0.001,
-    "dividend": "Pays",
-    "index": "FTSE/JSE Dividend Plus Index",
-    "index_rules": "The 30 highest dividend-yielding shares from the All Share Index, weighted by yield.",
-    "rebalancing": "Semi-annual"
-  },
-  {
-    "ticker": "STXQUA",
-    "yf": "STXQUA.JO",
-    "name": "Satrix Quality SA ETF",
-    "provider": "Satrix",
-    "category": "SA Smart Beta",
-    "ter": 0.002,
-    "dividend": "Pays",
-    "index": "S&P SA Quality Index",
-    "index_rules": "SA stocks scored on ROE, accruals ratio and financial leverage. Top 20% quality stocks weighted by quality score × market cap.",
-    "rebalancing": "Annual"
-  },
-  {
-    "ticker": "STXMMT",
-    "yf": "STXMMT.JO",
-    "name": "Satrix Momentum ETF",
-    "provider": "Satrix",
-    "category": "SA Smart Beta",
-    "ter": 0.002,
-    "dividend": "Pays",
-    "index": "S&P SA Momentum Index",
-    "index_rules": "SA stocks with the strongest 12-month risk-adjusted price momentum (excluding most recent month).",
-    "rebalancing": "Semi-annual"
-  },
-  {
-    "ticker": "STXLVL",
-    "yf": "STXLVL.JO",
-    "name": "Satrix Low Volatility ETF",
-    "provider": "Satrix",
-    "category": "SA Smart Beta",
-    "ter": 0.002,
-    "dividend": "Pays",
-    "index": "S&P SA Low Volatility Index",
-    "index_rules": "The 30 least volatile SA stocks over trailing 252 days. Weighted inversely by volatility.",
-    "rebalancing": "Quarterly"
-  },
-  {
-    "ticker": "STXPRO",
-    "yf": "STXPRO.JO",
-    "name": "Satrix Property ETF",
-    "provider": "Satrix",
-    "category": "SA Property",
-    "ter": 0.001,
-    "dividend": "Pays",
-    "index": "FTSE/JSE SA Listed Property Index (SAPY)",
-    "index_rules": "All JSE-listed REITs and property companies by float-adjusted market cap, 20% per-stock cap.",
-    "rebalancing": "Quarterly"
-  },
-  {
-    "ticker": "CSPROP",
-    "yf": "CSPROP.JO",
-    "name": "10X SA Property Income ETF",
-    "provider": "10X (CoreShares)",
-    "category": "SA Property",
-    "ter": 0.0045,
-    "dividend": "Pays",
-    "index": "FTSE/JSE SA Listed Property Index (SAPY)",
-    "index_rules": "Same benchmark as STXPRO, managed by 10X.",
-    "rebalancing": "Quarterly"
-  },
-  {
-    "ticker": "STXILB",
-    "yf": "STXILB.JO",
-    "name": "Satrix ILBI ETF",
-    "provider": "Satrix",
-    "category": "SA Bond",
-    "ter": 0.0025,
-    "dividend": "Pays",
-    "index": "FTSE/JSE ILBI Index",
-    "index_rules": "SA government inflation-linked bonds weighted by market value. Real returns above CPI.",
-    "rebalancing": "Monthly"
-  },
-  {
+    "provider": "10X",
+    "name": "10X Wealth Govi Bond",
     "ticker": "CSGOVI",
     "yf": "CSGOVI.JO",
-    "name": "10X Wealth Govi Bond ETF",
-    "provider": "10X (CoreShares)",
-    "category": "SA Bond",
-    "ter": 0.0024,
-    "dividend": "Pays",
-    "index": "FTSE/JSE GOVI Index",
-    "index_rules": "SA government nominal bonds, weighted by outstanding market value.",
-    "rebalancing": "Monthly"
+    "jol_slug": "csgovi",
+    "ee_aliases": ["10X Govi", "CoreShares Govi"]
   },
   {
-    "ticker": "PREFTX",
-    "yf": "PREFTX.JO",
-    "name": "10X Yield Selected Bond ETF",
-    "provider": "10X (CoreShares)",
-    "category": "SA Bond",
-    "ter": 0.0035,
-    "dividend": "Pays",
-    "index": "Custom: 8 Highest-Yielding SA Government Bonds",
-    "index_rules": "Previously the CoreShares PrefTrax (preference share tracker). Remandated April 2023 after the preference share market shrank due to Basel III. Now tracks a custom index of the 8 highest-yielding SA government bonds.",
-    "rebalancing": "Quarterly"
-  },
-  {
-    "ticker": "STX500",
-    "yf": "STX500.JO",
-    "name": "Satrix S&P 500 Feeder ETF",
-    "provider": "Satrix",
-    "category": "Global Equity",
-    "ter": 0.0035,
-    "dividend": "Reinvests",
-    "index": "S&P 500 Index",
-    "index_rules": "Feeder into Vanguard S&P 500 UCITS ETF. 500 large US companies.",
-    "rebalancing": "Quarterly"
-  },
-  {
-    "ticker": "SYG500",
-    "yf": "SYG500.JO",
-    "name": "Sygnia Itrix S&P 500 ETF",
-    "provider": "Sygnia",
-    "category": "Global Equity",
-    "ter": 0.0015,
-    "dividend": "Reinvests",
-    "index": "S&P 500 Index",
-    "index_rules": "Tracks the S&P 500 via iShares S&P 500 UCITS ETF. Lowest-cost S&P 500 product on the TFSA.",
-    "rebalancing": "Quarterly"
-  },
-  {
-    "ticker": "ETF500",
-    "yf": "ETF500.JO",
-    "name": "1nvest S&P 500 Feeder ETF",
-    "provider": "1nvest",
-    "category": "Global Equity",
-    "ter": 0.002,
-    "dividend": "Reinvests",
-    "index": "S&P 500 Index",
-    "index_rules": "Feeder into iShares Core S&P 500 UCITS ETF.",
-    "rebalancing": "Quarterly"
-  },
-  {
+    "provider": "10X",
+    "name": "10X S&P 500 ETF",
     "ticker": "CSP500",
     "yf": "CSP500.JO",
-    "name": "10X S&P 500 ETF",
-    "provider": "10X (CoreShares)",
-    "category": "Global Equity",
-    "ter": 0.0037,
-    "dividend": "Reinvests",
-    "index": "S&P 500 Index",
-    "index_rules": "Feeder into iShares S&P 500 UCITS ETF, managed by 10X.",
-    "rebalancing": "Quarterly"
+    "jol_slug": "csp500",
+    "ee_aliases": ["10X S&P500", "CoreShares S&P 500"]
   },
   {
-    "ticker": "ETF5IT",
-    "yf": "ETF5IT.JO",
-    "name": "1nvest S&P 500 Info Tech Feeder ETF",
-    "provider": "1nvest",
-    "category": "Global Equity",
-    "ter": 0.0025,
-    "dividend": "Reinvests",
-    "index": "S&P 500 Information Technology Sector Index",
-    "index_rules": "Only the IT sector of the S&P 500 (~70 companies). Concentrated in Apple, Microsoft, Nvidia.",
-    "rebalancing": "Quarterly"
+    "provider": "10X",
+    "name": "10X SA Property Income ETF",
+    "ticker": "CSPROP",
+    "yf": "CSPROP.JO",
+    "jol_slug": "csprop",
+    "ee_aliases": ["10X SA Property", "CoreShares SA Property"]
   },
   {
-    "ticker": "STXNDQ",
-    "yf": "STXNDQ.JO",
-    "name": "Satrix Nasdaq 100 Feeder ETF",
-    "provider": "Satrix",
-    "category": "Global Equity",
-    "ter": 0.0048,
-    "dividend": "Reinvests",
-    "index": "Nasdaq-100 Index",
-    "index_rules": "Feeder into Invesco Nasdaq-100 UCITS ETF. The 100 largest non-financial Nasdaq companies. Reviewed annually in December.",
-    "rebalancing": "Annual (December)"
+    "provider": "10X",
+    "name": "10X Yield Selected Bond ETF",
+    "ticker": "CSYSB",
+    "yf": "CSYSB.JO",
+    "jol_slug": "csysb",
+    "ee_aliases": ["10X Yield Selected", "10X PrefTrax Successor", "PrefTrax replaced"]
   },
   {
-    "ticker": "STXWDM",
-    "yf": "STXWDM.JO",
-    "name": "Satrix MSCI World Feeder ETF",
-    "provider": "Satrix",
-    "category": "Global Equity",
-    "ter": 0.0035,
-    "dividend": "Reinvests",
-    "index": "MSCI World Index",
-    "index_rules": "Feeder into Vanguard MSCI World UCITS ETF. ~1,500 large/mid caps across 23 developed markets. US ≈ 70%.",
-    "rebalancing": "Quarterly"
+    "provider": "10X",
+    "name": "10X Top50 ETF",
+    "ticker": "CTOP50",
+    "yf": "CTOP50.JO",
+    "jol_slug": "ctop50",
+    "ee_aliases": ["10X Top 50", "CoreShares Top 50"]
   },
   {
-    "ticker": "SYGWD",
-    "yf": "SYGWD.JO",
-    "name": "Sygnia Itrix MSCI World ETF",
-    "provider": "Sygnia",
-    "category": "Global Equity",
-    "ter": 0.002,
-    "dividend": "Reinvests",
-    "index": "MSCI World Index",
-    "index_rules": "Same benchmark as STXWDM via iShares Core MSCI World UCITS ETF.",
-    "rebalancing": "Quarterly"
+    "provider": "10X",
+    "name": "10X DivTrax ETF",
+    "ticker": "DIVTRX",
+    "yf": "DIVTRX.JO",
+    "jol_slug": "divtrx",
+    "ee_aliases": ["10X DivTrax", "CoreShares DivTrax"]
   },
   {
-    "ticker": "CTWRL",
-    "yf": "CTWRL.JO",
+    "provider": "10X",
     "name": "10X Total World ETF",
-    "provider": "10X (CoreShares)",
-    "category": "Global Equity",
-    "ter": 0.0025,
-    "dividend": "Reinvests",
-    "index": "FTSE Global All Cap Index",
-    "index_rules": "Feeder into Vanguard Total World Stock UCITS ETF. 9,500+ stocks across 49 countries — developed AND emerging markets plus small/mid caps. Broadest single-fund global exposure on the TFSA.",
-    "rebalancing": "Quarterly"
+    "ticker": "GLOBAL",
+    "yf": "GLOBAL.JO",
+    "jol_slug": "global",
+    "ee_aliases": ["10X Total World", "CoreShares Total World"]
   },
   {
-    "ticker": "STXEMG",
-    "yf": "STXEMG.JO",
-    "name": "Satrix MSCI Emerging Markets Feeder ETF",
-    "provider": "Satrix",
-    "category": "EM Equity",
-    "ter": 0.004,
-    "dividend": "Reinvests",
-    "index": "MSCI Emerging Markets Index",
-    "index_rules": "Feeder into Vanguard MSCI EM UCITS ETF. ~1,400 large/mid caps in 24 EM countries.",
-    "rebalancing": "Quarterly"
-  },
-  {
-    "ticker": "ASHGEQ",
-    "yf": "ASHGEQ.JO",
-    "name": "Ashburton Global 1200 ETF",
-    "provider": "Ashburton (FNB)",
-    "category": "Global Equity",
-    "ter": 0.0075,
-    "dividend": "Reinvests",
-    "index": "S&P Global 1200 Index",
-    "index_rules": "Composite of 7 regional indices covering 31 countries and ~1,200 companies.",
-    "rebalancing": "Quarterly"
-  },
-  {
-    "ticker": "SYGJP",
-    "yf": "SYGJP.JO",
-    "name": "Sygnia Itrix MSCI Japan ETF",
-    "provider": "Sygnia",
-    "category": "Global Equity",
-    "ter": 0.002,
-    "dividend": "Reinvests",
-    "index": "MSCI Japan Index",
-    "index_rules": "Tracks MSCI Japan via iShares Core MSCI Japan IMI UCITS ETF.",
-    "rebalancing": "Quarterly"
-  },
-  {
-    "ticker": "SYGEU",
-    "yf": "SYGEU.JO",
-    "name": "Sygnia Itrix MSCI Europe ETF",
-    "provider": "Sygnia",
-    "category": "Global Equity",
-    "ter": 0.002,
-    "dividend": "Reinvests",
-    "index": "MSCI Europe Index",
-    "index_rules": "Tracks MSCI Europe via iShares Core MSCI Europe UCITS ETF. ~430 companies across 15 European developed markets.",
-    "rebalancing": "Quarterly"
-  },
-  {
-    "ticker": "SYGUK",
-    "yf": "SYGUK.JO",
-    "name": "Sygnia Itrix MSCI UK ETF",
-    "provider": "Sygnia",
-    "category": "Global Equity",
-    "ter": 0.002,
-    "dividend": "Reinvests",
-    "index": "MSCI United Kingdom Index",
-    "index_rules": "Tracks MSCI UK via iShares Core MSCI UK IMI UCITS ETF. ~250 UK companies.",
-    "rebalancing": "Quarterly"
-  },
-  {
-    "ticker": "GLPROP",
-    "yf": "GLPROP.JO",
-    "name": "10X S&P Global Property ETF",
-    "provider": "10X (CoreShares)",
-    "category": "Global Property",
-    "ter": 0.0051,
-    "dividend": "Pays",
-    "index": "S&P Global Property 40 Index",
-    "index_rules": "40 largest global REITs and real estate companies by float-adjusted market cap.",
-    "rebalancing": "Quarterly"
-  },
-  {
-    "ticker": "ETFGPR",
-    "yf": "ETFGPR.JO",
-    "name": "1nvest Global REIT Index Feeder ETF",
-    "provider": "1nvest",
-    "category": "Global Property",
-    "ter": 0.0025,
-    "dividend": "Pays",
-    "index": "FTSE EPRA/NAREIT Global REIT Index",
-    "index_rules": "~300 REITs across 25 countries via iShares Global REIT ETF.",
-    "rebalancing": "Quarterly"
-  },
-  {
+    "provider": "10X",
+    "name": "10X S&P Global Dividend ETF",
     "ticker": "GLODIV",
     "yf": "GLODIV.JO",
-    "name": "10X S&P Global Dividend ETF",
-    "provider": "10X (CoreShares)",
-    "category": "Global Income",
-    "ter": 0.0054,
-    "dividend": "Pays",
-    "index": "S&P Global Dividend Aristocrats Index",
-    "index_rules": "Global stocks with 7+ consecutive years of non-decreasing dividends, weighted by dividend yield.",
-    "rebalancing": "Annual"
+    "jol_slug": "glodiv",
+    "ee_aliases": ["10X Global Dividend", "CoreShares Global Dividend"]
   },
   {
-    "ticker": "ETFUSG",
-    "yf": "ETFUSG.JO",
-    "name": "1nvest ICE US Treasury Short Bond Feeder ETF",
+    "provider": "10X",
+    "name": "10X S&P Global Property ETF",
+    "ticker": "GLPROP",
+    "yf": "GLPROP.JO",
+    "jol_slug": "glprop",
+    "ee_aliases": ["10X Global Property", "CoreShares Global Property"]
+  },
+  {
+    "provider": "10X",
+    "name": "10X Income Actively Managed Exchange Traded Fund",
+    "ticker": "INCOME",
+    "yf": "INCOME.JO",
+    "jol_slug": "income",
+    "ee_aliases": ["10X Income", "Active Income"]
+  },
+  {
+    "provider": "10X",
+    "name": "10X Scientific Beta Multi Factor ETF",
+    "ticker": "SMART",
+    "yf": "SMART.JO",
+    "jol_slug": "smart",
+    "ee_aliases": ["10X Multi Factor", "10X Smart Beta", "Scientific Beta"]
+  },
+  {
     "provider": "1nvest",
-    "category": "Global Bond",
-    "ter": 0.002,
-    "dividend": "Pays",
-    "index": "ICE US Treasury Short Bond Index",
-    "index_rules": "Short-dated US Treasury bonds (1-3 year maturities). Low-risk USD-denominated income.",
-    "rebalancing": "Monthly"
+    "name": "1nvest S&P 500 Index Feeder ETF",
+    "ticker": "ETF500",
+    "yf": "ETF500.JO",
+    "jol_slug": "etf500",
+    "ee_aliases": ["1nvest S&P 500", "Stanlib S&P 500"]
   },
   {
-    "ticker": "ETFGLD",
-    "yf": "ETFGLD.JO",
-    "name": "1nvest Gold ETF",
     "provider": "1nvest",
-    "category": "Commodity",
-    "ter": 0.004,
-    "dividend": "None",
-    "index": "ZAR Gold Spot Price",
-    "index_rules": "Physically-backed gold ETF. Each debenture = 1/100th troy oz gold in SA Reserve Bank vaults.",
-    "rebalancing": "N/A"
+    "name": "1nvest S&P 500 Info Tech ETF",
+    "ticker": "ETF5IT",
+    "yf": "ETF5IT.JO",
+    "jol_slug": "etf5it",
+    "ee_aliases": ["1nvest S&P 500 IT", "1nvest Tech"]
   },
   {
-    "ticker": "NGPLT",
-    "yf": "NGPLT.JO",
-    "name": "NewPlat ETF",
-    "provider": "Absa (NewGold)",
-    "category": "Commodity",
-    "ter": 0.004,
-    "dividend": "None",
-    "index": "ZAR Platinum Spot Price",
-    "index_rules": "Physically-backed platinum ETF. Each debenture = 1/100th troy oz physical platinum in SA vaults.",
-    "rebalancing": "N/A"
-  },
-  {
-    "ticker": "ETFPLT",
-    "yf": "ETFPLT.JO",
-    "name": "1nvest Platinum ETF",
     "provider": "1nvest",
-    "category": "Commodity",
-    "ter": 0.004,
-    "dividend": "None",
-    "index": "ZAR Platinum Spot Price",
-    "index_rules": "Physically-backed platinum ETF managed by Standard Bank's 1nvest.",
-    "rebalancing": "N/A"
+    "name": "1nvest SA Bond",
+    "ticker": "ETFBND",
+    "yf": "ETFBND.JO",
+    "jol_slug": "etfbnd",
+    "ee_aliases": "1nvest SA Bond"
   },
   {
-    "ticker": "ETFPLD",
-    "yf": "ETFPLD.JO",
-    "name": "1nvest Palladium ETF",
     "provider": "1nvest",
-    "category": "Commodity",
-    "ter": 0.004,
-    "dividend": "None",
-    "index": "ZAR Palladium Spot Price",
-    "index_rules": "Physically-backed palladium ETF. Supply concentrated in Russia and SA.",
-    "rebalancing": "N/A"
+    "name": "1nvest MSCI EM Asia Index Feeder ETF",
+    "ticker": "ETFEMA",
+    "yf": "ETFEMA.JO",
+    "jol_slug": "etfema",
+    "ee_aliases": ["1nvest EM Asia", "1nvest Asia"]
   },
   {
-    "ticker": "ETFRHO",
-    "yf": "ETFRHO.JO",
-    "name": "1nvest Rhodium ETF",
     "provider": "1nvest",
-    "category": "Commodity",
-    "ter": 0.004,
-    "dividend": "None",
-    "index": "ZAR Rhodium Spot Price",
-    "index_rules": "Physically-backed rhodium ETF. Rarest PGM, used in catalytic converters.",
-    "rebalancing": "N/A"
+    "name": "1nvest Global Govt Bond ETF",
+    "ticker": "ETFGGB",
+    "yf": "ETFGGB.JO",
+    "jol_slug": "etfggb",
+    "ee_aliases": "1nvest Global Govt Bond"
   },
   {
-    "ticker": "MAPPSG",
-    "yf": "MAPPSG.JO",
-    "name": "Satrix MAPPS Growth ETF",
+    "provider": "1nvest",
+    "name": "1nvest Global REIT Index ETF",
+    "ticker": "ETFGRE",
+    "yf": "ETFGRE.JO",
+    "jol_slug": "etfgre",
+    "ee_aliases": ["1nvest Global REIT", "1nvest REIT"]
+  },
+  {
+    "provider": "1nvest",
+    "name": "1nvest SA Property ETF",
+    "ticker": "ETFSAP",
+    "yf": "ETFSAP.JO",
+    "jol_slug": "etfsap",
+    "ee_aliases": "1nvest SA Property"
+  },
+  {
+    "provider": "1nvest",
+    "name": "1nvest MSCI World Socially Responsible Investment Index Feeder ETF",
+    "ticker": "ETFSRI",
+    "yf": "ETFSRI.JO",
+    "jol_slug": "etfsri",
+    "ee_aliases": ["1nvest SRI", "1nvest World Socially Responsible"]
+  },
+  {
+    "provider": "1nvest",
+    "name": "1nvest Top 40 ETF",
+    "ticker": "ETFT40",
+    "yf": "ETFT40.JO",
+    "jol_slug": "etft40",
+    "ee_aliases": ["1nvest Top 40", "Stanlib Top 40"]
+  },
+  {
+    "provider": "1nvest",
+    "name": "1nvest ICE US Treasury Short Bond Index Feeder ETF",
+    "ticker": "ETFUSD",
+    "yf": "ETFUSD.JO",
+    "jol_slug": "etfusd",
+    "ee_aliases": ["1nvest US Treasury Short", "1nvest USD Bond"]
+  },
+  {
+    "provider": "1nvest",
+    "name": "1nvest MSCI World Index ETF",
+    "ticker": "ETFWLD",
+    "yf": "ETFWLD.JO",
+    "jol_slug": "etfwld",
+    "ee_aliases": ["1nvest MSCI World", "1nvest World"]
+  },
+  {
+    "provider": "Cartesian",
+    "name": "Cartesian EasyETFs Balanced Actively Managed ETF",
+    "ticker": "EASYBAL",
+    "yf": "EASYBAL.JO",
+    "jol_slug": "easybal",
+    "ee_aliases": "Cartesian Balanced"
+  },
+  {
+    "provider": "ETFSA",
+    "name": "ETFSA Balanced Foundation Prescient AMETF",
+    "ticker": "ETFBAF",
+    "yf": "ETFBAF.JO",
+    "jol_slug": "etfbaf",
+    "ee_aliases": "ETFSA Balanced"
+  },
+  {
+    "provider": "EasyETFs",
+    "name": "EasyETFs AI World Actively Managed ETF",
+    "ticker": "EASYAI",
+    "yf": "EASYAI.JO",
+    "jol_slug": "easyai",
+    "ee_aliases": "EasyETFs AI"
+  },
+  {
+    "provider": "EasyETFs",
+    "name": "EasyETFs Balanced Actively Managed ETF",
+    "ticker": "EASYB",
+    "yf": "EASYB.JO",
+    "jol_slug": "easyb",
+    "ee_aliases": "EasyETFs Balanced"
+  },
+  {
+    "provider": "EasyETFs",
+    "name": "EasyETFs Global Equity Actively Managed ETF",
+    "ticker": "EASYGE",
+    "yf": "EASYGE.JO",
+    "jol_slug": "easyge",
+    "ee_aliases": "EasyETFs Global Equity"
+  },
+  {
+    "provider": "FNB",
+    "name": "FNB Top40 ETF",
+    "ticker": "FNB40",
+    "yf": "FNBT40.JO",
+    "jol_slug": "fnbt40",
+    "ee_aliases": ["FNB Top 40", "Ashburton Top 40"]
+  },
+  {
+    "provider": "FNB",
+    "name": "FNB Global 1200 Equity Fund of Funds ETF",
+    "ticker": "FNBGLO",
+    "yf": "FNBEQF.JO",
+    "jol_slug": "fnbeqf",
+    "ee_aliases": ["FNB Global 1200", "Ashburton Global 1200"]
+  },
+  {
+    "provider": "FNB",
+    "name": "FNB Inflation ETF",
+    "ticker": "FNBINF",
+    "yf": "FNBINF.JO",
+    "jol_slug": "fnbinf",
+    "ee_aliases": "FNB Inflation"
+  },
+  {
+    "provider": "FNB",
+    "name": "FNB MidCap ETF",
+    "ticker": "FNBMID",
+    "yf": "FNBMID.JO",
+    "jol_slug": "fnbmid",
+    "ee_aliases": "FNB MidCap"
+  },
+  {
+    "provider": "FNB",
+    "name": "FNB World Government Bond ETF",
+    "ticker": "FNBWGB",
+    "yf": "FNBWGB.JO",
+    "jol_slug": "fnbwgb",
+    "ee_aliases": "FNB World Government Bond"
+  },
+  {
+    "provider": "PortfolioMetrix",
+    "name": "PortfolioMetrix Active Income Prescient AMETF",
+    "ticker": "PMXINC",
+    "yf": "PMXINC.JO",
+    "jol_slug": "pmxinc",
+    "ee_aliases": "PortfolioMetrix Active Income"
+  },
+  {
+    "provider": "Prescient",
+    "name": "Prescient Income Provider Feeder AMETF",
+    "ticker": "PIPF",
+    "yf": "PIPF.JO",
+    "jol_slug": "pipf",
+    "ee_aliases": "Prescient Income Provider"
+  },
+  {
+    "provider": "Reitway",
+    "name": "Reitway Global Property ETF",
+    "ticker": "REITGP",
+    "yf": "RWAGP.JO",
+    "jol_slug": "rwagp",
+    "ee_aliases": "Reitway Global Property"
+  },
+  {
     "provider": "Satrix",
-    "category": "Multi-Asset",
-    "ter": 0.0025,
-    "dividend": "Pays",
-    "index": "MAPPS Growth Index",
-    "index_rules": "Multi-asset blend: SA Equity 75%, Nominal Bonds 10%, Inflation-Linked Bonds 10%, Cash 5%. Transferred from NewFunds to Satrix March 2023.",
-    "rebalancing": "Monthly"
+    "name": "Satrix 40 ETF",
+    "ticker": "STX40",
+    "yf": "STX40.JO",
+    "jol_slug": "stx40",
+    "ee_aliases": ["Satrix Top 40 ETF", "Satrix 40", "Top 40 Satrix"]
   },
   {
-    "ticker": "MAPPSP",
-    "yf": "MAPPSP.JO",
-    "name": "Satrix MAPPS Protect ETF",
     "provider": "Satrix",
-    "category": "Multi-Asset",
-    "ter": 0.0025,
-    "dividend": "Pays",
-    "index": "MAPPS Protect Index",
-    "index_rules": "Conservative blend: SA Equity 40%, ILBs 35%, Nominal Bonds 15%, Cash 10%.",
-    "rebalancing": "Monthly"
+    "name": "Satrix S&P 500",
+    "ticker": "STX500",
+    "yf": "STX500.JO",
+    "jol_slug": "stx500",
+    "ee_aliases": ["Satrix S&P500", "Satrix 500"]
+  },
+  {
+    "provider": "Satrix",
+    "name": "Satrix Capped All Share ETF",
+    "ticker": "STXCAP",
+    "yf": "STXCAP.JO",
+    "jol_slug": "stxcap",
+    "ee_aliases": ["Satrix Capped All Share", "Satrix CAPI"]
+  },
+  {
+    "provider": "Satrix",
+    "name": "Satrix MSCI China ETF",
+    "ticker": "STXCHN",
+    "yf": "STXCHN.JO",
+    "jol_slug": "stxchn",
+    "ee_aliases": "Satrix MSCI China"
+  },
+  {
+    "provider": "Satrix",
+    "name": "Satrix DIVI ETF",
+    "ticker": "STXDIV",
+    "yf": "STXDIV.JO",
+    "jol_slug": "stxdiv",
+    "ee_aliases": ["Satrix Dividend Plus", "Satrix Divi", "Satrix Dividend"]
+  },
+  {
+    "provider": "Satrix",
+    "name": "Satrix MSCI EM ESG Enhanced",
+    "ticker": "STXEME",
+    "yf": "STXEME.JO",
+    "jol_slug": "stxeme",
+    "ee_aliases": "Satrix EM ESG"
+  },
+  {
+    "provider": "Satrix",
+    "name": "Satrix MSCI Emerging Markets ETF",
+    "ticker": "STXEMG",
+    "yf": "STXEMG.JO",
+    "jol_slug": "stxemg",
+    "ee_aliases": ["Satrix Emerging Markets", "Satrix MSCI EM"]
+  },
+  {
+    "provider": "Satrix",
+    "name": "Satrix FINI ETF",
+    "ticker": "STXFIN",
+    "yf": "STXFIN.JO",
+    "jol_slug": "stxfin",
+    "ee_aliases": ["Satrix Financials", "Satrix FINI"]
+  },
+  {
+    "provider": "Satrix",
+    "name": "Satrix Global Aggregate Bond",
+    "ticker": "STXGBD",
+    "yf": "STXGBD.JO",
+    "jol_slug": "stxgbd",
+    "ee_aliases": "Satrix Global Bond"
+  },
+  {
+    "provider": "Satrix",
+    "name": "Satrix GOVI ETF",
+    "ticker": "STXGOV",
+    "yf": "STXGOV.JO",
+    "jol_slug": "stxgov",
+    "ee_aliases": ["Satrix GOVI", "Satrix Government Bond"]
+  },
+  {
+    "provider": "Satrix",
+    "name": "Satrix Healthcare Innovation Feeder ETF",
+    "ticker": "STXHLT",
+    "yf": "STXHLT.JO",
+    "jol_slug": "stxhlt",
+    "ee_aliases": "Satrix Healthcare"
+  },
+  {
+    "provider": "Satrix",
+    "name": "Satrix Inclusion and Diversity ETF",
+    "ticker": "STXID",
+    "yf": "STXID.JO",
+    "jol_slug": "stxid",
+    "ee_aliases": "Satrix Inclusion Diversity"
+  },
+  {
+    "provider": "Satrix",
+    "name": "Satrix Inflation-linked Bond ETF",
+    "ticker": "STXILB",
+    "yf": "STXILB.JO",
+    "jol_slug": "stxilb",
+    "ee_aliases": ["Satrix Inflation Linked Bond", "Satrix ILBI"]
+  },
+  {
+    "provider": "Satrix",
+    "name": "Satrix INDI ETF",
+    "ticker": "STXIND",
+    "yf": "STXIND.JO",
+    "jol_slug": "stxind",
+    "ee_aliases": ["Satrix Industrials", "Satrix INDI"]
+  },
+  {
+    "provider": "Satrix",
+    "name": "Satrix MSCI India Feeder ETF",
+    "ticker": "STXINDI",
+    "yf": "STXNDA.JO",
+    "jol_slug": "stxnda",
+    "ee_aliases": ["Satrix India", "Satrix MSCI India"]
+  },
+  {
+    "provider": "Satrix",
+    "name": "Satrix Global Infrastructure ETF",
+    "ticker": "STXINF",
+    "yf": "STXIFR.JO",
+    "jol_slug": "stxifr",
+    "ee_aliases": "Satrix Global Infrastructure"
+  },
+  {
+    "provider": "Satrix",
+    "name": "Satrix Low Volatility ETF",
+    "ticker": "STXLVL",
+    "yf": "STXLVL.JO",
+    "jol_slug": "stxlvl",
+    "ee_aliases": ["Satrix Low Vol", "Satrix Lo Vol"]
+  },
+  {
+    "provider": "Satrix",
+    "name": "Satrix MAPPS Growth",
+    "ticker": "STXMAP",
+    "yf": "STXGLB.JO",
+    "jol_slug": "stxglb",
+    "ee_aliases": "Satrix MAPPS Growth"
+  },
+  {
+    "provider": "Satrix",
+    "name": "Satrix Momentum ETF",
+    "ticker": "STXMMT",
+    "yf": "STXMMT.JO",
+    "jol_slug": "stxmmt",
+    "ee_aliases": "Satrix Momentum"
+  },
+  {
+    "provider": "Satrix",
+    "name": "Satrix MAPPS Protect",
+    "ticker": "STXMPF",
+    "yf": "STXGLB.JO",
+    "jol_slug": "stxglb",
+    "ee_aliases": "Satrix MAPPS Protect"
+  },
+  {
+    "provider": "Satrix",
+    "name": "Satrix S&P Namibia Bond ETF",
+    "ticker": "STXNAM",
+    "yf": "STXNAM.JO",
+    "jol_slug": "stxnam",
+    "ee_aliases": "Satrix Namibia Bond"
+  },
+  {
+    "provider": "Satrix",
+    "name": "Satrix Nasdaq 100",
+    "ticker": "STXNDQ",
+    "yf": "STXNDQ.JO",
+    "jol_slug": "stxndq",
+    "ee_aliases": ["Satrix Nasdaq", "Satrix Nasdaq 100 Feeder"]
+  },
+  {
+    "provider": "Satrix",
+    "name": "Satrix Property ETF",
+    "ticker": "STXPRO",
+    "yf": "STXPRO.JO",
+    "jol_slug": "stxpro",
+    "ee_aliases": ["Satrix SA Property", "Satrix Property"]
+  },
+  {
+    "provider": "Satrix",
+    "name": "Satrix Quality South Africa ETF",
+    "ticker": "STXQUA",
+    "yf": "STXQUA.JO",
+    "jol_slug": "stxqua",
+    "ee_aliases": "Satrix Quality"
+  },
+  {
+    "provider": "Satrix",
+    "name": "Satrix RAFI 40 ETF",
+    "ticker": "STXRAF",
+    "yf": "STXRAF.JO",
+    "jol_slug": "stxraf",
+    "ee_aliases": ["Satrix RAFI", "Satrix Rafi 40"]
+  },
+  {
+    "provider": "Satrix",
+    "name": "Satrix RESI ETF",
+    "ticker": "STXRES",
+    "yf": "STXRES.JO",
+    "jol_slug": "stxres",
+    "ee_aliases": ["Satrix Resources", "Satrix RESI"]
+  },
+  {
+    "provider": "Satrix",
+    "name": "Satrix Smart City Feeder ETF",
+    "ticker": "STXSCF",
+    "yf": "STXCTY.JO",
+    "jol_slug": "stxcty",
+    "ee_aliases": "Satrix Smart City"
+  },
+  {
+    "provider": "Satrix",
+    "name": "Satrix Shari'ah Top 40 ETF",
+    "ticker": "STXSHA",
+    "yf": "STXSHA.JO",
+    "jol_slug": "stxsha",
+    "ee_aliases": ["Satrix Shariah Top 40", "Satrix Shari'ah", "Satrix Shariah"]
+  },
+  {
+    "provider": "Satrix",
+    "name": "Satrix SWIX Top 40 ETF",
+    "ticker": "STXSWX",
+    "yf": "STXSAI.JO",
+    "jol_slug": "stxsai",
+    "ee_aliases": ["Satrix SWIX 40", "Satrix Swix Top 40"]
+  },
+  {
+    "provider": "Satrix",
+    "name": "Satrix TRACI 3 Month ETF",
+    "ticker": "STXTRC",
+    "yf": "STXTRC.JO",
+    "jol_slug": "stxtrc",
+    "ee_aliases": "Satrix TRACI"
+  },
+  {
+    "provider": "Satrix",
+    "name": "Satrix Value Equity ETF",
+    "ticker": "STXVLE",
+    "yf": "STXVEQ.JO",
+    "jol_slug": "stxveq",
+    "ee_aliases": "Satrix Value"
+  },
+  {
+    "provider": "Satrix",
+    "name": "Satrix MSCI World ETF",
+    "ticker": "STXWDM",
+    "yf": "STXWDM.JO",
+    "jol_slug": "stxwdm",
+    "ee_aliases": ["Satrix MSCI World", "Satrix World"]
+  },
+  {
+    "provider": "Satrix",
+    "name": "Satrix MSCI World ESG Enhanced",
+    "ticker": "STXWESG",
+    "yf": "STXESG.JO",
+    "jol_slug": "stxesg",
+    "ee_aliases": "Satrix World ESG"
+  },
+  {
+    "provider": "Sygnia Itrix",
+    "name": "Sygnia Itrix 4th Industrial Revolution",
+    "ticker": "SYG4IR",
+    "yf": "SYG4IR.JO",
+    "jol_slug": "syg4ir",
+    "ee_aliases": ["Sygnia 4IR", "Sygnia 4th Industrial"]
+  },
+  {
+    "provider": "Sygnia Itrix",
+    "name": "Sygnia Itrix S&P 500 ETF",
+    "ticker": "SYG500",
+    "yf": "SYG500.JO",
+    "jol_slug": "syg500",
+    "ee_aliases": ["Sygnia S&P 500", "Sygnia 500"]
+  },
+  {
+    "provider": "Sygnia Itrix",
+    "name": "Sygnia Itrix New China Sectors ETF",
+    "ticker": "SYGCN",
+    "yf": "SYGCN.JO",
+    "jol_slug": "sygcn",
+    "ee_aliases": ["Sygnia China", "Sygnia New China"]
+  },
+  {
+    "provider": "Sygnia Itrix",
+    "name": "Sygnia Itrix MSCI Emerging Markets 50 ETF",
+    "ticker": "SYGEMF50",
+    "yf": "SYGEMF.JO",
+    "jol_slug": "sygemf",
+    "ee_aliases": ["Sygnia EM 50", "Sygnia Emerging Markets 50"]
+  },
+  {
+    "provider": "Sygnia Itrix",
+    "name": "Sygnia Itrix S&P Global 1200 ESG ETF",
+    "ticker": "SYGESG",
+    "yf": "SYGESG.JO",
+    "jol_slug": "sygesg",
+    "ee_aliases": ["Sygnia ESG", "Sygnia 1200 ESG"]
+  },
+  {
+    "provider": "Sygnia Itrix",
+    "name": "Sygnia Itrix EUROSTOXX50 ETF",
+    "ticker": "SYGEU",
+    "yf": "SYGEU.JO",
+    "jol_slug": "sygeu",
+    "ee_aliases": ["Sygnia Eurostoxx", "Sygnia Europe"]
+  },
+  {
+    "provider": "Sygnia Itrix",
+    "name": "Sygnia Itrix Solactive Healthcare 150 ETF",
+    "ticker": "SYGHLT",
+    "yf": "SYGH.JO",
+    "jol_slug": "sygh",
+    "ee_aliases": ["Sygnia Healthcare", "Sygnia Solactive Healthcare"]
+  },
+  {
+    "provider": "Sygnia Itrix",
+    "name": "Sygnia Itrix MSCI Japan ETF",
+    "ticker": "SYGJP",
+    "yf": "SYGJP.JO",
+    "jol_slug": "sygjp",
+    "ee_aliases": ["Sygnia Japan", "Sygnia MSCI Japan"]
+  },
+  {
+    "provider": "Sygnia Itrix",
+    "name": "Sygnia Itrix Global Property ETF",
+    "ticker": "SYGP",
+    "yf": "SYGP.JO",
+    "jol_slug": "sygp",
+    "ee_aliases": "Sygnia Global Property"
+  },
+  {
+    "provider": "Sygnia Itrix",
+    "name": "Sygnia Itrix Top 40 ETF",
+    "ticker": "SYGT40",
+    "yf": "SYGT40.JO",
+    "jol_slug": "sygt40",
+    "ee_aliases": "Sygnia Top 40"
+  },
+  {
+    "provider": "Sygnia Itrix",
+    "name": "Sygnia Itrix FTSE100 ETF",
+    "ticker": "SYGUK",
+    "yf": "SYGUK.JO",
+    "jol_slug": "syguk",
+    "ee_aliases": ["Sygnia FTSE 100", "Sygnia UK"]
+  },
+  {
+    "provider": "Sygnia Itrix",
+    "name": "Sygnia Itrix MSCI US ETF",
+    "ticker": "SYGUS",
+    "yf": "SYGUS.JO",
+    "jol_slug": "sygus",
+    "ee_aliases": ["Sygnia MSCI US", "Sygnia US"]
+  },
+  {
+    "provider": "Sygnia Itrix",
+    "name": "Sygnia Itrix MSCI World ETF",
+    "ticker": "SYGWD",
+    "yf": "SYGWD.JO",
+    "jol_slug": "sygwd",
+    "ee_aliases": ["Sygnia MSCI World", "Sygnia World"]
   }
 ]

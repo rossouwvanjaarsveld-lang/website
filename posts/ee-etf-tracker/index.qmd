@@ -1,8 +1,8 @@
 ---
 title: "Easy Equities TFSA ETF Analytics"
-description: "Interactive trading analytics for all JSE-listed ETFs available on the Easy Equities Tax-Free Savings Account — leaderboards, price history, risk metrics, rolling volatility, drawdown, top holdings and index rules."
+description: "Interactive trading analytics for every ETF available on the Easy Equities Tax-Free Savings Account — leaderboards, price history, risk metrics, top holdings and index rules."
 date: today
-categories: [R, ETF, Finance, South Africa, Interactive]
+categories: [R, ETF, Finance, South Africa]
 image: thumbnail.png
 ---
 
@@ -26,14 +26,15 @@ all_etfs <- map(etf_list$ticker, function(t) {
 }) |> set_names(etf_list$ticker) |> compact()
 
 ojs_define(
-  etf_list_r  = etf_list,
-  summary_r   = summary,
-  all_etfs_r  = all_etfs
+  etf_list_r = etf_list,
+  summary_r  = summary,
+  all_etfs_r = all_etfs
 )
 ```
 
 ```{ojs}
 //| echo: false
+
 etf_list   = transpose(etf_list_r)
 summary_df = transpose(summary_r)
 etf_lookup = Object.fromEntries(
@@ -42,13 +43,120 @@ etf_lookup = Object.fromEntries(
 
 // ── Formatting helpers ──────────────────────────────────────────────────────
 function pct(v, dec = 1) {
-  if (v == null || isNaN(v)) return "—"
+  if (v == null || isNaN(v) || !isFinite(v)) return "—"
   const s = (v * 100).toFixed(dec) + "%"
   return v >= 0 ? "+" + s : s
 }
-function num(v, dec = 2) { return (v == null || isNaN(v)) ? "—" : v.toFixed(dec) }
-function pos(v) { return (v == null || isNaN(v)) ? "#888" : v >= 0 ? "#6fcfa0" : "#e07070" }
-function neg(v) { return (v == null || isNaN(v)) ? "#888" : v <= 0 ? "#6fcfa0" : "#e07070" }
+function num(v, dec = 2) {
+  return (v == null || isNaN(v) || !isFinite(v)) ? "—" : v.toFixed(dec)
+}
+function pos(v) {
+  if (v == null || isNaN(v) || !isFinite(v)) return "#888"
+  return v >= 0 ? "#6fcfa0" : "#e07070"
+}
+```
+
+---
+
+## 🎯 Find Your ETF
+
+```{ojs}
+//| echo: false
+html`<div style="
+  background: linear-gradient(135deg, #1a2a3d 0%, #1a3d2a 100%);
+  border: 2px solid #4a7aab;
+  border-radius: 10px;
+  padding: 18px 22px;
+  margin-bottom: 1.2rem;
+">
+  <div style="display:flex;align-items:flex-start;gap:12px">
+    <span style="font-size:1.5rem;flex-shrink:0">🔍</span>
+    <div>
+      <div style="font-size:0.95rem;color:#fff;font-weight:600;margin-bottom:4px">
+        Search by ticker, name, or how it appears on Easy Equities
+      </div>
+      <div style="font-size:0.78rem;color:#c8d8e8;line-height:1.5">
+        Easy Equities sometimes shortens or rephrases fund names compared to the official EasyCompare listings.
+        Type any variation — e.g. "Top 40", "S&amp;P 500", "Satrix World" — and matches will appear in the dropdown.
+      </div>
+    </div>
+  </div>
+</div>`
+```
+
+```{ojs}
+//| echo: false
+
+// Build a searchable string for each ETF combining all known names
+etf_search_index = etf_list.map(d => {
+  const aliases = (d.ee_aliases || []).join(" ")
+  return {
+    ticker: d.ticker,
+    name: d.name,
+    provider: d.provider,
+    haystack: `${d.ticker} ${d.name} ${d.provider} ${aliases}`.toLowerCase()
+  }
+})
+
+viewof search_query = Inputs.text({
+  label: "Search",
+  placeholder: "e.g. STX40, Satrix, Top 40, World, Nasdaq...",
+  width: 520
+})
+```
+
+```{ojs}
+//| echo: false
+
+filtered_for_select = (() => {
+  const q = (search_query || "").trim().toLowerCase()
+  if (q === "") return etf_search_index
+  // Split on whitespace — every token must match
+  const tokens = q.split(/\s+/).filter(t => t.length > 0)
+  return etf_search_index.filter(d =>
+    tokens.every(t => d.haystack.includes(t))
+  )
+})
+
+html`<div style="font-size:0.78rem;color:#888;margin-bottom:6px">
+  ${filtered_for_select.length} of ${etf_search_index.length} ETFs match
+</div>`
+```
+
+```{ojs}
+//| echo: false
+viewof selected_ticker = Inputs.select(
+  filtered_for_select.length > 0 ? filtered_for_select.map(d => d.ticker) : etf_search_index.map(d => d.ticker),
+  {
+    label: "Select ETF",
+    format: t => {
+      const i = etf_list.find(d => d.ticker === t)
+      return i ? `${t}  —  ${i.name}` : t
+    },
+    value: filtered_for_select[0]?.ticker || etf_list[0]?.ticker
+  }
+)
+```
+
+```{ojs}
+//| echo: false
+
+// Helper for programmatic ticker switching (leaderboard / table clicks)
+setTicker = function(ticker) {
+  // Clearing the search ensures the requested ticker is in the dropdown
+  const search = viewof search_query;
+  if (search.value !== "") {
+    search.value = "";
+    search.dispatchEvent(new Event('input', {bubbles: true}));
+  }
+  setTimeout(() => {
+    const sel = viewof selected_ticker;
+    sel.value = ticker;
+    sel.dispatchEvent(new Event('input', {bubbles: true}));
+    const target = document.getElementById('etf-detail-anchor');
+    if (target) target.scrollIntoView({behavior: 'smooth', block: 'start'});
+  }, 50);
+}
 ```
 
 ---
@@ -58,27 +166,29 @@ function neg(v) { return (v == null || isNaN(v)) ? "#888" : v <= 0 ? "#6fcfa0" :
 ```{ojs}
 //| echo: false
 
-function bestBy(metric, higher_is_better = true) {
-  const valid = summary_df.filter(d => d[metric] != null && !isNaN(d[metric]))
+function bestBy(metric, higher = true) {
+  const valid = summary_df.filter(d =>
+    d[metric] != null && !isNaN(d[metric]) && isFinite(d[metric])
+  )
   if (!valid.length) return null
   return valid.reduce((a, b) =>
-    higher_is_better ? (b[metric] > a[metric] ? b : a)
-                     : (b[metric] < a[metric] ? b : a)
+    higher ? (b[metric] > a[metric] ? b : a) : (b[metric] < a[metric] ? b : a)
   )
 }
 
 leaders = [
-  { label: "Best CAGR",            icon: "📈", metric: "cagr",         fmt: pct,  higher: true },
-  { label: "Highest Sharpe",       icon: "⚡", metric: "sharpe",       fmt: num,  higher: true },
-  { label: "Highest Sortino",      icon: "🛡️", metric: "sortino",      fmt: num,  higher: true },
-  { label: "Highest Calmar",       icon: "🎯", metric: "calmar",       fmt: num,  higher: true },
-  { label: "Best YTD",             icon: "🗓️", metric: "ytd_return",   fmt: pct,  higher: true },
-  { label: "Best 1-Year",          icon: "🚀", metric: "return_1y",    fmt: pct,  higher: true },
-  { label: "Best 3-Year",          icon: "🌱", metric: "return_3y",    fmt: pct,  higher: true },
-  { label: "Lowest Volatility",    icon: "😌", metric: "ann_vol",      fmt: pct,  higher: false },
-  { label: "Smallest Max Drawdown",icon: "💪", metric: "max_drawdown", fmt: pct,  higher: true },
-  { label: "Best VaR 95%",         icon: "🔒", metric: "var_95",       fmt: pct,  higher: true },
-  { label: "Lowest TER",           icon: "💰", metric: "ter",          fmt: v => (v*100).toFixed(2)+"%", higher: false },
+  { label: "Best CAGR",             icon: "📈", metric: "cagr",         fmt: pct,  higher: true },
+  { label: "Highest Sharpe",        icon: "⚡", metric: "sharpe",       fmt: num,  higher: true },
+  { label: "Highest Sortino",       icon: "🛡️", metric: "sortino",      fmt: num,  higher: true },
+  { label: "Highest Calmar",        icon: "🎯", metric: "calmar",       fmt: num,  higher: true },
+  { label: "Best YTD",              icon: "🗓️", metric: "ytd_return",   fmt: pct,  higher: true },
+  { label: "Best 1-Year",           icon: "🚀", metric: "return_1y",    fmt: pct,  higher: true },
+  { label: "Best 3-Year",           icon: "🌱", metric: "return_3y",    fmt: pct,  higher: true },
+  { label: "Lowest Volatility",     icon: "😌", metric: "ann_vol",      fmt: pct,  higher: false },
+  { label: "Smallest Max Drawdown", icon: "💪", metric: "max_drawdown", fmt: pct,  higher: true },
+  { label: "Best VaR 95%",          icon: "🔒", metric: "var_95",       fmt: pct,  higher: true },
+  { label: "Lowest TER",            icon: "💰", metric: "ter",
+    fmt: v => (v == null ? "—" : (v*100).toFixed(2) + "%"), higher: false },
 ]
 
 html`<div style="
@@ -92,7 +202,7 @@ html`<div style="
     if (!winner) return html`<div></div>`
     const val = winner[l.metric]
     const display = l.fmt(val)
-    const col = l.metric === "ann_vol" || l.metric === "ter" || l.metric === "var_95"
+    const col = (l.metric === "ann_vol" || l.metric === "ter" || l.metric === "var_95")
       ? "#a8d4f5"
       : pos(val)
     return html`<div
@@ -102,21 +212,21 @@ html`<div style="
         border-radius: 10px;
         padding: 14px 16px;
         cursor: pointer;
-        transition: border-color 0.15s;
+        transition: all 0.15s;
       "
-      onmouseover=${e => e.currentTarget.style.borderColor="#4a7aab"}
-      onmouseout=${e => e.currentTarget.style.borderColor="#2a2a2a"}
-      onclick=${() => { selected_ticker = winner.ticker }}
+      onmouseover=${(e) => { e.currentTarget.style.borderColor = "#4a7aab"; e.currentTarget.style.transform = "translateY(-1px)"; }}
+      onmouseout=${(e) => { e.currentTarget.style.borderColor = "#2a2a2a"; e.currentTarget.style.transform = "translateY(0)"; }}
+      onclick=${() => setTicker(winner.ticker)}
     >
-      <div style="font-size:1.3rem; margin-bottom:4px">${l.icon}</div>
-      <div style="font-size:0.68rem; color:#888; text-transform:uppercase; letter-spacing:.05em; margin-bottom:4px">
+      <div style="font-size:1.3rem;margin-bottom:4px">${l.icon}</div>
+      <div style="font-size:0.68rem;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">
         ${l.label}
       </div>
-      <div style="font-size:1.05rem; font-weight:700; color:${col}; margin-bottom:4px">
+      <div style="font-size:1.05rem;font-weight:700;color:${col};margin-bottom:4px">
         ${display}
       </div>
-      <div style="font-size:0.78rem; color:#a8d4f5; font-weight:600">${winner.ticker}</div>
-      <div style="font-size:0.70rem; color:#666; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">
+      <div style="font-size:0.78rem;color:#a8d4f5;font-weight:600">${winner.ticker}</div>
+      <div style="font-size:0.70rem;color:#666;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
         ${winner.name}
       </div>
     </div>`
@@ -129,66 +239,94 @@ html`<div style="
 
 ---
 
-## Select an ETF
-
 ```{ojs}
 //| echo: false
-viewof selected_ticker = Inputs.select(
-  etf_list.map(d => d.ticker),
-  {
-    label: "ETF",
-    format: t => {
-      const i = etf_list.find(d => d.ticker === t)
-      return i ? `${t}  —  ${i.name}` : t
-    },
-    value: etf_list[0]?.ticker
-  }
-)
+html`<div id="etf-detail-anchor" style="height:1px"></div>`
 ```
 
 ```{ojs}
 //| echo: false
+
 etf      = etf_lookup[selected_ticker]
 info     = etf_list.find(d => d.ticker === selected_ticker)
-prices   = etf.prices.map(d => ({...d, date: new Date(d.date)}))
-monthly  = etf.monthly_returns
-rolling  = etf.rolling_vol.map(d => ({...d, date: new Date(d.date)}))
-dd_data  = etf.drawdown.map(d => ({...d, date: new Date(d.date)}))
-m        = etf.metrics
+has_data = etf && etf.has_price_data !== false && etf.prices && etf.prices.length > 0
+
+prices   = has_data ? etf.prices.map(d => ({...d, date: new Date(d.date)})) : []
+monthly  = has_data && etf.monthly_returns ? etf.monthly_returns : []
+rolling  = has_data && etf.rolling_vol ? etf.rolling_vol.map(d => ({...d, date: new Date(d.date)})) : []
+dd_data  = has_data && etf.drawdown ? etf.drawdown
+              .map(d => ({...d, date: new Date(d.date)}))
+              .filter(d => d.drawdown != null && isFinite(d.drawdown)) : []
+m        = has_data && etf.metrics ? etf.metrics : null
 ```
-
----
-
-## {selected_ticker} — {etf.name}
 
 ```{ojs}
 //| echo: false
-html`<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:1.4rem">
-  <span style="background:#1a3350;color:#a8d4f5;padding:5px 14px;border-radius:20px;font-size:0.82rem;font-weight:600">
-    ${info.category}
-  </span>
-  <span style="background:#1a2e1a;color:#6fcfa0;padding:5px 14px;border-radius:20px;font-size:0.82rem;font-weight:600">
-    TER ${(info.ter*100).toFixed(2)}%
-  </span>
+
+// Dynamic header rendered via OJS (markdown headers don't interpolate)
+html`<h2 style="margin-top:1.5rem;margin-bottom:0.6rem;color:#a8d4f5;border-bottom:1px solid #2a2a2a;padding-bottom:0.5rem">
+  ${selected_ticker} — ${etf.name}
+</h2>
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:1rem">
+  ${etf.category ? html`<span style="background:#1a3350;color:#a8d4f5;padding:5px 14px;border-radius:20px;font-size:0.82rem;font-weight:600">
+    ${etf.category}
+  </span>` : ""}
+  ${etf.ter != null ? html`<span style="background:#1a2e1a;color:#6fcfa0;padding:5px 14px;border-radius:20px;font-size:0.82rem;font-weight:600">
+    TER ${(etf.ter*100).toFixed(2)}%
+  </span>` : ""}
   <span style="background:#2a2a1a;color:#d4c86a;padding:5px 14px;border-radius:20px;font-size:0.82rem">
     ${etf.provider}
   </span>
-  <span style="background:#222;color:#888;padding:5px 14px;border-radius:20px;font-size:0.82rem">
-    ${etf.dividend === "Pays" ? "💸 Pays dividends" : etf.dividend === "Reinvests" ? "🔄 Reinvests dividends" : "➖ No dividends"}
-  </span>
-  <span style="background:#222;color:#888;padding:5px 14px;border-radius:20px;font-size:0.82rem">
-    ${m.n_trading_days} days  ·  ${m.start_date} → ${m.end_date}
-  </span>
-</div>`
+  ${etf.distribution ? html`<span style="background:#222;color:#888;padding:5px 14px;border-radius:20px;font-size:0.82rem">
+    💸 ${etf.distribution}
+  </span>` : ""}
+  ${etf.fund_type ? html`<span style="background:#2a1a2a;color:#c8a8d4;padding:5px 14px;border-radius:20px;font-size:0.82rem">
+    ${etf.fund_type}
+  </span>` : ""}
+  ${has_data
+    ? html`<span style="background:#222;color:#888;padding:5px 14px;border-radius:20px;font-size:0.82rem">
+        ${m.n_trading_days} days · ${m.start_date} → ${m.end_date}
+      </span>`
+    : html`<span style="background:#3d2a1a;color:#e8a86a;padding:5px 14px;border-radius:20px;font-size:0.82rem;font-weight:600">
+        ⚠ Price data unavailable
+      </span>`
+  }
+</div>
+${etf.ee_aliases && etf.ee_aliases.length > 0 ? html`<div style="font-size:0.78rem;color:#888;margin-bottom:1.4rem;padding:6px 12px;background:#161616;border-radius:6px;display:inline-block">
+  <strong style="color:#aaa">Also known as on Easy Equities:</strong>
+  ${etf.ee_aliases.join(" · ")}
+</div>` : ""}`
 ```
-
----
-
-## Key Metrics
 
 ```{ojs}
 //| echo: false
-metric_cards = [
+!has_data
+  ? html`<div style="
+      background:#2a1f1a;
+      border-left:3px solid #e8a86a;
+      border-radius:8px;
+      padding:18px 22px;
+      margin-bottom:1.5rem;
+      color:#ddd;
+      font-size:0.92rem;
+      line-height:1.6;
+    ">
+      <strong style="color:#e8a86a">No price history available</strong> for this ETF on Yahoo Finance or Stooq.
+      This typically affects newer ETFs, those with very low trading volume, or actively-managed ETFs with thin coverage.
+      You can still view its index rules and top holdings below — and find live prices on the
+      <a href="https://www.easyequities.co.za" style="color:#a8d4f5">Easy Equities</a> platform directly.
+    </div>`
+  : null
+```
+
+```{ojs}
+//| echo: false
+has_data ? html`<h3 style="margin-top:1rem;color:#ccc">Key Metrics</h3>` : null
+```
+
+```{ojs}
+//| echo: false
+metric_cards = !has_data ? [] : [
   { label: "CAGR",            value: pct(m.cagr),          color: pos(m.cagr) },
   { label: "Ann. Volatility", value: pct(m.ann_vol),        color: "#aac4e0" },
   { label: "Sharpe Ratio",    value: num(m.sharpe),         color: pos(m.sharpe) },
@@ -206,17 +344,14 @@ metric_cards = [
   { label: "3-Year (total)",  value: pct(m.return_3y),      color: pos(m.return_3y) },
 ]
 
-html`<div style="
+html`${metric_cards.length === 0 ? "" : html`<div style="
   display:grid;
   grid-template-columns:repeat(auto-fill,minmax(145px,1fr));
   gap:10px;
   margin-bottom:2rem
 ">
   ${metric_cards.map(c => html`
-    <div style="
-      background:#1c1c1c;border:1px solid #2a2a2a;border-radius:8px;
-      padding:12px 14px;display:flex;flex-direction:column;gap:3px
-    ">
+    <div style="background:#1c1c1c;border:1px solid #2a2a2a;border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:3px">
       <span style="font-size:0.68rem;color:#777;text-transform:uppercase;letter-spacing:.05em">
         ${c.label}
       </span>
@@ -225,16 +360,17 @@ html`<div style="
       </span>
     </div>
   `)}
-</div>`
+</div>`}`
 ```
-
----
-
-## Cumulative Return
 
 ```{ojs}
 //| echo: false
-Plot.plot({
+has_data ? html`<h3 style="margin-top:1.5rem;color:#ccc">Cumulative Return</h3>` : null
+```
+
+```{ojs}
+//| echo: false
+!has_data ? null : Plot.plot({
   height: 280, marginLeft: 65,
   style: { background: "transparent", color: "#ccc", fontSize: 12 },
   x: { type: "time", label: null },
@@ -251,13 +387,14 @@ Plot.plot({
 })
 ```
 
----
-
-## Price History (Adjusted Close, ZAR)
+```{ojs}
+//| echo: false
+has_data ? html`<h3 style="margin-top:1.5rem;color:#ccc">Price History (Adjusted Close, ZAR)</h3>` : null
+```
 
 ```{ojs}
 //| echo: false
-Plot.plot({
+!has_data ? null : Plot.plot({
   height: 250, marginLeft: 70,
   style: { background: "transparent", color: "#ccc", fontSize: 12 },
   x: { type: "time", label: null },
@@ -270,35 +407,41 @@ Plot.plot({
 })
 ```
 
----
-
-## Drawdown
+```{ojs}
+//| echo: false
+has_data ? html`<h3 style="margin-top:1.5rem;color:#ccc">Drawdown</h3>` : null
+```
 
 ```{ojs}
 //| echo: false
-Plot.plot({
-  height: 220, marginLeft: 65,
-  style: { background: "transparent", color: "#ccc", fontSize: 12 },
-  x: { type: "time", label: null },
-  y: {
-    label: "Drawdown",
-    tickFormat: d => (d*100).toFixed(0)+"%",
-    domain: [Math.min(...dd_data.map(d => d.drawdown)) * 1.08, 0.02],
-    grid: true
-  },
-  marks: [
-    Plot.ruleY([0], { stroke: "#555" }),
-    Plot.areaY(dd_data, { x:"date", y:"drawdown", fill:"#4a1a1a", opacity:0.75 }),
-    Plot.lineY(dd_data, { x:"date", y:"drawdown", stroke:"#e07070", strokeWidth:1.5 }),
-    Plot.tip(dd_data, Plot.pointerX({ x:"date", y:"drawdown",
-      title: d => `${d.date.toLocaleDateString()}\n${(d.drawdown*100).toFixed(2)}%` }))
-  ]
-})
+dd_chart = (() => {
+  if (!has_data) return null
+  if (dd_data.length === 0)
+    return html`<p style="color:#888;font-style:italic">No drawdown data available.</p>`
+  const drawdowns = dd_data.map(d => d.drawdown).filter(v => isFinite(v))
+  const dd_min = drawdowns.length > 0 ? Math.min(...drawdowns) : -0.05
+  const y_lower = Math.min(dd_min * 1.08, -0.02)
+  return Plot.plot({
+    height: 220, marginLeft: 65,
+    style: { background: "transparent", color: "#ccc", fontSize: 12 },
+    x: { type: "time", label: null },
+    y: { label: "Drawdown", tickFormat: d => (d*100).toFixed(0)+"%",
+         domain: [y_lower, 0.02], grid: true },
+    marks: [
+      Plot.ruleY([0], { stroke: "#555" }),
+      Plot.areaY(dd_data, { x:"date", y:"drawdown", fill:"#5a2020", opacity:0.85, curve:"linear" }),
+      Plot.lineY(dd_data, { x:"date", y:"drawdown", stroke:"#e07070", strokeWidth:1.6, curve:"linear" }),
+      Plot.tip(dd_data, Plot.pointerX({ x:"date", y:"drawdown",
+        title: d => `${d.date.toLocaleDateString()}\n${(d.drawdown*100).toFixed(2)}%` }))
+    ]
+  })
+})()
 ```
 
----
-
-## Rolling Volatility
+```{ojs}
+//| echo: false
+has_data ? html`<h3 style="margin-top:1.5rem;color:#ccc">Rolling Volatility</h3>` : null
+```
 
 ```{ojs}
 //| echo: false
@@ -312,97 +455,114 @@ viewof vol_window = Inputs.radio(
 
 ```{ojs}
 //| echo: false
-rolling_clean = rolling.filter(d => d[vol_window] != null)
-Plot.plot({
-  height: 230, marginLeft: 65,
-  style: { background: "transparent", color: "#ccc", fontSize: 12 },
-  x: { type: "time", label: null },
-  y: { label: "Annualised Volatility", tickFormat: d => (d*100).toFixed(0)+"%", grid: true },
-  marks: [
-    Plot.areaY(rolling_clean, { x:"date", y:vol_window, fill:"#1a2a3d", opacity:0.65 }),
-    Plot.lineY(rolling_clean, { x:"date", y:vol_window, stroke:"#a8d4f5", strokeWidth:1.7 }),
-    Plot.tip(rolling_clean, Plot.pointerX({ x:"date", y:vol_window,
-      title: d => `${d.date.toLocaleDateString()}\n${(d[vol_window]*100).toFixed(2)}%` }))
-  ]
-})
+!has_data ? null : (() => {
+  const rc = rolling.filter(d => d[vol_window] != null && isFinite(d[vol_window]))
+  if (rc.length === 0)
+    return html`<p style="color:#888;font-style:italic">Not enough data for ${vol_window}.</p>`
+  return Plot.plot({
+    height: 230, marginLeft: 65,
+    style: { background: "transparent", color: "#ccc", fontSize: 12 },
+    x: { type: "time", label: null },
+    y: { label: "Annualised Volatility", tickFormat: d => (d*100).toFixed(0)+"%", grid: true },
+    marks: [
+      Plot.areaY(rc, { x:"date", y:vol_window, fill:"#1a2a3d", opacity:0.65 }),
+      Plot.lineY(rc, { x:"date", y:vol_window, stroke:"#a8d4f5", strokeWidth:1.7 }),
+      Plot.tip(rc, Plot.pointerX({ x:"date", y:vol_window,
+        title: d => `${d.date.toLocaleDateString()}\n${(d[vol_window]*100).toFixed(2)}%` }))
+    ]
+  })
+})()
+```
+
+```{ojs}
+//| echo: false
+has_data ? html`<h3 style="margin-top:1.5rem;color:#ccc">Monthly Returns Heatmap</h3>` : null
+```
+
+```{ojs}
+//| echo: false
+!has_data ? null : (() => {
+  const ml = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+  if (monthly.length === 0)
+    return html`<p style="color:#888;font-style:italic">No monthly data.</p>`
+  return Plot.plot({
+    marginLeft: 45, marginBottom: 30,
+    style: { background: "transparent", color: "#ccc", fontSize: 11 },
+    x: { domain:[1,2,3,4,5,6,7,8,9,10,11,12],
+         tickFormat: d => ml[d-1], label: null },
+    y: { label: null, reverse: true },
+    color: { type:"diverging", domain:[-0.12,0.12], scheme:"RdYlGn", label:"Monthly Return" },
+    marks: [
+      Plot.cell(monthly, { x:"month_num", y: d => String(d.year), fill:"return", inset:1, rx:3 }),
+      Plot.text(monthly, { x:"month_num", y: d => String(d.year),
+        text: d => (d.return*100).toFixed(1)+"%",
+        fill: d => Math.abs(d.return) > 0.055 ? "#fff" : "#333", fontSize:9 })
+    ]
+  })
+})()
+```
+
+```{ojs}
+//| echo: false
+has_data ? html`<h3 style="margin-top:1.5rem;color:#ccc">Daily Return Distribution</h3>` : null
+```
+
+```{ojs}
+//| echo: false
+!has_data ? null : (() => {
+  const dr = prices
+    .filter(d => d.daily_return != null && isFinite(d.daily_return))
+    .map(d => ({ r: d.daily_return }))
+  if (dr.length < 5)
+    return html`<p style="color:#888;font-style:italic">Not enough data.</p>`
+  return Plot.plot({
+    height: 220, marginLeft: 52,
+    style: { background: "transparent", color: "#ccc", fontSize: 12 },
+    x: { label: "Daily Return", tickFormat: d => (d*100).toFixed(1)+"%" },
+    y: { label: "Count", grid: true },
+    marks: [
+      Plot.rectY(dr, Plot.binX({ y:"count" },
+        { x:"r", fill: d => d.x0 >= 0 ? "#2a5a3a" : "#5a2a2a", thresholds: 55 })),
+      Plot.ruleX([0], { stroke:"#888", strokeDasharray:"4,4" }),
+      Plot.ruleX([m.var_95], { stroke:"#e07070", strokeDasharray:"3,3", strokeWidth:1.5 })
+    ]
+  })
+})()
 ```
 
 ---
 
-## Monthly Returns Heatmap
-
 ```{ojs}
 //| echo: false
-month_labels = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
-Plot.plot({
-  marginLeft: 45, marginBottom: 30,
-  style: { background: "transparent", color: "#ccc", fontSize: 11 },
-  x: { domain:[1,2,3,4,5,6,7,8,9,10,11,12],
-       tickFormat: d => month_labels[d-1], label: null },
-  y: { label: null, reverse: true },
-  color: { type:"diverging", domain:[-0.12,0.12], scheme:"RdYlGn", label:"Monthly Return" },
-  marks: [
-    Plot.cell(monthly, { x:"month_num", y: d => String(d.year),
-      fill:"return", inset:1, rx:3 }),
-    Plot.text(monthly, { x:"month_num", y: d => String(d.year),
-      text: d => (d.return*100).toFixed(1)+"%",
-      fill: d => Math.abs(d.return) > 0.055 ? "#fff" : "#333", fontSize:9 })
-  ]
-})
+html`<h3 style="margin-top:1.5rem;color:#ccc">Top Holdings</h3>`
 ```
 
----
-
-## Daily Return Distribution
-
 ```{ojs}
 //| echo: false
-daily_rets = prices.filter(d => d.daily_return != null && !isNaN(d.daily_return))
-  .map(d => ({ r: d.daily_return }))
 
-Plot.plot({
-  height: 220, marginLeft: 52,
-  style: { background: "transparent", color: "#ccc", fontSize: 12 },
-  x: { label: "Daily Return", tickFormat: d => (d*100).toFixed(1)+"%" },
-  y: { label: "Count", grid: true },
-  marks: [
-    Plot.rectY(daily_rets, Plot.binX({ y:"count" },
-      { x:"r", fill: d => d.x0 >= 0 ? "#2a5a3a" : "#5a2a2a", thresholds: 55 })),
-    Plot.ruleX([0], { stroke:"#888", strokeDasharray:"4,4" }),
-    Plot.ruleX([m.var_95], { stroke:"#e07070", strokeDasharray:"3,3", strokeWidth:1.5 }),
-    Plot.text([{ r: m.var_95 }], { x:"r", y:0, text: () => "VaR 95%",
-      fill:"#e07070", fontSize:9, dy:-10 })
-  ]
-})
-```
+holdings = (etf.top_holdings || []).filter(d => d.name && d.name.length > 1)
+holdings_with_weights = holdings.filter(d => d.weight != null && isFinite(d.weight) && d.weight > 0)
+holdings_no_weights   = holdings.filter(d => d.weight == null || !isFinite(d.weight))
 
----
-
-## Top Holdings
-
-```{ojs}
-//| echo: false
-holdings = (etf.top_holdings || []).filter(d => d.weight > 0)
-
-holdings.length > 0
+holdings.length === 0
+  ? html`<p style="color:#666;font-style:italic">Holdings data not available for this ETF.</p>`
+  : holdings_with_weights.length > 0
   ? Plot.plot({
-      height: Math.max(180, holdings.length * 28 + 50),
+      height: Math.max(180, holdings_with_weights.length * 28 + 50),
       marginLeft: 160,
       style: { background:"transparent", color:"#ccc", fontSize:12 },
-      x: { label:"Weight (%)", grid:true, domain:[0, Math.max(...holdings.map(d=>d.weight)) * 1.15] },
+      x: { label:"Weight (%)", grid:true,
+           domain:[0, Math.max(...holdings_with_weights.map(d=>d.weight)) * 1.15] },
       y: { label:null },
       marks: [
-        Plot.barX(holdings, {
+        Plot.barX(holdings_with_weights, {
           x: "weight", y: "name",
-          fill: d => {
-            const w = d.weight
-            if (w >= 15) return "#e07070"
-            if (w >= 8)  return "#d4a855"
-            return "#a8d4f5"
-          },
+          fill: d => d.weight >= 15 ? "#e07070"
+                   : d.weight >= 8  ? "#d4a855"
+                   :                  "#a8d4f5",
           sort: { y: "-x" }
         }),
-        Plot.text(holdings, {
+        Plot.text(holdings_with_weights, {
           x: "weight", y: "name",
           text: d => d.weight.toFixed(1) + "%",
           fill: "#fff", fontSize: 10, textAnchor:"start", dx: 4,
@@ -410,16 +570,29 @@ holdings.length > 0
         })
       ]
     })
-  : html`<p style="color:#666;font-style:italic">Holdings data not available for this ETF.</p>`
+  : html`<div style="
+      background:#1c1c1c;border:1px solid #2a2a2a;border-radius:8px;
+      padding:14px 18px
+    ">
+      <div style="font-size:0.78rem;color:#888;margin-bottom:8px">
+        Top 10 holdings (weights not published in the MDD)
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        ${holdings.map(h => html`<span style="
+          background:#252535;color:#a8d4f5;padding:5px 12px;border-radius:14px;
+          font-size:0.84rem
+        ">${h.name}</span>`)}
+      </div>
+    </div>`
 ```
 
 ---
 
-## Index Rules & Construction
-
 ```{ojs}
 //| echo: false
-html`<div style="
+
+html`<h3 style="margin-top:1.5rem;color:#ccc">Index Rules &amp; Construction</h3>
+<div style="
   background:#1a1a1a;
   border:1px solid #2a2a2a;
   border-left:3px solid #a8d4f5;
@@ -434,29 +607,33 @@ html`<div style="
     ${etf.index || "—"}
   </div>
   <div style="font-size:0.72rem;color:#888;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">
-    Construction Rules
+    Description
   </div>
   <div style="font-size:0.9rem;color:#ccc;line-height:1.65;margin-bottom:16px">
     ${etf.index_rules || "—"}
   </div>
   <div style="display:flex;gap:24px;flex-wrap:wrap">
-    <div>
-      <span style="font-size:0.72rem;color:#888;text-transform:uppercase;letter-spacing:.07em">Rebalancing</span>
-      <div style="font-size:0.9rem;color:#d4c86a;font-weight:600;margin-top:3px">${etf.rebalancing || "—"}</div>
-    </div>
-    <div>
-      <span style="font-size:0.72rem;color:#888;text-transform:uppercase;letter-spacing:.07em">Dividend Policy</span>
-      <div style="font-size:0.9rem;color:#6fcfa0;font-weight:600;margin-top:3px">${etf.dividend || "—"}</div>
-    </div>
-    <div>
+    ${etf.ter != null ? html`<div>
       <span style="font-size:0.72rem;color:#888;text-transform:uppercase;letter-spacing:.07em">Total Expense Ratio</span>
       <div style="font-size:0.9rem;color:#e8a86a;font-weight:600;margin-top:3px">${(etf.ter*100).toFixed(2)}% p.a.</div>
-    </div>
+    </div>` : ""}
+    ${etf.distribution ? html`<div>
+      <span style="font-size:0.72rem;color:#888;text-transform:uppercase;letter-spacing:.07em">Distribution</span>
+      <div style="font-size:0.9rem;color:#6fcfa0;font-weight:600;margin-top:3px">${etf.distribution}</div>
+    </div>` : ""}
     <div>
       <span style="font-size:0.72rem;color:#888;text-transform:uppercase;letter-spacing:.07em">Provider</span>
       <div style="font-size:0.9rem;color:#ccc;font-weight:600;margin-top:3px">${etf.provider}</div>
     </div>
+    ${etf.mdd_updated ? html`<div>
+      <span style="font-size:0.72rem;color:#888;text-transform:uppercase;letter-spacing:.07em">MDD Updated</span>
+      <div style="font-size:0.9rem;color:#aaa;font-weight:600;margin-top:3px">${etf.mdd_updated}</div>
+    </div>` : ""}
   </div>
+  ${etf.mdd_updated ? html`<div style="margin-top:14px;font-size:0.72rem;color:#666">
+    Source: <a href="https://justonelap.com/${selected_ticker.toLowerCase()}/" target="_blank" style="color:#888">Just One Lap</a>,
+    aggregated from the issuer's Minimum Disclosure Document.
+  </div>` : ""}
 </div>`
 ```
 
@@ -467,37 +644,38 @@ html`<div style="
 ```{ojs}
 //| echo: false
 viewof cat_filter = Inputs.select(
-  ["All", ...new Set(etf_list.map(d => d.category))],
-  { label: "Filter by category", value: "All" }
+  ["All", ...new Set(etf_list.map(d => d.provider))],
+  { label: "Filter by provider", value: "All" }
 )
 ```
 
 ```{ojs}
 //| echo: false
 viewof sort_col = Inputs.select(
-  ["cagr","sharpe","sortino","return_1y","return_3y","ann_vol","max_drawdown","ytd_return","ter"],
+  ["cagr","sharpe","sortino","calmar","return_1y","return_3y","ann_vol","max_drawdown","ytd_return","ter"],
   { label: "Sort by",
-    format: c => ({cagr:"CAGR",sharpe:"Sharpe",sortino:"Sortino",return_1y:"1Y Return",
-      return_3y:"3Y Return",ann_vol:"Volatility",max_drawdown:"Max DD",
-      ytd_return:"YTD",ter:"TER"})[c] || c,
+    format: c => ({cagr:"CAGR",sharpe:"Sharpe",sortino:"Sortino",calmar:"Calmar",
+      return_1y:"1Y Return",return_3y:"3Y Return",ann_vol:"Volatility",
+      max_drawdown:"Max DD",ytd_return:"YTD",ter:"TER"})[c] || c,
     value: "sharpe" }
 )
 ```
 
 ```{ojs}
 //| echo: false
+
 sort_asc_cols = ["ann_vol","max_drawdown","ter"]
 
 filtered = (cat_filter === "All" ? summary_df
   : summary_df.filter(d => {
-    const i = etf_list.find(e => e.ticker === d.ticker)
-    return i && i.category === cat_filter
-  })
+      const i = etf_list.find(e => e.ticker === d.ticker)
+      return i && i.provider === cat_filter
+    })
 ).slice().sort((a, b) => {
   const asc = sort_asc_cols.includes(sort_col)
   const av = a[sort_col], bv = b[sort_col]
-  if (av == null) return 1
-  if (bv == null) return -1
+  if (av == null || isNaN(av)) return 1
+  if (bv == null || isNaN(bv)) return -1
   return asc ? av - bv : bv - av
 })
 
@@ -507,7 +685,7 @@ html`<div style="overflow-x:auto">
     <tr style="border-bottom:2px solid #333;color:#666;text-align:right">
       <th style="text-align:left;padding:7px 10px;white-space:nowrap">Ticker</th>
       <th style="text-align:left;padding:7px 10px;white-space:nowrap">Name</th>
-      <th style="text-align:left;padding:7px 8px;white-space:nowrap">Category</th>
+      <th style="text-align:left;padding:7px 8px;white-space:nowrap">Provider</th>
       <th style="padding:7px 8px">TER</th>
       <th style="padding:7px 8px">YTD</th>
       <th style="padding:7px 8px">1Y</th>
@@ -523,16 +701,15 @@ html`<div style="overflow-x:auto">
   <tbody>
     ${filtered.map(r => html`
     <tr
-      style="border-bottom:1px solid #1e1e1e;cursor:pointer;
-             background:${r.ticker === selected_ticker ? '#1a2a1a' : 'transparent'}"
-      onclick=${() => { selected_ticker = r.ticker }}
-      onmouseover=${e => { if(r.ticker !== selected_ticker) e.currentTarget.style.background='#1a1a1a' }}
-      onmouseout=${e  => { if(r.ticker !== selected_ticker) e.currentTarget.style.background='transparent' }}
+      style="border-bottom:1px solid #1e1e1e;cursor:pointer;background:${r.ticker === selected_ticker ? '#1a2a1a' : 'transparent'}"
+      onclick=${() => setTicker(r.ticker)}
+      onmouseover=${(e) => { if(r.ticker !== selected_ticker) e.currentTarget.style.background='#1a1a1a' }}
+      onmouseout=${(e)  => { if(r.ticker !== selected_ticker) e.currentTarget.style.background='transparent' }}
     >
       <td style="padding:6px 10px;font-weight:700;color:#a8d4f5;white-space:nowrap">${r.ticker}</td>
-      <td style="padding:6px 10px;color:#ccc;max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.name}</td>
-      <td style="padding:6px 8px;color:#888;font-size:0.72rem;white-space:nowrap">${r.category}</td>
-      <td style="padding:6px 8px;text-align:right;color:#888">${(r.ter*100).toFixed(2)}%</td>
+      <td style="padding:6px 10px;color:#ccc;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.name}</td>
+      <td style="padding:6px 8px;color:#888;font-size:0.72rem;white-space:nowrap">${r.provider}</td>
+      <td style="padding:6px 8px;text-align:right;color:#888">${r.ter == null ? "—" : (r.ter*100).toFixed(2)+"%"}</td>
       <td style="padding:6px 8px;text-align:right;color:${pos(r.ytd_return)}">${pct(r.ytd_return)}</td>
       <td style="padding:6px 8px;text-align:right;color:${pos(r.return_1y)}">${pct(r.return_1y)}</td>
       <td style="padding:6px 8px;text-align:right;color:${pos(r.return_3y)}">${pct(r.return_3y)}</td>
@@ -548,20 +725,21 @@ html`<div style="overflow-x:auto">
 </div>
 <p style="font-size:0.73rem;color:#555;margin-top:6px">
   Click any row to load that ETF's full analytics above. Highlighted row = currently selected ETF.
+  Em-dashes (—) indicate missing data for that ETF.
 </p>`
 ```
 
 ---
 
 ::: {.callout-note}
-**Data:** Prices sourced from Yahoo Finance via `tidyquant`. Prices denominated in ZAR using adjusted close values. Risk-free rate: SA repo rate (~8.25% p.a.). Holdings and index descriptions are approximate and updated periodically. **This page is for educational purposes only — not financial advice.**
+**Data sources:** Prices from Yahoo Finance (with Stooq fallback). Holdings, benchmarks and descriptions scraped from [Just One Lap](https://justonelap.com/etfdatabase/), which aggregates Minimum Disclosure Documents — the regulatory monthly fact sheets every JSE-listed ETF must publish. Risk-free rate: SA repo rate (~8.25% p.a.). **For educational purposes only — not financial advice.**
 :::
 
 ::: {.callout-tip collapse="true"}
 ## How to refresh the data
 
-1. Run `scrape_etfs.R` from your project root — regenerates all JSON files under `posts/etf-analytics/data/`
-2. Then run `quarto render` or push to `main` to trigger GitHub Actions
+1. Run `scrape_etfs.R` from the project root — regenerates JSON files under `posts/ee-etf-tracker/data/`
+2. Run `quarto render` (or push to `main` for GitHub Actions)
 
-The Quarto document itself contains no live API calls, so rendering is fully reproducible and fast.
+The pipeline reads its ETF list from `posts/ee-etf-tracker/data/easy_equities_tfsa_etfs.csv`. Edit that CSV to add or remove funds.
 :::
