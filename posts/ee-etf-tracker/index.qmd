@@ -2,7 +2,7 @@
 title: "Easy Equities TFSA ETF Analytics"
 description: "Interactive trading analytics for every ETF available on the Easy Equities Tax-Free Savings Account — leaderboards, price history, risk metrics, top holdings and index rules."
 date: today
-categories: [R, ETF, Finance, South Africa]
+categories: [R, Finance]
 image: thumbnail.png
 ---
 
@@ -87,9 +87,19 @@ html`<div style="
 ```{ojs}
 //| echo: false
 
+// Normalise ee_aliases into an array regardless of how jsonlite emitted it.
+// (Old JSON files may have a bare string for single-alias ETFs; new files
+// always have arrays. This helper handles both shapes plus missing values.)
+toAliasArray = function(v) {
+  if (v == null) return []
+  if (Array.isArray(v)) return v
+  if (typeof v === "string") return v.length > 0 ? [v] : []
+  return []
+}
+
 // Build a searchable string for each ETF combining all known names
 etf_search_index = etf_list.map(d => {
-  const aliases = (d.ee_aliases || []).join(" ")
+  const aliases = toAliasArray(d.ee_aliases).join(" ")
   return {
     ticker: d.ticker,
     name: d.name,
@@ -292,10 +302,13 @@ html`<h2 style="margin-top:1.5rem;margin-bottom:0.6rem;color:#a8d4f5;border-bott
       </span>`
   }
 </div>
-${etf.ee_aliases && etf.ee_aliases.length > 0 ? html`<div style="font-size:0.78rem;color:#888;margin-bottom:1.4rem;padding:6px 12px;background:#161616;border-radius:6px;display:inline-block">
-  <strong style="color:#aaa">Also known as on Easy Equities:</strong>
-  ${etf.ee_aliases.join(" · ")}
-</div>` : ""}`
+${(() => {
+  const a = toAliasArray(etf.ee_aliases)
+  return a.length > 0 ? html`<div style="font-size:0.78rem;color:#888;margin-bottom:1.4rem;padding:6px 12px;background:#161616;border-radius:6px;display:inline-block">
+    <strong style="color:#aaa">Also known as on Easy Equities:</strong>
+    ${a.join(" · ")}
+  </div>` : ""
+})()}`
 ```
 
 ```{ojs}

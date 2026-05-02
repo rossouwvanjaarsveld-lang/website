@@ -772,7 +772,7 @@ for (i in seq_len(nrow(etf_csv))) {
   # ────────────────────────────────────────────────────────────────────
   payload <- list(
     ticker = ticker, name = row$name, provider = row$provider,
-    ee_aliases = row$ee_aliases[[1]],
+    ee_aliases = I(as.character(row$ee_aliases[[1]] %||% character(0))),
     category = classification %||% "Unknown",
     ter = ter_dec, dividend = distribution,
     index = benchmark, index_rules = description,
@@ -844,10 +844,13 @@ summary_df <- bind_rows(summary_rows)
 write_json(summary_df, file.path(DATA_DIR,"summary.json"),
            auto_unbox=TRUE, digits=6, na="null")
 
-# etf_list with aliases (for client-side fuzzy search)
+# etf_list with aliases (for client-side fuzzy search).
+# Wrap each alias vector in I() so jsonlite always emits an array — even
+# for single-element entries (auto_unbox would otherwise collapse them
+# to bare strings, breaking JS `.join()` in the QMD).
 etf_list_out <- etf_csv |>
   filter(ticker %in% processed) |>
-  mutate(ee_aliases = map(ee_aliases, ~if (length(.x) == 0) list() else .x))
+  mutate(ee_aliases = map(ee_aliases, ~I(if (length(.x) == 0) character(0) else as.character(.x))))
 
 write_json(etf_list_out, file.path(DATA_DIR,"etf_list.json"),
            auto_unbox=TRUE, pretty=TRUE, na="null")

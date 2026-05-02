@@ -5,7 +5,7 @@
     "ticker": "APACXJ",
     "yf": "APACXJ.JO",
     "jol_slug": "apacxj",
-    "ee_aliases": "10X All Asia"
+    "ee_aliases": ["10X All Asia"]
   },
   {
     "provider": "10X",
@@ -117,7 +117,7 @@
     "ticker": "ETFBND",
     "yf": "ETFBND.JO",
     "jol_slug": "etfbnd",
-    "ee_aliases": "1nvest SA Bond"
+    "ee_aliases": ["1nvest SA Bond"]
   },
   {
     "provider": "1nvest",
@@ -133,7 +133,7 @@
     "ticker": "ETFGGB",
     "yf": "ETFGGB.JO",
     "jol_slug": "etfggb",
-    "ee_aliases": "1nvest Global Govt Bond"
+    "ee_aliases": ["1nvest Global Govt Bond"]
   },
   {
     "provider": "1nvest",
@@ -149,7 +149,7 @@
     "ticker": "ETFSAP",
     "yf": "ETFSAP.JO",
     "jol_slug": "etfsap",
-    "ee_aliases": "1nvest SA Property"
+    "ee_aliases": ["1nvest SA Property"]
   },
   {
     "provider": "1nvest",
@@ -189,7 +189,7 @@
     "ticker": "EASYBAL",
     "yf": "EASYBAL.JO",
     "jol_slug": "easybal",
-    "ee_aliases": "Cartesian Balanced"
+    "ee_aliases": ["Cartesian Balanced"]
   },
   {
     "provider": "ETFSA",
@@ -197,7 +197,7 @@
     "ticker": "ETFBAF",
     "yf": "ETFBAF.JO",
     "jol_slug": "etfbaf",
-    "ee_aliases": "ETFSA Balanced"
+    "ee_aliases": ["ETFSA Balanced"]
   },
   {
     "provider": "EasyETFs",
@@ -205,7 +205,7 @@
     "ticker": "EASYAI",
     "yf": "EASYAI.JO",
     "jol_slug": "easyai",
-    "ee_aliases": "EasyETFs AI"
+    "ee_aliases": ["EasyETFs AI"]
   },
   {
     "provider": "EasyETFs",
@@ -213,7 +213,7 @@
     "ticker": "EASYB",
     "yf": "EASYB.JO",
     "jol_slug": "easyb",
-    "ee_aliases": "EasyETFs Balanced"
+    "ee_aliases": ["EasyETFs Balanced"]
   },
   {
     "provider": "EasyETFs",
@@ -221,7 +221,7 @@
     "ticker": "EASYGE",
     "yf": "EASYGE.JO",
     "jol_slug": "easyge",
-    "ee_aliases": "EasyETFs Global Equity"
+    "ee_aliases": ["EasyETFs Global Equity"]
   },
   {
     "provider": "FNB",
@@ -245,7 +245,7 @@
     "ticker": "FNBINF",
     "yf": "FNBINF.JO",
     "jol_slug": "fnbinf",
-    "ee_aliases": "FNB Inflation"
+    "ee_aliases": ["FNB Inflation"]
   },
   {
     "provider": "FNB",
@@ -253,7 +253,7 @@
     "ticker": "FNBMID",
     "yf": "FNBMID.JO",
     "jol_slug": "fnbmid",
-    "ee_aliases": "FNB MidCap"
+    "ee_aliases": ["FNB MidCap"]
   },
   {
     "provider": "FNB",
@@ -261,7 +261,7 @@
     "ticker": "FNBWGB",
     "yf": "FNBWGB.JO",
     "jol_slug": "fnbwgb",
-    "ee_aliases": "FNB World Government Bond"
+    "ee_aliases": ["FNB World Government Bond"]
   },
   {
     "provider": "PortfolioMetrix",
@@ -269,7 +269,7 @@
     "ticker": "PMXINC",
     "yf": "PMXINC.JO",
     "jol_slug": "pmxinc",
-    "ee_aliases": "PortfolioMetrix Active Income"
+    "ee_aliases": ["PortfolioMetrix Active Income"]
   },
   {
     "provider": "Prescient",
@@ -277,7 +277,7 @@
     "ticker": "PIPF",
     "yf": "PIPF.JO",
     "jol_slug": "pipf",
-    "ee_aliases": "Prescient Income Provider"
+    "ee_aliases": ["Prescient Income Provider"]
   },
   {
     "provider": "Reitway",
@@ -285,7 +285,7 @@
     "ticker": "REITGP",
     "yf": "RWAGP.JO",
     "jol_slug": "rwagp",
-    "ee_aliases": "Reitway Global Property"
+    "ee_aliases": ["Reitway Global Property"]
   },
   {
     "provider": "Satrix",
@@ -317,7 +317,7 @@
     "ticker": "STXCHN",
     "yf": "STXCHN.JO",
     "jol_slug": "stxchn",
-    "ee_aliases": "Satrix MSCI China"
+    "ee_aliases": ["Satrix MSCI China"]
   },
   {
     "provider": "Satrix",
@@ -333,7 +333,7 @@
     "ticker": "STXEME",
     "yf": "STXEME.JO",
     "jol_slug": "stxeme",
-    "ee_aliases": "Satrix EM ESG"
+    "ee_aliases": ["Satrix EM ESG"]
   },
   {
     "provider": "Satrix",
@@ -357,7 +357,7 @@
     "ticker": "STXGBD",
     "yf": "STXGBD.JO",
     "jol_slug": "stxgbd",
-    "ee_aliases": "Satrix Global Bond"
+    "ee_aliases": ["Satrix Global Bond"]
   },
   {
     "provider": "Satrix",
@@ -373,7 +373,7 @@
     "ticker": "STXHLT",
     "yf": "STXHLT.JO",
     "jol_slug": "stxhlt",
-    "ee_aliases": "Satrix Healthcare"
+    "ee_aliases": ["Satrix Healthcare"]
   },
   {
     "provider": "Satrix",
@@ -381,7 +381,7 @@
     "ticker": "STXID",
     "yf": "STXID.JO",
     "jol_slug": "stxid",
-    "ee_aliases": "Satrix Inclusion Diversity"
+    "ee_aliases": ["Satrix Inclusion Diversity"]
   },
   {
     "provider": "Satrix",
@@ -413,7 +413,7 @@
     "ticker": "STXINF",
     "yf": "STXIFR.JO",
     "jol_slug": "stxifr",
-    "ee_aliases": "Satrix Global Infrastructure"
+    "ee_aliases": ["Satrix Global Infrastructure"]
   },
   {
     "provider": "Satrix",
@@ -429,7 +429,7 @@
     "ticker": "STXMAP",
     "yf": "STXGLB.JO",
     "jol_slug": "stxglb",
-    "ee_aliases": "Satrix MAPPS Growth"
+    "ee_aliases": ["Satrix MAPPS Growth"]
   },
   {
     "provider": "Satrix",
@@ -437,7 +437,7 @@
     "ticker": "STXMMT",
     "yf": "STXMMT.JO",
     "jol_slug": "stxmmt",
-    "ee_aliases": "Satrix Momentum"
+    "ee_aliases": ["Satrix Momentum"]
   },
   {
     "provider": "Satrix",
@@ -445,7 +445,7 @@
     "ticker": "STXMPF",
     "yf": "STXGLB.JO",
     "jol_slug": "stxglb",
-    "ee_aliases": "Satrix MAPPS Protect"
+    "ee_aliases": ["Satrix MAPPS Protect"]
   },
   {
     "provider": "Satrix",
@@ -453,7 +453,7 @@
     "ticker": "STXNAM",
     "yf": "STXNAM.JO",
     "jol_slug": "stxnam",
-    "ee_aliases": "Satrix Namibia Bond"
+    "ee_aliases": ["Satrix Namibia Bond"]
   },
   {
     "provider": "Satrix",
@@ -477,7 +477,7 @@
     "ticker": "STXQUA",
     "yf": "STXQUA.JO",
     "jol_slug": "stxqua",
-    "ee_aliases": "Satrix Quality"
+    "ee_aliases": ["Satrix Quality"]
   },
   {
     "provider": "Satrix",
@@ -501,7 +501,7 @@
     "ticker": "STXSCF",
     "yf": "STXCTY.JO",
     "jol_slug": "stxcty",
-    "ee_aliases": "Satrix Smart City"
+    "ee_aliases": ["Satrix Smart City"]
   },
   {
     "provider": "Satrix",
@@ -525,7 +525,7 @@
     "ticker": "STXTRC",
     "yf": "STXTRC.JO",
     "jol_slug": "stxtrc",
-    "ee_aliases": "Satrix TRACI"
+    "ee_aliases": ["Satrix TRACI"]
   },
   {
     "provider": "Satrix",
@@ -533,7 +533,7 @@
     "ticker": "STXVLE",
     "yf": "STXVEQ.JO",
     "jol_slug": "stxveq",
-    "ee_aliases": "Satrix Value"
+    "ee_aliases": ["Satrix Value"]
   },
   {
     "provider": "Satrix",
@@ -549,7 +549,7 @@
     "ticker": "STXWESG",
     "yf": "STXESG.JO",
     "jol_slug": "stxesg",
-    "ee_aliases": "Satrix World ESG"
+    "ee_aliases": ["Satrix World ESG"]
   },
   {
     "provider": "Sygnia Itrix",
@@ -621,7 +621,7 @@
     "ticker": "SYGP",
     "yf": "SYGP.JO",
     "jol_slug": "sygp",
-    "ee_aliases": "Sygnia Global Property"
+    "ee_aliases": ["Sygnia Global Property"]
   },
   {
     "provider": "Sygnia Itrix",
@@ -629,7 +629,7 @@
     "ticker": "SYGT40",
     "yf": "SYGT40.JO",
     "jol_slug": "sygt40",
-    "ee_aliases": "Sygnia Top 40"
+    "ee_aliases": ["Sygnia Top 40"]
   },
   {
     "provider": "Sygnia Itrix",
