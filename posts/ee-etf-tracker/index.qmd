@@ -2,7 +2,7 @@
 title: "Easy Equities TFSA ETF Analytics"
 description: "Interactive trading analytics for every ETF available on the Easy Equities Tax-Free Savings Account — leaderboards, price history, risk metrics, top holdings and index rules."
 date: today
-categories: [R, Finance]
+categories: [R, ETF, Finance, South Africa, Interactive]
 image: thumbnail.png
 ---
 
@@ -54,6 +54,97 @@ function pos(v) {
   if (v == null || isNaN(v) || !isFinite(v)) return "#888"
   return v >= 0 ? "#6fcfa0" : "#e07070"
 }
+```
+
+---
+
+## 🏆 Leaderboard — Top ETF Per Metric
+
+```{ojs}
+//| echo: false
+
+function bestBy(metric, higher = true) {
+  const valid = summary_df.filter(d =>
+    d[metric] != null && !isNaN(d[metric]) && isFinite(d[metric])
+  )
+  if (!valid.length) return null
+  return valid.reduce((a, b) =>
+    higher ? (b[metric] > a[metric] ? b : a) : (b[metric] < a[metric] ? b : a)
+  )
+}
+
+leaders = [
+  { label: "Best CAGR",             icon: "📈", metric: "cagr",         fmt: pct,  higher: true },
+  { label: "Highest Sharpe",        icon: "⚡", metric: "sharpe",       fmt: num,  higher: true },
+  { label: "Highest Sortino",       icon: "🛡️", metric: "sortino",      fmt: num,  higher: true },
+  { label: "Highest Calmar",        icon: "🎯", metric: "calmar",       fmt: num,  higher: true },
+  { label: "Best YTD",              icon: "🗓️", metric: "ytd_return",   fmt: pct,  higher: true },
+  { label: "Best 1-Year",           icon: "🚀", metric: "return_1y",    fmt: pct,  higher: true },
+  { label: "Best 3-Year",           icon: "🌱", metric: "return_3y",    fmt: pct,  higher: true },
+  { label: "Lowest Volatility",     icon: "😌", metric: "ann_vol",      fmt: pct,  higher: false },
+  { label: "Smallest Max Drawdown", icon: "💪", metric: "max_drawdown", fmt: pct,  higher: true },
+  { label: "Best VaR 95%",          icon: "🔒", metric: "var_95",       fmt: pct,  higher: true },
+  { label: "Lowest TER",            icon: "💰", metric: "ter",
+    fmt: v => (v == null ? "—" : (v*100).toFixed(2) + "%"), higher: false },
+]
+
+// Build leaderboard via DOM API rather than html`` template tags so that
+// event handlers and styles attach reliably. Inline on* attributes inside
+// observable's htl tend to leak as text when complex JS is embedded.
+leaderboard_node = (() => {
+  const grid = document.createElement("div")
+  grid.style.cssText =
+    "display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));" +
+    "gap:12px;margin-bottom:2rem"
+
+  for (const l of leaders) {
+    const winner = bestBy(l.metric, l.higher)
+    if (!winner) { grid.appendChild(document.createElement("div")); continue }
+
+    const val     = winner[l.metric]
+    const display = l.fmt(val)
+    const col     = (l.metric === "ann_vol" || l.metric === "ter" || l.metric === "var_95")
+      ? "#a8d4f5" : pos(val)
+
+    const card = document.createElement("div")
+    card.style.cssText =
+      "background:#1c1c1c;border:1px solid #2a2a2a;border-radius:10px;" +
+      "padding:14px 16px;cursor:pointer;transition:all 0.15s"
+
+    card.innerHTML = `
+      <div style="font-size:1.3rem;margin-bottom:4px">${l.icon}</div>
+      <div style="font-size:0.68rem;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">
+        ${l.label}
+      </div>
+      <div style="font-size:1.05rem;font-weight:700;color:${col};margin-bottom:4px">
+        ${display}
+      </div>
+      <div style="font-size:0.78rem;color:#a8d4f5;font-weight:600">${winner.ticker}</div>
+      <div style="font-size:0.70rem;color:#666;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+        ${winner.name}
+      </div>`
+
+    card.addEventListener("mouseover", () => {
+      card.style.borderColor = "#4a7aab"
+      card.style.transform   = "translateY(-1px)"
+    })
+    card.addEventListener("mouseout", () => {
+      card.style.borderColor = "#2a2a2a"
+      card.style.transform   = "translateY(0)"
+    })
+    card.addEventListener("click", () => setTicker(winner.ticker))
+
+    grid.appendChild(card)
+  }
+
+  const wrap = document.createElement("div")
+  wrap.appendChild(grid)
+  const note = document.createElement("p")
+  note.style.cssText = "font-size:0.74rem;color:#555;margin-top:-8px"
+  note.textContent = "Click any leaderboard card to load that ETF's full analytics below."
+  wrap.appendChild(note)
+  return wrap
+})()
 ```
 
 ---
@@ -167,84 +258,6 @@ setTicker = function(ticker) {
     if (target) target.scrollIntoView({behavior: 'smooth', block: 'start'});
   }, 50);
 }
-```
-
----
-
-## 🏆 Leaderboard — Top ETF Per Metric
-
-```{ojs}
-//| echo: false
-
-function bestBy(metric, higher = true) {
-  const valid = summary_df.filter(d =>
-    d[metric] != null && !isNaN(d[metric]) && isFinite(d[metric])
-  )
-  if (!valid.length) return null
-  return valid.reduce((a, b) =>
-    higher ? (b[metric] > a[metric] ? b : a) : (b[metric] < a[metric] ? b : a)
-  )
-}
-
-leaders = [
-  { label: "Best CAGR",             icon: "📈", metric: "cagr",         fmt: pct,  higher: true },
-  { label: "Highest Sharpe",        icon: "⚡", metric: "sharpe",       fmt: num,  higher: true },
-  { label: "Highest Sortino",       icon: "🛡️", metric: "sortino",      fmt: num,  higher: true },
-  { label: "Highest Calmar",        icon: "🎯", metric: "calmar",       fmt: num,  higher: true },
-  { label: "Best YTD",              icon: "🗓️", metric: "ytd_return",   fmt: pct,  higher: true },
-  { label: "Best 1-Year",           icon: "🚀", metric: "return_1y",    fmt: pct,  higher: true },
-  { label: "Best 3-Year",           icon: "🌱", metric: "return_3y",    fmt: pct,  higher: true },
-  { label: "Lowest Volatility",     icon: "😌", metric: "ann_vol",      fmt: pct,  higher: false },
-  { label: "Smallest Max Drawdown", icon: "💪", metric: "max_drawdown", fmt: pct,  higher: true },
-  { label: "Best VaR 95%",          icon: "🔒", metric: "var_95",       fmt: pct,  higher: true },
-  { label: "Lowest TER",            icon: "💰", metric: "ter",
-    fmt: v => (v == null ? "—" : (v*100).toFixed(2) + "%"), higher: false },
-]
-
-html`<div style="
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 12px;
-  margin-bottom: 2rem;
-">
-  ${leaders.map(l => {
-    const winner = bestBy(l.metric, l.higher)
-    if (!winner) return html`<div></div>`
-    const val = winner[l.metric]
-    const display = l.fmt(val)
-    const col = (l.metric === "ann_vol" || l.metric === "ter" || l.metric === "var_95")
-      ? "#a8d4f5"
-      : pos(val)
-    return html`<div
-      style="
-        background: #1c1c1c;
-        border: 1px solid #2a2a2a;
-        border-radius: 10px;
-        padding: 14px 16px;
-        cursor: pointer;
-        transition: all 0.15s;
-      "
-      onmouseover=${(e) => { e.currentTarget.style.borderColor = "#4a7aab"; e.currentTarget.style.transform = "translateY(-1px)"; }}
-      onmouseout=${(e) => { e.currentTarget.style.borderColor = "#2a2a2a"; e.currentTarget.style.transform = "translateY(0)"; }}
-      onclick=${() => setTicker(winner.ticker)}
-    >
-      <div style="font-size:1.3rem;margin-bottom:4px">${l.icon}</div>
-      <div style="font-size:0.68rem;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">
-        ${l.label}
-      </div>
-      <div style="font-size:1.05rem;font-weight:700;color:${col};margin-bottom:4px">
-        ${display}
-      </div>
-      <div style="font-size:0.78rem;color:#a8d4f5;font-weight:600">${winner.ticker}</div>
-      <div style="font-size:0.70rem;color:#666;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
-        ${winner.name}
-      </div>
-    </div>`
-  })}
-</div>
-<p style="font-size:0.74rem;color:#555;margin-top:-8px">
-  Click any leaderboard card to load that ETF's full analytics below.
-</p>`
 ```
 
 ---
@@ -692,9 +705,16 @@ filtered = (cat_filter === "All" ? summary_df
   return asc ? av - bv : bv - av
 })
 
-html`<div style="overflow-x:auto">
-<table style="width:100%;border-collapse:collapse;font-size:0.8rem">
-  <thead>
+comparison_table = (() => {
+  const wrap  = document.createElement("div")
+  wrap.style.overflowX = "auto"
+
+  const table = document.createElement("table")
+  table.style.cssText = "width:100%;border-collapse:collapse;font-size:0.8rem"
+
+  // Header
+  const thead = document.createElement("thead")
+  thead.innerHTML = `
     <tr style="border-bottom:2px solid #333;color:#666;text-align:right">
       <th style="text-align:left;padding:7px 10px;white-space:nowrap">Ticker</th>
       <th style="text-align:left;padding:7px 10px;white-space:nowrap">Name</th>
@@ -709,16 +729,19 @@ html`<div style="overflow-x:auto">
       <th style="padding:7px 8px">Sortino</th>
       <th style="padding:7px 8px">Calmar</th>
       <th style="padding:7px 8px">Max DD</th>
-    </tr>
-  </thead>
-  <tbody>
-    ${filtered.map(r => html`
-    <tr
-      style="border-bottom:1px solid #1e1e1e;cursor:pointer;background:${r.ticker === selected_ticker ? '#1a2a1a' : 'transparent'}"
-      onclick=${() => setTicker(r.ticker)}
-      onmouseover=${(e) => { if(r.ticker !== selected_ticker) e.currentTarget.style.background='#1a1a1a' }}
-      onmouseout=${(e)  => { if(r.ticker !== selected_ticker) e.currentTarget.style.background='transparent' }}
-    >
+    </tr>`
+  table.appendChild(thead)
+
+  // Body
+  const tbody = document.createElement("tbody")
+  for (const r of filtered) {
+    const tr = document.createElement("tr")
+    const isSelected = r.ticker === selected_ticker
+    tr.style.cssText =
+      `border-bottom:1px solid #1e1e1e;cursor:pointer;` +
+      `background:${isSelected ? '#1a2a1a' : 'transparent'}`
+
+    tr.innerHTML = `
       <td style="padding:6px 10px;font-weight:700;color:#a8d4f5;white-space:nowrap">${r.ticker}</td>
       <td style="padding:6px 10px;color:#ccc;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.name}</td>
       <td style="padding:6px 8px;color:#888;font-size:0.72rem;white-space:nowrap">${r.provider}</td>
@@ -731,15 +754,29 @@ html`<div style="overflow-x:auto">
       <td style="padding:6px 8px;text-align:right;color:${pos(r.sharpe)}">${num(r.sharpe)}</td>
       <td style="padding:6px 8px;text-align:right;color:${pos(r.sortino)}">${num(r.sortino)}</td>
       <td style="padding:6px 8px;text-align:right;color:${pos(r.calmar)}">${num(r.calmar)}</td>
-      <td style="padding:6px 8px;text-align:right;color:#e07070">${pct(r.max_drawdown)}</td>
-    </tr>`)}
-  </tbody>
-</table>
-</div>
-<p style="font-size:0.73rem;color:#555;margin-top:6px">
-  Click any row to load that ETF's full analytics above. Highlighted row = currently selected ETF.
-  Em-dashes (—) indicate missing data for that ETF.
-</p>`
+      <td style="padding:6px 8px;text-align:right;color:#e07070">${pct(r.max_drawdown)}</td>`
+
+    tr.addEventListener("click", () => setTicker(r.ticker))
+    tr.addEventListener("mouseover", () => {
+      if (r.ticker !== selected_ticker) tr.style.background = "#1a1a1a"
+    })
+    tr.addEventListener("mouseout", () => {
+      if (r.ticker !== selected_ticker) tr.style.background = "transparent"
+    })
+    tbody.appendChild(tr)
+  }
+  table.appendChild(tbody)
+  wrap.appendChild(table)
+
+  const note = document.createElement("p")
+  note.style.cssText = "font-size:0.73rem;color:#555;margin-top:6px"
+  note.textContent = "Click any row to load that ETF's full analytics above. Highlighted row = currently selected ETF. Em-dashes (—) indicate missing data."
+
+  const container = document.createElement("div")
+  container.appendChild(wrap)
+  container.appendChild(note)
+  return container
+})()
 ```
 
 ---
