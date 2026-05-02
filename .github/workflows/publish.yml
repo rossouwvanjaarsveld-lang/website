@@ -41,6 +41,7 @@ jobs:
             any::plotly
             any::lubridate
             any::scales
+            any::jsonlite
 
       # 6. Install Quarto
       - name: Install Quarto

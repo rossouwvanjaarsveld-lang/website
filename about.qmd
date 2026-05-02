@@ -1,6 +1,6 @@
 ---
 title: "About"
-image: aboout_pic.jpg          # add a profile.jpg to the root folder later
+image: about_pic.jpg          # add a profile.jpg to the root folder later
 about:
   template: jolla           # try: jolla, trestles, solana, marquee, broadside
   links:
