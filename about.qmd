@@ -1,6 +1,6 @@
 ---
 title: "About"
-image: about_pic.jpg          # add a profile.jpg to the root folder later
+image: about_pic.jpeg          # add a profile.jpg to the root folder later
 about:
   template: jolla           # try: jolla, trestles, solana, marquee, broadside
   links:
@@ -9,7 +9,7 @@ about:
       href: https://github.com/yourusername
     - icon: linkedin
       text: LinkedIn
-      href: https://linkedin.com/in/yourprofile
+      href: www.linkedin.com/in/rossouw-van-jaarsveld-bb5a23128
     - icon: envelope
       text: Email
       href: mailto:you@email.com
@@ -21,7 +21,7 @@ I like doing stuff with data.
 
 ## What You'll Find Here
 
-- My analytics passion. These are experiments and random thoughts I spend my free time on. 
+My analytics passion. These are experiments and random thoughts I spend my free time on. 
 
 ## Tools I Use for my posts
 
