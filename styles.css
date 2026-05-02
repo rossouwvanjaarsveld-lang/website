@@ -86,3 +86,12 @@ pre, code {
   color: #dddddd !important;
   text-shadow: 0 0 6px rgba(255, 255, 255, 0.2);
 }
+
+/* ── About page: square image, larger size ───────────────── */
+.about-image {
+  border-radius: 0px !important;   /* removes the circle — set to e.g. 8px for soft corners */
+  width: 280px !important;
+  height: 280px !important;
+  object-fit: cover;                /* crops neatly if the image isn't square */
+  max-width: 100%;
+}

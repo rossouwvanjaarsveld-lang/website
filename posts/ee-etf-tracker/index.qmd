@@ -2,8 +2,8 @@
 title: "Easy Equities TFSA ETF Analytics"
 description: "Interactive trading analytics for every ETF available on the Easy Equities Tax-Free Savings Account — leaderboards, price history, risk metrics, top holdings and index rules."
 date: today
-categories: [R, Finance]
-image: thumbnail.JPG
+categories: [R, ETF, Finance, South Africa, Interactive]
+image: thumbnail.png
 ---
 
 ```{r setup}
@@ -566,7 +566,23 @@ html`<h3 style="margin-top:1.5rem;color:#ccc">Top Holdings</h3>`
 ```{ojs}
 //| echo: false
 
-holdings = (etf.top_holdings || []).filter(d => d.name && d.name.length > 1)
+// Normalise top_holdings into an array of {name, weight} objects.
+// Handles every shape jsonlite might emit (array, single object, missing).
+function toHoldingsArray(raw) {
+  if (raw == null) return []
+  // Already an array → use as-is
+  if (Array.isArray(raw)) return raw
+  // Object with name/weight → wrap as a single-item array (auto_unbox case)
+  if (typeof raw === "object" && (raw.name || raw.weight != null)) return [raw]
+  // Some legacy shapes have parallel arrays { name: [...], weight: [...] }
+  if (typeof raw === "object" && Array.isArray(raw.name) && Array.isArray(raw.weight)) {
+    return raw.name.map((n, i) => ({ name: n, weight: raw.weight[i] }))
+  }
+  return []
+}
+
+holdings = toHoldingsArray(etf.top_holdings)
+  .filter(d => d && typeof d.name === "string" && d.name.length > 1)
 holdings_with_weights = holdings.filter(d => d.weight != null && isFinite(d.weight) && d.weight > 0)
 holdings_no_weights   = holdings.filter(d => d.weight == null || !isFinite(d.weight))
 
@@ -717,8 +733,6 @@ comparison_table = (() => {
   thead.innerHTML = `
     <tr style="border-bottom:2px solid #333;color:#666;text-align:right">
       <th style="text-align:left;padding:7px 10px;white-space:nowrap">Ticker</th>
-      <th style="text-align:left;padding:7px 10px;white-space:nowrap">Name</th>
-      <th style="text-align:left;padding:7px 8px;white-space:nowrap">Provider</th>
       <th style="padding:7px 8px">TER</th>
       <th style="padding:7px 8px">YTD</th>
       <th style="padding:7px 8px">1Y</th>
@@ -741,10 +755,14 @@ comparison_table = (() => {
       `border-bottom:1px solid #1e1e1e;cursor:pointer;` +
       `background:${isSelected ? '#1a2a1a' : 'transparent'}`
 
+    // Combine name + provider into the ticker cell's tooltip so the
+    // information is still discoverable on hover even though the columns
+    // are hidden to keep the table compact.
+    const tooltip = `${r.name} — ${r.provider}`
+    tr.title = tooltip
+
     tr.innerHTML = `
-      <td style="padding:6px 10px;font-weight:700;color:#a8d4f5;white-space:nowrap">${r.ticker}</td>
-      <td style="padding:6px 10px;color:#ccc;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.name}</td>
-      <td style="padding:6px 8px;color:#888;font-size:0.72rem;white-space:nowrap">${r.provider}</td>
+      <td style="padding:6px 10px;font-weight:700;color:#a8d4f5;white-space:nowrap" title="${tooltip}">${r.ticker}</td>
       <td style="padding:6px 8px;text-align:right;color:#888">${r.ter == null ? "—" : (r.ter*100).toFixed(2)+"%"}</td>
       <td style="padding:6px 8px;text-align:right;color:${pos(r.ytd_return)}">${pct(r.ytd_return)}</td>
       <td style="padding:6px 8px;text-align:right;color:${pos(r.return_1y)}">${pct(r.return_1y)}</td>
@@ -770,7 +788,7 @@ comparison_table = (() => {
 
   const note = document.createElement("p")
   note.style.cssText = "font-size:0.73rem;color:#555;margin-top:6px"
-  note.textContent = "Click any row to load that ETF's full analytics above. Highlighted row = currently selected ETF. Em-dashes (—) indicate missing data."
+  note.textContent = "Hover a row for the fund's full name and provider. Click to load that ETF's full analytics above. Em-dashes (—) indicate missing data."
 
   const container = document.createElement("div")
   container.appendChild(wrap)

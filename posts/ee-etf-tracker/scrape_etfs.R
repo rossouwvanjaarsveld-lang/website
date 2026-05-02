@@ -778,7 +778,10 @@ for (i in seq_len(nrow(etf_csv))) {
     index = benchmark, index_rules = description,
     rebalancing = NA_character_, fund_type = fund_type,
     mdd_updated = mdd_updated,
-    top_holdings = holdings,
+    # Wrap holdings list in I() so jsonlite always emits a JSON array
+    # (auto_unbox=TRUE would otherwise collapse a single-item list to a
+    # bare object, breaking .filter() on the JS side).
+    top_holdings = I(holdings),
     has_price_data = has_prices,
     last_updated = format(Sys.time(), "%Y-%m-%d %H:%M:%S")
   )

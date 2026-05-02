@@ -5829,26 +5829,180 @@ font-style: inherit;">`&lt;h3 style="margin-top:1.5rem;color:#ccc"&gt;Top Holdin
 <div class="cell">
 <details class="code-fold hidden">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code hidden" id="cb28" data-startfrom="569" data-source-offset="-1" style="background: #f1f3f5;"><pre class="sourceCode js code-with-copy"><code class="sourceCode javascript" style="counter-reset: source-line 568;"><span id="cb28-569">holdings <span class="op" style="color: #5E5E5E;
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code hidden" id="cb28" data-startfrom="571" data-source-offset="-144" style="background: #f1f3f5;"><pre class="sourceCode js code-with-copy"><code class="sourceCode javascript" style="counter-reset: source-line 570;"><span id="cb28-571"><span class="kw" style="color: #003B4F;
 background-color: null;
-font-style: inherit;">=</span> (etf<span class="op" style="color: #5E5E5E;
+font-weight: bold;
+font-style: inherit;">function</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">toHoldingsArray</span>(raw) {</span>
+<span id="cb28-572">  <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (raw <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">null</span>) <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> []</span>
+<span id="cb28-573">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">// Already an array → use as-is</span></span>
+<span id="cb28-574">  <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">Array</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">isArray</span>(raw)) <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> raw</span>
+<span id="cb28-575">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">// Object with name/weight → wrap as a single-item array (auto_unbox case)</span></span>
+<span id="cb28-576">  <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (<span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">typeof</span> raw <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">===</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"object"</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&amp;&amp;</span> (raw<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">.</span><span class="at" style="color: #657422;
 background-color: null;
-font-style: inherit;">top_holdings</span> <span class="op" style="color: #5E5E5E;
+font-style: inherit;">name</span> <span class="op" style="color: #5E5E5E;
 background-color: null;
-font-style: inherit;">||</span> [])<span class="op" style="color: #5E5E5E;
+font-style: inherit;">||</span> raw<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">weight</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">!=</span> <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">null</span>)) <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> [raw]</span>
+<span id="cb28-577">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">// Some legacy shapes have parallel arrays { name: [...], weight: [...] }</span></span>
+<span id="cb28-578">  <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (<span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">typeof</span> raw <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">===</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"object"</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&amp;&amp;</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">Array</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">isArray</span>(raw<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">name</span>) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&amp;&amp;</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">Array</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">isArray</span>(raw<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">weight</span>)) {</span>
+<span id="cb28-579">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> raw<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">name</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">map</span>((n<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> i) <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">=&gt;</span> ({ <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">name</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:</span> n<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">weight</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:</span> raw<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">weight</span>[i] }))</span>
+<span id="cb28-580">  }</span>
+<span id="cb28-581">  <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> []</span>
+<span id="cb28-582">}</span>
+<span id="cb28-583"></span>
+<span id="cb28-584">holdings <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">toHoldingsArray</span>(etf<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">top_holdings</span>)</span>
+<span id="cb28-585">  <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">.</span><span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">filter</span>(d <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
-font-style: inherit;">=&gt;</span> d<span class="op" style="color: #5E5E5E;
+font-style: inherit;">=&gt;</span> d <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&amp;&amp;</span> <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">typeof</span> d<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">.</span><span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">name</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">===</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"string"</span> <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">&amp;&amp;</span> d<span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -5863,7 +6017,7 @@ background-color: null;
 font-style: inherit;">&gt;</span> <span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1</span>)</span>
-<span id="cb28-570">holdings_with_weights <span class="op" style="color: #5E5E5E;
+<span id="cb28-586">holdings_with_weights <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> holdings<span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -5900,7 +6054,7 @@ background-color: null;
 font-style: inherit;">&gt;</span> <span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">0</span>)</span>
-<span id="cb28-571">holdings_no_weights   <span class="op" style="color: #5E5E5E;
+<span id="cb28-587">holdings_no_weights   <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> holdings<span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -5929,8 +6083,8 @@ background-color: null;
 font-style: inherit;">.</span><span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">weight</span>))</span>
-<span id="cb28-572"></span>
-<span id="cb28-573">holdings<span class="op" style="color: #5E5E5E;
+<span id="cb28-588"></span>
+<span id="cb28-589">holdings<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">.</span><span class="at" style="color: #657422;
 background-color: null;
@@ -5939,14 +6093,14 @@ background-color: null;
 font-style: inherit;">===</span> <span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">0</span></span>
-<span id="cb28-574">  <span class="op" style="color: #5E5E5E;
+<span id="cb28-590">  <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">?</span> <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">html</span><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">`&lt;p style="color:#666;font-style:italic"&gt;Holdings data not available for this ETF.&lt;/p&gt;`</span></span>
-<span id="cb28-575">  <span class="op" style="color: #5E5E5E;
+<span id="cb28-591">  <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">:</span> holdings_with_weights<span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -5957,14 +6111,14 @@ background-color: null;
 font-style: inherit;">&gt;</span> <span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">0</span></span>
-<span id="cb28-576">  <span class="op" style="color: #5E5E5E;
+<span id="cb28-592">  <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">?</span> Plot<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">.</span><span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">plot</span>({</span>
-<span id="cb28-577">      <span class="dt" style="color: #AD0000;
+<span id="cb28-593">      <span class="dt" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">height</span><span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -5993,7 +6147,7 @@ background-color: null;
 font-style: inherit;">50</span>)<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">,</span></span>
-<span id="cb28-578">      <span class="dt" style="color: #AD0000;
+<span id="cb28-594">      <span class="dt" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">marginLeft</span><span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -6002,7 +6156,7 @@ background-color: null;
 font-style: inherit;">160</span><span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">,</span></span>
-<span id="cb28-579">      <span class="dt" style="color: #AD0000;
+<span id="cb28-595">      <span class="dt" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">style</span><span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -6031,7 +6185,7 @@ background-color: null;
 font-style: inherit;">12</span> }<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">,</span></span>
-<span id="cb28-580">      <span class="dt" style="color: #AD0000;
+<span id="cb28-596">      <span class="dt" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">x</span><span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -6053,7 +6207,7 @@ font-weight: bold;
 font-style: inherit;">true</span><span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">,</span></span>
-<span id="cb28-581">           <span class="dt" style="color: #AD0000;
+<span id="cb28-597">           <span class="dt" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">domain</span><span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -6087,7 +6241,7 @@ background-color: null;
 font-style: inherit;">1.15</span>] }<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">,</span></span>
-<span id="cb28-582">      <span class="dt" style="color: #AD0000;
+<span id="cb28-598">      <span class="dt" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">y</span><span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -6101,19 +6255,19 @@ font-weight: bold;
 font-style: inherit;">null</span> }<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">,</span></span>
-<span id="cb28-583">      <span class="dt" style="color: #AD0000;
+<span id="cb28-599">      <span class="dt" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">marks</span><span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">:</span> [</span>
-<span id="cb28-584">        Plot<span class="op" style="color: #5E5E5E;
+<span id="cb28-600">        Plot<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">.</span><span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">barX</span>(holdings_with_weights<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">,</span> {</span>
-<span id="cb28-585">          <span class="dt" style="color: #AD0000;
+<span id="cb28-601">          <span class="dt" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">x</span><span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -6130,7 +6284,7 @@ background-color: null;
 font-style: inherit;">"name"</span><span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">,</span></span>
-<span id="cb28-586">          <span class="dt" style="color: #AD0000;
+<span id="cb28-602">          <span class="dt" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">fill</span><span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -6150,7 +6304,7 @@ background-color: null;
 font-style: inherit;">?</span> <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"#e07070"</span></span>
-<span id="cb28-587">                   <span class="op" style="color: #5E5E5E;
+<span id="cb28-603">                   <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">:</span> d<span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -6165,14 +6319,14 @@ background-color: null;
 font-style: inherit;">?</span> <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"#d4a855"</span></span>
-<span id="cb28-588">                   <span class="op" style="color: #5E5E5E;
+<span id="cb28-604">                   <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">:</span>                  <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"#a8d4f5"</span><span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">,</span></span>
-<span id="cb28-589">          <span class="dt" style="color: #AD0000;
+<span id="cb28-605">          <span class="dt" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">sort</span><span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -6183,17 +6337,17 @@ background-color: null;
 font-style: inherit;">:</span> <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"-x"</span> }</span>
-<span id="cb28-590">        })<span class="op" style="color: #5E5E5E;
+<span id="cb28-606">        })<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">,</span></span>
-<span id="cb28-591">        Plot<span class="op" style="color: #5E5E5E;
+<span id="cb28-607">        Plot<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">.</span><span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">text</span>(holdings_with_weights<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">,</span> {</span>
-<span id="cb28-592">          <span class="dt" style="color: #AD0000;
+<span id="cb28-608">          <span class="dt" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">x</span><span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -6210,7 +6364,7 @@ background-color: null;
 font-style: inherit;">"name"</span><span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">,</span></span>
-<span id="cb28-593">          <span class="dt" style="color: #AD0000;
+<span id="cb28-609">          <span class="dt" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">text</span><span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -6234,7 +6388,7 @@ background-color: null;
 font-style: inherit;">"%"</span><span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">,</span></span>
-<span id="cb28-594">          <span class="dt" style="color: #AD0000;
+<span id="cb28-610">          <span class="dt" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">fill</span><span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -6267,7 +6421,7 @@ background-color: null;
 font-style: inherit;">4</span><span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">,</span></span>
-<span id="cb28-595">          <span class="dt" style="color: #AD0000;
+<span id="cb28-611">          <span class="dt" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">sort</span><span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -6278,38 +6432,38 @@ background-color: null;
 font-style: inherit;">:</span> <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"-x"</span> }</span>
-<span id="cb28-596">        })</span>
-<span id="cb28-597">      ]</span>
-<span id="cb28-598">    })</span>
-<span id="cb28-599">  <span class="op" style="color: #5E5E5E;
+<span id="cb28-612">        })</span>
+<span id="cb28-613">      ]</span>
+<span id="cb28-614">    })</span>
+<span id="cb28-615">  <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">:</span> <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">html</span><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">`&lt;div style="</span></span>
-<span id="cb28-600"><span class="vs" style="color: #20794D;
+<span id="cb28-616"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">      background:#1c1c1c;border:1px solid #2a2a2a;border-radius:8px;</span></span>
-<span id="cb28-601"><span class="vs" style="color: #20794D;
+<span id="cb28-617"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">      padding:14px 18px</span></span>
-<span id="cb28-602"><span class="vs" style="color: #20794D;
+<span id="cb28-618"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">    "&gt;</span></span>
-<span id="cb28-603"><span class="vs" style="color: #20794D;
+<span id="cb28-619"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">      &lt;div style="font-size:0.78rem;color:#888;margin-bottom:8px"&gt;</span></span>
-<span id="cb28-604"><span class="vs" style="color: #20794D;
+<span id="cb28-620"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">        Top 10 holdings (weights not published in the MDD)</span></span>
-<span id="cb28-605"><span class="vs" style="color: #20794D;
+<span id="cb28-621"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">      &lt;/div&gt;</span></span>
-<span id="cb28-606"><span class="vs" style="color: #20794D;
+<span id="cb28-622"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">      &lt;div style="display:flex;flex-wrap:wrap;gap:8px"&gt;</span></span>
-<span id="cb28-607"><span class="vs" style="color: #20794D;
+<span id="cb28-623"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">        </span><span class="sc" style="color: #5E5E5E;
 background-color: null;
@@ -6325,13 +6479,13 @@ background-color: null;
 font-style: inherit;">html</span><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">`&lt;span style="</span></span>
-<span id="cb28-608"><span class="vs" style="color: #20794D;
+<span id="cb28-624"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">          background:#252535;color:#a8d4f5;padding:5px 12px;border-radius:14px;</span></span>
-<span id="cb28-609"><span class="vs" style="color: #20794D;
+<span id="cb28-625"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">          font-size:0.84rem</span></span>
-<span id="cb28-610"><span class="vs" style="color: #20794D;
+<span id="cb28-626"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">        "&gt;</span><span class="sc" style="color: #5E5E5E;
 background-color: null;
@@ -6346,10 +6500,10 @@ background-color: null;
 font-style: inherit;">&lt;/span&gt;`</span>)<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">}</span></span>
-<span id="cb28-611"><span class="vs" style="color: #20794D;
+<span id="cb28-627"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">      &lt;/div&gt;</span></span>
-<span id="cb28-612"><span class="vs" style="color: #20794D;
+<span id="cb28-628"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">    &lt;/div&gt;`</span></span></code></pre></div></div>
 </details>
@@ -6376,7 +6530,14 @@ font-style: inherit;">    &lt;/div&gt;`</span></span></code></pre></div></div>
 </div>
 <div class="cell-output cell-output-display">
 <div>
-<div id="ojs-cell-28-4" data-nodetype="expression">
+<div id="ojs-cell-28-4" data-nodetype="declaration">
+
+</div>
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<div id="ojs-cell-28-5" data-nodetype="expression">
 
 </div>
 </div>
@@ -6386,48 +6547,48 @@ font-style: inherit;">    &lt;/div&gt;`</span></span></code></pre></div></div>
 <div class="cell">
 <details class="code-fold hidden">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code hidden" id="cb29" data-startfrom="618" data-source-offset="0" style="background: #f1f3f5;"><pre class="sourceCode js code-with-copy"><code class="sourceCode javascript" style="counter-reset: source-line 617;"><span id="cb29-618"><span class="fu" style="color: #4758AB;
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code hidden" id="cb29" data-startfrom="634" data-source-offset="0" style="background: #f1f3f5;"><pre class="sourceCode js code-with-copy"><code class="sourceCode javascript" style="counter-reset: source-line 633;"><span id="cb29-634"><span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">html</span><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">`&lt;h3 style="margin-top:1.5rem;color:#ccc"&gt;Index Rules &amp;amp; Construction&lt;/h3&gt;</span></span>
-<span id="cb29-619"><span class="vs" style="color: #20794D;
+<span id="cb29-635"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">&lt;div style="</span></span>
-<span id="cb29-620"><span class="vs" style="color: #20794D;
+<span id="cb29-636"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">  background:#1a1a1a;</span></span>
-<span id="cb29-621"><span class="vs" style="color: #20794D;
+<span id="cb29-637"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">  border:1px solid #2a2a2a;</span></span>
-<span id="cb29-622"><span class="vs" style="color: #20794D;
+<span id="cb29-638"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">  border-left:3px solid #a8d4f5;</span></span>
-<span id="cb29-623"><span class="vs" style="color: #20794D;
+<span id="cb29-639"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">  border-radius:8px;</span></span>
-<span id="cb29-624"><span class="vs" style="color: #20794D;
+<span id="cb29-640"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">  padding:20px 24px;</span></span>
-<span id="cb29-625"><span class="vs" style="color: #20794D;
+<span id="cb29-641"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">  margin-bottom:1.5rem</span></span>
-<span id="cb29-626"><span class="vs" style="color: #20794D;
+<span id="cb29-642"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"&gt;</span></span>
-<span id="cb29-627"><span class="vs" style="color: #20794D;
+<span id="cb29-643"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">  &lt;div style="font-size:0.72rem;color:#888;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px"&gt;</span></span>
-<span id="cb29-628"><span class="vs" style="color: #20794D;
+<span id="cb29-644"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">    Benchmark Index</span></span>
-<span id="cb29-629"><span class="vs" style="color: #20794D;
+<span id="cb29-645"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">  &lt;/div&gt;</span></span>
-<span id="cb29-630"><span class="vs" style="color: #20794D;
+<span id="cb29-646"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">  &lt;div style="font-size:1rem;color:#a8d4f5;font-weight:600;margin-bottom:16px"&gt;</span></span>
-<span id="cb29-631"><span class="vs" style="color: #20794D;
+<span id="cb29-647"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">    </span><span class="sc" style="color: #5E5E5E;
 background-color: null;
@@ -6442,22 +6603,22 @@ background-color: null;
 font-style: inherit;">"—"</span><span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">}</span></span>
-<span id="cb29-632"><span class="vs" style="color: #20794D;
+<span id="cb29-648"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">  &lt;/div&gt;</span></span>
-<span id="cb29-633"><span class="vs" style="color: #20794D;
+<span id="cb29-649"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">  &lt;div style="font-size:0.72rem;color:#888;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px"&gt;</span></span>
-<span id="cb29-634"><span class="vs" style="color: #20794D;
+<span id="cb29-650"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">    Description</span></span>
-<span id="cb29-635"><span class="vs" style="color: #20794D;
+<span id="cb29-651"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">  &lt;/div&gt;</span></span>
-<span id="cb29-636"><span class="vs" style="color: #20794D;
+<span id="cb29-652"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">  &lt;div style="font-size:0.9rem;color:#ccc;line-height:1.65;margin-bottom:16px"&gt;</span></span>
-<span id="cb29-637"><span class="vs" style="color: #20794D;
+<span id="cb29-653"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">    </span><span class="sc" style="color: #5E5E5E;
 background-color: null;
@@ -6472,13 +6633,13 @@ background-color: null;
 font-style: inherit;">"—"</span><span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">}</span></span>
-<span id="cb29-638"><span class="vs" style="color: #20794D;
+<span id="cb29-654"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">  &lt;/div&gt;</span></span>
-<span id="cb29-639"><span class="vs" style="color: #20794D;
+<span id="cb29-655"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">  &lt;div style="display:flex;gap:24px;flex-wrap:wrap"&gt;</span></span>
-<span id="cb29-640"><span class="vs" style="color: #20794D;
+<span id="cb29-656"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">    </span><span class="sc" style="color: #5E5E5E;
 background-color: null;
@@ -6498,10 +6659,10 @@ background-color: null;
 font-style: inherit;">html</span><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">`&lt;div&gt;</span></span>
-<span id="cb29-641"><span class="vs" style="color: #20794D;
+<span id="cb29-657"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">      &lt;span style="font-size:0.72rem;color:#888;text-transform:uppercase;letter-spacing:.07em"&gt;Total Expense Ratio&lt;/span&gt;</span></span>
-<span id="cb29-642"><span class="vs" style="color: #20794D;
+<span id="cb29-658"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">      &lt;div style="font-size:0.9rem;color:#e8a86a;font-weight:600;margin-top:3px"&gt;</span><span class="sc" style="color: #5E5E5E;
 background-color: null;
@@ -6524,7 +6685,7 @@ background-color: null;
 font-style: inherit;">}</span><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">% p.a.&lt;/div&gt;</span></span>
-<span id="cb29-643"><span class="vs" style="color: #20794D;
+<span id="cb29-659"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">    &lt;/div&gt;`</span> <span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -6533,7 +6694,7 @@ background-color: null;
 font-style: inherit;">""</span><span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">}</span></span>
-<span id="cb29-644"><span class="vs" style="color: #20794D;
+<span id="cb29-660"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">    </span><span class="sc" style="color: #5E5E5E;
 background-color: null;
@@ -6548,10 +6709,10 @@ background-color: null;
 font-style: inherit;">html</span><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">`&lt;div&gt;</span></span>
-<span id="cb29-645"><span class="vs" style="color: #20794D;
+<span id="cb29-661"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">      &lt;span style="font-size:0.72rem;color:#888;text-transform:uppercase;letter-spacing:.07em"&gt;Distribution&lt;/span&gt;</span></span>
-<span id="cb29-646"><span class="vs" style="color: #20794D;
+<span id="cb29-662"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">      &lt;div style="font-size:0.9rem;color:#6fcfa0;font-weight:600;margin-top:3px"&gt;</span><span class="sc" style="color: #5E5E5E;
 background-color: null;
@@ -6564,7 +6725,7 @@ background-color: null;
 font-style: inherit;">}</span><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">&lt;/div&gt;</span></span>
-<span id="cb29-647"><span class="vs" style="color: #20794D;
+<span id="cb29-663"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">    &lt;/div&gt;`</span> <span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -6573,13 +6734,13 @@ background-color: null;
 font-style: inherit;">""</span><span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">}</span></span>
-<span id="cb29-648"><span class="vs" style="color: #20794D;
+<span id="cb29-664"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">    &lt;div&gt;</span></span>
-<span id="cb29-649"><span class="vs" style="color: #20794D;
+<span id="cb29-665"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">      &lt;span style="font-size:0.72rem;color:#888;text-transform:uppercase;letter-spacing:.07em"&gt;Provider&lt;/span&gt;</span></span>
-<span id="cb29-650"><span class="vs" style="color: #20794D;
+<span id="cb29-666"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">      &lt;div style="font-size:0.9rem;color:#ccc;font-weight:600;margin-top:3px"&gt;</span><span class="sc" style="color: #5E5E5E;
 background-color: null;
@@ -6592,10 +6753,10 @@ background-color: null;
 font-style: inherit;">}</span><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">&lt;/div&gt;</span></span>
-<span id="cb29-651"><span class="vs" style="color: #20794D;
+<span id="cb29-667"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">    &lt;/div&gt;</span></span>
-<span id="cb29-652"><span class="vs" style="color: #20794D;
+<span id="cb29-668"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">    </span><span class="sc" style="color: #5E5E5E;
 background-color: null;
@@ -6610,10 +6771,10 @@ background-color: null;
 font-style: inherit;">html</span><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">`&lt;div&gt;</span></span>
-<span id="cb29-653"><span class="vs" style="color: #20794D;
+<span id="cb29-669"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">      &lt;span style="font-size:0.72rem;color:#888;text-transform:uppercase;letter-spacing:.07em"&gt;MDD Updated&lt;/span&gt;</span></span>
-<span id="cb29-654"><span class="vs" style="color: #20794D;
+<span id="cb29-670"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">      &lt;div style="font-size:0.9rem;color:#aaa;font-weight:600;margin-top:3px"&gt;</span><span class="sc" style="color: #5E5E5E;
 background-color: null;
@@ -6626,7 +6787,7 @@ background-color: null;
 font-style: inherit;">}</span><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">&lt;/div&gt;</span></span>
-<span id="cb29-655"><span class="vs" style="color: #20794D;
+<span id="cb29-671"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">    &lt;/div&gt;`</span> <span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -6635,10 +6796,10 @@ background-color: null;
 font-style: inherit;">""</span><span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">}</span></span>
-<span id="cb29-656"><span class="vs" style="color: #20794D;
+<span id="cb29-672"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">  &lt;/div&gt;</span></span>
-<span id="cb29-657"><span class="vs" style="color: #20794D;
+<span id="cb29-673"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">  </span><span class="sc" style="color: #5E5E5E;
 background-color: null;
@@ -6653,7 +6814,7 @@ background-color: null;
 font-style: inherit;">html</span><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">`&lt;div style="margin-top:14px;font-size:0.72rem;color:#666"&gt;</span></span>
-<span id="cb29-658"><span class="vs" style="color: #20794D;
+<span id="cb29-674"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">    Source: &lt;a href="https://justonelap.com/</span><span class="sc" style="color: #5E5E5E;
 background-color: null;
@@ -6666,10 +6827,10 @@ background-color: null;
 font-style: inherit;">}</span><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">/" target="_blank" style="color:#888"&gt;Just One Lap&lt;/a&gt;,</span></span>
-<span id="cb29-659"><span class="vs" style="color: #20794D;
+<span id="cb29-675"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">    aggregated from the issuer's Minimum Disclosure Document.</span></span>
-<span id="cb29-660"><span class="vs" style="color: #20794D;
+<span id="cb29-676"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">  &lt;/div&gt;`</span> <span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -6678,7 +6839,7 @@ background-color: null;
 font-style: inherit;">""</span><span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">}</span></span>
-<span id="cb29-661"><span class="vs" style="color: #20794D;
+<span id="cb29-677"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">&lt;/div&gt;`</span></span></code></pre></div></div>
 </details>
@@ -6695,14 +6856,14 @@ font-style: inherit;">&lt;/div&gt;`</span></span></code></pre></div></div>
 <div class="cell">
 <details class="code-fold hidden">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code hidden" id="cb30" data-startfrom="671" data-source-offset="0" style="background: #f1f3f5;"><pre class="sourceCode js code-with-copy"><code class="sourceCode javascript" style="counter-reset: source-line 670;"><span id="cb30-671">viewof cat_filter <span class="op" style="color: #5E5E5E;
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code hidden" id="cb30" data-startfrom="687" data-source-offset="0" style="background: #f1f3f5;"><pre class="sourceCode js code-with-copy"><code class="sourceCode javascript" style="counter-reset: source-line 686;"><span id="cb30-687">viewof cat_filter <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> Inputs<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">.</span><span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">select</span>(</span>
-<span id="cb30-672">  [<span class="st" style="color: #20794D;
+<span id="cb30-688">  [<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"All"</span><span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -6727,7 +6888,7 @@ background-color: null;
 font-style: inherit;">provider</span>))]<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">,</span></span>
-<span id="cb30-673">  { <span class="dt" style="color: #AD0000;
+<span id="cb30-689">  { <span class="dt" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">label</span><span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -6742,7 +6903,7 @@ background-color: null;
 font-style: inherit;">:</span> <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"All"</span> }</span>
-<span id="cb30-674">)</span></code></pre></div></div>
+<span id="cb30-690">)</span></code></pre></div></div>
 </details>
 <div class="cell-output cell-output-display">
 <div id="ojs-cell-30" data-nodetype="declaration">
@@ -6753,14 +6914,14 @@ font-style: inherit;">"All"</span> }</span>
 <div class="cell">
 <details class="code-fold hidden">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code hidden" id="cb31" data-startfrom="679" data-source-offset="0" style="background: #f1f3f5;"><pre class="sourceCode js code-with-copy"><code class="sourceCode javascript" style="counter-reset: source-line 678;"><span id="cb31-679">viewof sort_col <span class="op" style="color: #5E5E5E;
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code hidden" id="cb31" data-startfrom="695" data-source-offset="0" style="background: #f1f3f5;"><pre class="sourceCode js code-with-copy"><code class="sourceCode javascript" style="counter-reset: source-line 694;"><span id="cb31-695">viewof sort_col <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> Inputs<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">.</span><span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">select</span>(</span>
-<span id="cb31-680">  [<span class="st" style="color: #20794D;
+<span id="cb31-696">  [<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"cagr"</span><span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -6801,7 +6962,7 @@ background-color: null;
 font-style: inherit;">"ter"</span>]<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">,</span></span>
-<span id="cb31-681">  { <span class="dt" style="color: #AD0000;
+<span id="cb31-697">  { <span class="dt" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">label</span><span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -6810,7 +6971,7 @@ background-color: null;
 font-style: inherit;">"Sort by"</span><span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">,</span></span>
-<span id="cb31-682">    <span class="dt" style="color: #AD0000;
+<span id="cb31-698">    <span class="dt" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">format</span><span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -6850,7 +7011,7 @@ background-color: null;
 font-style: inherit;">"Calmar"</span><span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">,</span></span>
-<span id="cb31-683">      <span class="dt" style="color: #AD0000;
+<span id="cb31-699">      <span class="dt" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">return_1y</span><span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -6875,7 +7036,7 @@ background-color: null;
 font-style: inherit;">"Volatility"</span><span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">,</span></span>
-<span id="cb31-684">      <span class="dt" style="color: #AD0000;
+<span id="cb31-700">      <span class="dt" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">max_drawdown</span><span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -6902,14 +7063,14 @@ background-color: null;
 font-style: inherit;">||</span> c<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">,</span></span>
-<span id="cb31-685">    <span class="dt" style="color: #AD0000;
+<span id="cb31-701">    <span class="dt" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">value</span><span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">:</span> <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"sharpe"</span> }</span>
-<span id="cb31-686">)</span></code></pre></div></div>
+<span id="cb31-702">)</span></code></pre></div></div>
 </details>
 <div class="cell-output cell-output-display">
 <div id="ojs-cell-31" data-nodetype="declaration">
@@ -6920,7 +7081,7 @@ font-style: inherit;">"sharpe"</span> }</span>
 <div class="cell">
 <details class="code-fold hidden">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code hidden" id="cb32" data-startfrom="693" data-source-offset="-1" style="background: #f1f3f5;"><pre class="sourceCode js code-with-copy"><code class="sourceCode javascript" style="counter-reset: source-line 692;"><span id="cb32-693">sort_asc_cols <span class="op" style="color: #5E5E5E;
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code hidden" id="cb32" data-startfrom="709" data-source-offset="-1" style="background: #f1f3f5;"><pre class="sourceCode js code-with-copy"><code class="sourceCode javascript" style="counter-reset: source-line 708;"><span id="cb32-709">sort_asc_cols <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> [<span class="st" style="color: #20794D;
 background-color: null;
@@ -6933,8 +7094,8 @@ background-color: null;
 font-style: inherit;">,</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"ter"</span>]</span>
-<span id="cb32-694"></span>
-<span id="cb32-695">filtered <span class="op" style="color: #5E5E5E;
+<span id="cb32-710"></span>
+<span id="cb32-711">filtered <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> (cat_filter <span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -6943,7 +7104,7 @@ background-color: null;
 font-style: inherit;">"All"</span> <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">?</span> summary_df</span>
-<span id="cb32-696">  <span class="op" style="color: #5E5E5E;
+<span id="cb32-712">  <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">:</span> summary_df<span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -6953,7 +7114,7 @@ font-style: inherit;">filter</span>(d <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">=&gt;</span> {</span>
-<span id="cb32-697">      <span class="kw" style="color: #003B4F;
+<span id="cb32-713">      <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">const</span> i <span class="op" style="color: #5E5E5E;
@@ -6976,7 +7137,7 @@ background-color: null;
 font-style: inherit;">.</span><span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">ticker</span>)</span>
-<span id="cb32-698">      <span class="cf" style="color: #003B4F;
+<span id="cb32-714">      <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">return</span> i <span class="op" style="color: #5E5E5E;
@@ -6988,8 +7149,8 @@ background-color: null;
 font-style: inherit;">provider</span> <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">===</span> cat_filter</span>
-<span id="cb32-699">    })</span>
-<span id="cb32-700">)<span class="op" style="color: #5E5E5E;
+<span id="cb32-715">    })</span>
+<span id="cb32-716">)<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">.</span><span class="fu" style="color: #4758AB;
 background-color: null;
@@ -7003,7 +7164,7 @@ font-style: inherit;">,</span> b) <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">=&gt;</span> {</span>
-<span id="cb32-701">  <span class="kw" style="color: #003B4F;
+<span id="cb32-717">  <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">const</span> asc <span class="op" style="color: #5E5E5E;
@@ -7013,7 +7174,7 @@ background-color: null;
 font-style: inherit;">.</span><span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">includes</span>(sort_col)</span>
-<span id="cb32-702">  <span class="kw" style="color: #003B4F;
+<span id="cb32-718">  <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">const</span> av <span class="op" style="color: #5E5E5E;
@@ -7023,7 +7184,7 @@ background-color: null;
 font-style: inherit;">,</span> bv <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> b[sort_col]</span>
-<span id="cb32-703">  <span class="cf" style="color: #003B4F;
+<span id="cb32-719">  <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">if</span> (av <span class="op" style="color: #5E5E5E;
@@ -7041,7 +7202,7 @@ font-weight: bold;
 font-style: inherit;">return</span> <span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1</span></span>
-<span id="cb32-704">  <span class="cf" style="color: #003B4F;
+<span id="cb32-720">  <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">if</span> (bv <span class="op" style="color: #5E5E5E;
@@ -7061,7 +7222,7 @@ background-color: null;
 font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1</span></span>
-<span id="cb32-705">  <span class="cf" style="color: #003B4F;
+<span id="cb32-721">  <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">return</span> asc <span class="op" style="color: #5E5E5E;
@@ -7073,15 +7234,15 @@ background-color: null;
 font-style: inherit;">:</span> bv <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">-</span> av</span>
-<span id="cb32-706">})</span>
-<span id="cb32-707"></span>
-<span id="cb32-708">comparison_table <span class="op" style="color: #5E5E5E;
+<span id="cb32-722">})</span>
+<span id="cb32-723"></span>
+<span id="cb32-724">comparison_table <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> (() <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">=&gt;</span> {</span>
-<span id="cb32-709">  <span class="kw" style="color: #003B4F;
+<span id="cb32-725">  <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">const</span> wrap  <span class="op" style="color: #5E5E5E;
@@ -7095,7 +7256,7 @@ background-color: null;
 font-style: inherit;">createElement</span>(<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"div"</span>)</span>
-<span id="cb32-710">  wrap<span class="op" style="color: #5E5E5E;
+<span id="cb32-726">  wrap<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">.</span><span class="at" style="color: #657422;
 background-color: null;
@@ -7108,8 +7269,8 @@ background-color: null;
 font-style: inherit;">=</span> <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"auto"</span></span>
-<span id="cb32-711"></span>
-<span id="cb32-712">  <span class="kw" style="color: #003B4F;
+<span id="cb32-727"></span>
+<span id="cb32-728">  <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">const</span> table <span class="op" style="color: #5E5E5E;
@@ -7123,7 +7284,7 @@ background-color: null;
 font-style: inherit;">createElement</span>(<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"table"</span>)</span>
-<span id="cb32-713">  table<span class="op" style="color: #5E5E5E;
+<span id="cb32-729">  table<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">.</span><span class="at" style="color: #657422;
 background-color: null;
@@ -7136,11 +7297,11 @@ background-color: null;
 font-style: inherit;">=</span> <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"width:100%;border-collapse:collapse;font-size:0.8rem"</span></span>
-<span id="cb32-714"></span>
-<span id="cb32-715">  <span class="co" style="color: #5E5E5E;
+<span id="cb32-730"></span>
+<span id="cb32-731">  <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">// Header</span></span>
-<span id="cb32-716">  <span class="kw" style="color: #003B4F;
+<span id="cb32-732">  <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">const</span> thead <span class="op" style="color: #5E5E5E;
@@ -7154,7 +7315,7 @@ background-color: null;
 font-style: inherit;">createElement</span>(<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"thead"</span>)</span>
-<span id="cb32-717">  thead<span class="op" style="color: #5E5E5E;
+<span id="cb32-733">  thead<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">.</span><span class="at" style="color: #657422;
 background-color: null;
@@ -7163,61 +7324,55 @@ background-color: null;
 font-style: inherit;">=</span> <span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">`</span></span>
-<span id="cb32-718"><span class="vs" style="color: #20794D;
+<span id="cb32-734"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">    &lt;tr style="border-bottom:2px solid #333;color:#666;text-align:right"&gt;</span></span>
-<span id="cb32-719"><span class="vs" style="color: #20794D;
+<span id="cb32-735"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">      &lt;th style="text-align:left;padding:7px 10px;white-space:nowrap"&gt;Ticker&lt;/th&gt;</span></span>
-<span id="cb32-720"><span class="vs" style="color: #20794D;
-background-color: null;
-font-style: inherit;">      &lt;th style="text-align:left;padding:7px 10px;white-space:nowrap"&gt;Name&lt;/th&gt;</span></span>
-<span id="cb32-721"><span class="vs" style="color: #20794D;
-background-color: null;
-font-style: inherit;">      &lt;th style="text-align:left;padding:7px 8px;white-space:nowrap"&gt;Provider&lt;/th&gt;</span></span>
-<span id="cb32-722"><span class="vs" style="color: #20794D;
+<span id="cb32-736"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">      &lt;th style="padding:7px 8px"&gt;TER&lt;/th&gt;</span></span>
-<span id="cb32-723"><span class="vs" style="color: #20794D;
+<span id="cb32-737"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">      &lt;th style="padding:7px 8px"&gt;YTD&lt;/th&gt;</span></span>
-<span id="cb32-724"><span class="vs" style="color: #20794D;
+<span id="cb32-738"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">      &lt;th style="padding:7px 8px"&gt;1Y&lt;/th&gt;</span></span>
-<span id="cb32-725"><span class="vs" style="color: #20794D;
+<span id="cb32-739"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">      &lt;th style="padding:7px 8px"&gt;3Y&lt;/th&gt;</span></span>
-<span id="cb32-726"><span class="vs" style="color: #20794D;
+<span id="cb32-740"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">      &lt;th style="padding:7px 8px"&gt;CAGR&lt;/th&gt;</span></span>
-<span id="cb32-727"><span class="vs" style="color: #20794D;
+<span id="cb32-741"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">      &lt;th style="padding:7px 8px"&gt;Vol&lt;/th&gt;</span></span>
-<span id="cb32-728"><span class="vs" style="color: #20794D;
+<span id="cb32-742"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">      &lt;th style="padding:7px 8px"&gt;Sharpe&lt;/th&gt;</span></span>
-<span id="cb32-729"><span class="vs" style="color: #20794D;
+<span id="cb32-743"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">      &lt;th style="padding:7px 8px"&gt;Sortino&lt;/th&gt;</span></span>
-<span id="cb32-730"><span class="vs" style="color: #20794D;
+<span id="cb32-744"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">      &lt;th style="padding:7px 8px"&gt;Calmar&lt;/th&gt;</span></span>
-<span id="cb32-731"><span class="vs" style="color: #20794D;
+<span id="cb32-745"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">      &lt;th style="padding:7px 8px"&gt;Max DD&lt;/th&gt;</span></span>
-<span id="cb32-732"><span class="vs" style="color: #20794D;
+<span id="cb32-746"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">    &lt;/tr&gt;`</span></span>
-<span id="cb32-733">  table<span class="op" style="color: #5E5E5E;
+<span id="cb32-747">  table<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">.</span><span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">appendChild</span>(thead)</span>
-<span id="cb32-734"></span>
-<span id="cb32-735">  <span class="co" style="color: #5E5E5E;
+<span id="cb32-748"></span>
+<span id="cb32-749">  <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">// Body</span></span>
-<span id="cb32-736">  <span class="kw" style="color: #003B4F;
+<span id="cb32-750">  <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">const</span> tbody <span class="op" style="color: #5E5E5E;
@@ -7231,7 +7386,7 @@ background-color: null;
 font-style: inherit;">createElement</span>(<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"tbody"</span>)</span>
-<span id="cb32-737">  <span class="cf" style="color: #003B4F;
+<span id="cb32-751">  <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">for</span> (<span class="kw" style="color: #003B4F;
@@ -7241,7 +7396,7 @@ font-style: inherit;">const</span> r <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">of</span> filtered) {</span>
-<span id="cb32-738">    <span class="kw" style="color: #003B4F;
+<span id="cb32-752">    <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">const</span> tr <span class="op" style="color: #5E5E5E;
@@ -7255,7 +7410,7 @@ background-color: null;
 font-style: inherit;">createElement</span>(<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"tr"</span>)</span>
-<span id="cb32-739">    <span class="kw" style="color: #003B4F;
+<span id="cb32-753">    <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">const</span> isSelected <span class="op" style="color: #5E5E5E;
@@ -7267,7 +7422,7 @@ background-color: null;
 font-style: inherit;">ticker</span> <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">===</span> selected_ticker</span>
-<span id="cb32-740">    tr<span class="op" style="color: #5E5E5E;
+<span id="cb32-754">    tr<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">.</span><span class="at" style="color: #657422;
 background-color: null;
@@ -7278,12 +7433,12 @@ background-color: null;
 font-style: inherit;">cssText</span> <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span></span>
-<span id="cb32-741">      <span class="vs" style="color: #20794D;
+<span id="cb32-755">      <span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">`border-bottom:1px solid #1e1e1e;cursor:pointer;`</span> <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">+</span></span>
-<span id="cb32-742">      <span class="vs" style="color: #20794D;
+<span id="cb32-756">      <span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">`background:</span><span class="sc" style="color: #5E5E5E;
 background-color: null;
@@ -7300,8 +7455,53 @@ background-color: null;
 font-style: inherit;">}</span><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">`</span></span>
-<span id="cb32-743"></span>
-<span id="cb32-744">    tr<span class="op" style="color: #5E5E5E;
+<span id="cb32-757"></span>
+<span id="cb32-758">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">// Combine name + provider into the ticker cell's tooltip so the</span></span>
+<span id="cb32-759">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">// information is still discoverable on hover even though the columns</span></span>
+<span id="cb32-760">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">// are hidden to keep the table compact.</span></span>
+<span id="cb32-761">    <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">const</span> tooltip <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="vs" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">${</span>r<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">name</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="vs" style="color: #20794D;
+background-color: null;
+font-style: inherit;"> — </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">${</span>r<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">provider</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="vs" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span></span>
+<span id="cb32-762">    tr<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">title</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> tooltip</span>
+<span id="cb32-763"></span>
+<span id="cb32-764">    tr<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">.</span><span class="at" style="color: #657422;
 background-color: null;
@@ -7310,9 +7510,15 @@ background-color: null;
 font-style: inherit;">=</span> <span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">`</span></span>
-<span id="cb32-745"><span class="vs" style="color: #20794D;
+<span id="cb32-765"><span class="vs" style="color: #20794D;
 background-color: null;
-font-style: inherit;">      &lt;td style="padding:6px 10px;font-weight:700;color:#a8d4f5;white-space:nowrap"&gt;</span><span class="sc" style="color: #5E5E5E;
+font-style: inherit;">      &lt;td style="padding:6px 10px;font-weight:700;color:#a8d4f5;white-space:nowrap" title="</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">${</span>tooltip<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="vs" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"&gt;</span><span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">${</span>r<span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -7323,33 +7529,7 @@ background-color: null;
 font-style: inherit;">}</span><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">&lt;/td&gt;</span></span>
-<span id="cb32-746"><span class="vs" style="color: #20794D;
-background-color: null;
-font-style: inherit;">      &lt;td style="padding:6px 10px;color:#ccc;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"&gt;</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">${</span>r<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">.</span><span class="at" style="color: #657422;
-background-color: null;
-font-style: inherit;">name</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="vs" style="color: #20794D;
-background-color: null;
-font-style: inherit;">&lt;/td&gt;</span></span>
-<span id="cb32-747"><span class="vs" style="color: #20794D;
-background-color: null;
-font-style: inherit;">      &lt;td style="padding:6px 8px;color:#888;font-size:0.72rem;white-space:nowrap"&gt;</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">${</span>r<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">.</span><span class="at" style="color: #657422;
-background-color: null;
-font-style: inherit;">provider</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="vs" style="color: #20794D;
-background-color: null;
-font-style: inherit;">&lt;/td&gt;</span></span>
-<span id="cb32-748"><span class="vs" style="color: #20794D;
+<span id="cb32-766"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">      &lt;td style="padding:6px 8px;text-align:right;color:#888"&gt;</span><span class="sc" style="color: #5E5E5E;
 background-color: null;
@@ -7391,7 +7571,7 @@ background-color: null;
 font-style: inherit;">}</span><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">&lt;/td&gt;</span></span>
-<span id="cb32-749"><span class="vs" style="color: #20794D;
+<span id="cb32-767"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">      &lt;td style="padding:6px 8px;text-align:right;color:</span><span class="sc" style="color: #5E5E5E;
 background-color: null;
@@ -7418,7 +7598,7 @@ background-color: null;
 font-style: inherit;">}</span><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">&lt;/td&gt;</span></span>
-<span id="cb32-750"><span class="vs" style="color: #20794D;
+<span id="cb32-768"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">      &lt;td style="padding:6px 8px;text-align:right;color:</span><span class="sc" style="color: #5E5E5E;
 background-color: null;
@@ -7445,7 +7625,7 @@ background-color: null;
 font-style: inherit;">}</span><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">&lt;/td&gt;</span></span>
-<span id="cb32-751"><span class="vs" style="color: #20794D;
+<span id="cb32-769"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">      &lt;td style="padding:6px 8px;text-align:right;color:</span><span class="sc" style="color: #5E5E5E;
 background-color: null;
@@ -7472,7 +7652,7 @@ background-color: null;
 font-style: inherit;">}</span><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">&lt;/td&gt;</span></span>
-<span id="cb32-752"><span class="vs" style="color: #20794D;
+<span id="cb32-770"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">      &lt;td style="padding:6px 8px;text-align:right;color:</span><span class="sc" style="color: #5E5E5E;
 background-color: null;
@@ -7499,7 +7679,7 @@ background-color: null;
 font-style: inherit;">}</span><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">&lt;/td&gt;</span></span>
-<span id="cb32-753"><span class="vs" style="color: #20794D;
+<span id="cb32-771"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">      &lt;td style="padding:6px 8px;text-align:right;color:#aac4e0"&gt;</span><span class="sc" style="color: #5E5E5E;
 background-color: null;
@@ -7514,7 +7694,7 @@ background-color: null;
 font-style: inherit;">}</span><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">&lt;/td&gt;</span></span>
-<span id="cb32-754"><span class="vs" style="color: #20794D;
+<span id="cb32-772"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">      &lt;td style="padding:6px 8px;text-align:right;color:</span><span class="sc" style="color: #5E5E5E;
 background-color: null;
@@ -7541,7 +7721,7 @@ background-color: null;
 font-style: inherit;">}</span><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">&lt;/td&gt;</span></span>
-<span id="cb32-755"><span class="vs" style="color: #20794D;
+<span id="cb32-773"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">      &lt;td style="padding:6px 8px;text-align:right;color:</span><span class="sc" style="color: #5E5E5E;
 background-color: null;
@@ -7568,7 +7748,7 @@ background-color: null;
 font-style: inherit;">}</span><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">&lt;/td&gt;</span></span>
-<span id="cb32-756"><span class="vs" style="color: #20794D;
+<span id="cb32-774"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">      &lt;td style="padding:6px 8px;text-align:right;color:</span><span class="sc" style="color: #5E5E5E;
 background-color: null;
@@ -7595,7 +7775,7 @@ background-color: null;
 font-style: inherit;">}</span><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">&lt;/td&gt;</span></span>
-<span id="cb32-757"><span class="vs" style="color: #20794D;
+<span id="cb32-775"><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">      &lt;td style="padding:6px 8px;text-align:right;color:#e07070"&gt;</span><span class="sc" style="color: #5E5E5E;
 background-color: null;
@@ -7610,8 +7790,8 @@ background-color: null;
 font-style: inherit;">}</span><span class="vs" style="color: #20794D;
 background-color: null;
 font-style: inherit;">&lt;/td&gt;`</span></span>
-<span id="cb32-758"></span>
-<span id="cb32-759">    tr<span class="op" style="color: #5E5E5E;
+<span id="cb32-776"></span>
+<span id="cb32-777">    tr<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">.</span><span class="fu" style="color: #4758AB;
 background-color: null;
@@ -7629,7 +7809,7 @@ background-color: null;
 font-style: inherit;">.</span><span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">ticker</span>))</span>
-<span id="cb32-760">    tr<span class="op" style="color: #5E5E5E;
+<span id="cb32-778">    tr<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">.</span><span class="fu" style="color: #4758AB;
 background-color: null;
@@ -7641,7 +7821,7 @@ font-style: inherit;">,</span> () <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">=&gt;</span> {</span>
-<span id="cb32-761">      <span class="cf" style="color: #003B4F;
+<span id="cb32-779">      <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">if</span> (r<span class="op" style="color: #5E5E5E;
@@ -7663,8 +7843,8 @@ background-color: null;
 font-style: inherit;">=</span> <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"#1a1a1a"</span></span>
-<span id="cb32-762">    })</span>
-<span id="cb32-763">    tr<span class="op" style="color: #5E5E5E;
+<span id="cb32-780">    })</span>
+<span id="cb32-781">    tr<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">.</span><span class="fu" style="color: #4758AB;
 background-color: null;
@@ -7676,7 +7856,7 @@ font-style: inherit;">,</span> () <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">=&gt;</span> {</span>
-<span id="cb32-764">      <span class="cf" style="color: #003B4F;
+<span id="cb32-782">      <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">if</span> (r<span class="op" style="color: #5E5E5E;
@@ -7698,25 +7878,25 @@ background-color: null;
 font-style: inherit;">=</span> <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"transparent"</span></span>
-<span id="cb32-765">    })</span>
-<span id="cb32-766">    tbody<span class="op" style="color: #5E5E5E;
+<span id="cb32-783">    })</span>
+<span id="cb32-784">    tbody<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">.</span><span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">appendChild</span>(tr)</span>
-<span id="cb32-767">  }</span>
-<span id="cb32-768">  table<span class="op" style="color: #5E5E5E;
+<span id="cb32-785">  }</span>
+<span id="cb32-786">  table<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">.</span><span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">appendChild</span>(tbody)</span>
-<span id="cb32-769">  wrap<span class="op" style="color: #5E5E5E;
+<span id="cb32-787">  wrap<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">.</span><span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">appendChild</span>(table)</span>
-<span id="cb32-770"></span>
-<span id="cb32-771">  <span class="kw" style="color: #003B4F;
+<span id="cb32-788"></span>
+<span id="cb32-789">  <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">const</span> note <span class="op" style="color: #5E5E5E;
@@ -7730,7 +7910,7 @@ background-color: null;
 font-style: inherit;">createElement</span>(<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"p"</span>)</span>
-<span id="cb32-772">  note<span class="op" style="color: #5E5E5E;
+<span id="cb32-790">  note<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">.</span><span class="at" style="color: #657422;
 background-color: null;
@@ -7743,7 +7923,7 @@ background-color: null;
 font-style: inherit;">=</span> <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"font-size:0.73rem;color:#555;margin-top:6px"</span></span>
-<span id="cb32-773">  note<span class="op" style="color: #5E5E5E;
+<span id="cb32-791">  note<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">.</span><span class="at" style="color: #657422;
 background-color: null;
@@ -7751,9 +7931,9 @@ font-style: inherit;">textContent</span> <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> <span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"Click any row to load that ETF's full analytics above. Highlighted row = currently selected ETF. Em-dashes (—) indicate missing data."</span></span>
-<span id="cb32-774"></span>
-<span id="cb32-775">  <span class="kw" style="color: #003B4F;
+font-style: inherit;">"Hover a row for the fund's full name and provider. Click to load that ETF's full analytics above. Em-dashes (—) indicate missing data."</span></span>
+<span id="cb32-792"></span>
+<span id="cb32-793">  <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">const</span> container <span class="op" style="color: #5E5E5E;
@@ -7767,21 +7947,21 @@ background-color: null;
 font-style: inherit;">createElement</span>(<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"div"</span>)</span>
-<span id="cb32-776">  container<span class="op" style="color: #5E5E5E;
+<span id="cb32-794">  container<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">.</span><span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">appendChild</span>(wrap)</span>
-<span id="cb32-777">  container<span class="op" style="color: #5E5E5E;
+<span id="cb32-795">  container<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">.</span><span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">appendChild</span>(note)</span>
-<span id="cb32-778">  <span class="cf" style="color: #003B4F;
+<span id="cb32-796">  <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">return</span> container</span>
-<span id="cb32-779">})()</span></code></pre></div></div>
+<span id="cb32-797">})()</span></code></pre></div></div>
 </details>
 <div class="cell-output cell-output-display">
 <div>
@@ -7847,10 +8027,13 @@ Note
 
  ]]></description>
   <category>R</category>
+  <category>ETF</category>
   <category>Finance</category>
+  <category>South Africa</category>
+  <category>Interactive</category>
   <guid>https://rossouwvanjaarsveld-lang.github.io/website/posts/ee-etf-tracker/</guid>
   <pubDate>Fri, 01 May 2026 22:00:00 GMT</pubDate>
-  <media:content url="https://rossouwvanjaarsveld-lang.github.io/website/posts/ee-etf-tracker/thumbnail.JPG" medium="image"/>
+  <media:content url="https://rossouwvanjaarsveld-lang.github.io/website/posts/ee-etf-tracker/thumbnail.png" medium="image" type="image/png"/>
 </item>
 </channel>
 </rss>
