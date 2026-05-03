@@ -9,8 +9,8 @@
 <link>https://rossouwvanjaarsveld-lang.github.io/website/</link>
 <atom:link href="https://rossouwvanjaarsveld-lang.github.io/website/index.xml" rel="self" type="application/rss+xml"/>
 <description>Stuff about analytics</description>
-<generator>quarto-1.9.36</generator>
-<lastBuildDate>Fri, 01 May 2026 22:00:00 GMT</lastBuildDate>
+<generator>quarto-1.9.37</generator>
+<lastBuildDate>Sun, 03 May 2026 00:00:00 GMT</lastBuildDate>
 <item>
   <title>Easy Equities TFSA ETF Analytics</title>
   <link>https://rossouwvanjaarsveld-lang.github.io/website/posts/ee-etf-tracker/</link>
@@ -8029,7 +8029,7 @@ Note
   <category>R</category>
   <category>Finance</category>
   <guid>https://rossouwvanjaarsveld-lang.github.io/website/posts/ee-etf-tracker/</guid>
-  <pubDate>Fri, 01 May 2026 22:00:00 GMT</pubDate>
+  <pubDate>Sun, 03 May 2026 00:00:00 GMT</pubDate>
   <media:content url="https://rossouwvanjaarsveld-lang.github.io/website/posts/ee-etf-tracker/thumbnail.JPG" medium="image"/>
 </item>
 </channel>
