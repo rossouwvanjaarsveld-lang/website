@@ -540,22 +540,47 @@ scrape_jol <- function(ticker, slug = NULL) {
 }
 
 #' Convert a raw "top holdings" comma-separated string into a list
-#' of {name, weight} entries. Weights are NA when JOL doesn't publish them
-#' (most cases) — the front-end handles missing weights gracefully.
+#' of {name, weight} entries. JOL pages use one of these formats:
+#'   "Naspers Ltd -N- (9.66%), Gold Fields Ltd (9.09%), ..."   ← parenthesised
+#'   "Naspers 9.66%, Gold Fields 9.09%, ..."                   ← trailing
+#'   "Naspers, Gold Fields, ..."                               ← names only
+#' All three are handled. Names are title-cased for nicer display.
 parse_holdings_str <- function(s) {
   if (is.null(s) || is.na(s) || nchar(s) < 2) return(list())
-  # Split on common separators
-  items <- str_split(s, ",|·|·|/")[[1]] |> str_squish() |> discard(~.x == "")
+  items <- str_split(s, ",|·|·")[[1]] |> str_squish() |> discard(~.x == "")
   if (length(items) == 0) return(list())
   
-  # Detect "Name 5.4%" pattern within each item
-  parsed <- map(items, function(it) {
-    m <- str_match(it, "^(.+?)\\s+([0-9]+\\.?[0-9]*)\\s*%?$")
-    if (!is.na(m[1,2])) {
-      list(name = str_trim(m[1,2]), weight = as.numeric(m[1,3]))
-    } else {
-      list(name = it, weight = NA_real_)
+  prettify <- function(name) {
+    # JOL often returns ALL-CAPS names like "NASPERS LTD -N-".
+    # Convert to Title Case but preserve known acronyms.
+    if (str_detect(name, "^[A-Z0-9 .&\\-/']+$")) {
+      out <- tools::toTitleCase(tolower(name))
+      # Restore common acronyms after title-casing
+      out <- str_replace_all(out, "\\bLtd\\b", "Ltd")
+      out <- str_replace_all(out, "\\bPlc\\b", "PLC")
+      out <- str_replace_all(out, "\\bUsa\\b", "USA")
+      out <- str_replace_all(out, "\\bUk\\b", "UK")
+      out <- str_replace_all(out, "\\bSa\\b", "SA")
+      return(out)
     }
+    name
+  }
+  
+  parsed <- map(items, function(it) {
+    # Parenthesised: "Name Ltd (9.66%)"
+    m_paren <- str_match(it, "^(.*?)\\s*\\(([0-9]+\\.?[0-9]*)\\s*%?\\)\\s*$")
+    if (!is.na(m_paren[1, 2]) && !is.na(m_paren[1, 3])) {
+      return(list(name = prettify(str_trim(m_paren[1, 2])),
+                  weight = as.numeric(m_paren[1, 3])))
+    }
+    # Trailing: "Name 9.66%"
+    m_trail <- str_match(it, "^(.+?)\\s+([0-9]+\\.?[0-9]*)\\s*%\\s*$")
+    if (!is.na(m_trail[1, 2]) && !is.na(m_trail[1, 3])) {
+      return(list(name = prettify(str_trim(m_trail[1, 2])),
+                  weight = as.numeric(m_trail[1, 3])))
+    }
+    # Bare name
+    list(name = prettify(it), weight = NA_real_)
   })
   
   parsed |> keep(~nchar(.x$name) > 1)

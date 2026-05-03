@@ -1,6 +1,6 @@
 ---
 title: "Easy Equities TFSA ETF Analytics"
-description: "Interactive trading analytics for every ETF available on the Easy Equities Tax-Free Savings Account — leaderboards, price history, risk metrics, top holdings and index rules."
+description: "Interactive trading analytics for every ETF available on the Easy Equities Tax-Free Savings Account — leaderboards, price history, risk metrics, top holdings and index rules. There are some AMETFs which I can't find reliable data for to scrape."
 date: today
 categories: [R, Finance]
 image: thumbnail.JPG
