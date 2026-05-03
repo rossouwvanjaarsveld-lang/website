@@ -464,43 +464,78 @@ scrape_jol <- function(ticker, slug = NULL) {
   }
   if (is.null(jol_tbl)) return(list(success = FALSE, error = "no JOL data table"))
   
-  # The JOL table has rows where each cell contains a "Field: Value" string.
-  # Parse all bolded labels and the text after them.
-  cells <- html_elements(jol_tbl, "td")
-  cell_texts <- map_chr(cells, ~html_text(.x, trim = TRUE))
-  
+  # The JOL table has paragraphs where each field is marked up as
+  #     <strong>Label:</strong> value text
+  # The cleanest approach is to walk each <strong> tag and treat its
+  # following sibling text as the value, terminating at the next <strong>.
   fields <- list()
-  for (txt in cell_texts) {
-    # Multiple "Label: value" pairs may be in one cell separated by line breaks
-    pairs <- str_split(txt, "(?<=\\.)\\s*(?=[A-Z][a-z])|\\n")[[1]] |> str_trim() |> discard(~.x == "")
-    for (p in pairs) {
-      m <- str_match(p, "^([^:]+?):\\s*(.+)$")
-      if (!is.na(m[1,2])) {
-        label <- str_trim(m[1,2])
-        value <- str_trim(m[1,3])
-        # Normalise the label
-        key <- label |> tolower() |> str_replace_all("[^a-z0-9]+", "_") |> str_remove_all("_+$")
-        if (!is.null(fields[[key]])) next  # keep first occurrence
-        fields[[key]] <- value
-      }
+  
+  # Get every <p> or <li> or <td> element that contains <strong> labels
+  containers <- html_elements(jol_tbl, "p, li, td, span")
+  
+  for (container in containers) {
+    # Get the inner HTML of this container
+    inner <- as.character(container)
+    # Find all <strong>...</strong> blocks and the text following each one
+    matches <- str_match_all(
+      inner,
+      "<strong>([^<]+?)</strong>\\s*([\\s\\S]*?)(?=<strong>|</p>|</li>|</td>|</span>|$)"
+    )[[1]]
+    if (nrow(matches) == 0) next
+    
+    for (i in seq_len(nrow(matches))) {
+      label_raw <- matches[i, 2]
+      value_raw <- matches[i, 3]
+      
+      # Clean: strip HTML tags from the value, decode entities, trim
+      value <- value_raw |>
+        str_remove_all("<[^>]+>") |>
+        str_replace_all("&amp;", "&") |>
+        str_replace_all("&nbsp;", " ") |>
+        str_replace_all("&#8217;|&rsquo;", "'") |>
+        str_replace_all("&#8211;|&ndash;|&mdash;", "-") |>
+        str_squish() |>
+        str_remove("^:\\s*")  # remove leading colon if present
+      
+      label <- label_raw |>
+        str_remove(":$") |>
+        str_squish()
+      
+      if (nchar(value) < 1) next
+      
+      key <- label |>
+        tolower() |>
+        str_replace_all("[^a-z0-9]+", "_") |>
+        str_remove("^_+|_+$")
+      
+      # Keep the first occurrence of each key
+      if (!is.null(fields[[key]])) next
+      fields[[key]] <- value
     }
   }
   
   if (length(fields) == 0) return(list(success = FALSE, error = "no fields parsed"))
   
+  # Map to canonical names — JOL's labels vary between pages
+  pluck <- function(...) {
+    for (k in c(...)) if (!is.null(fields[[k]])) return(fields[[k]])
+    NA_character_
+  }
+  
   list(
     success         = TRUE,
-    benchmark       = fields$benchmark %||% NA_character_,
-    classification  = fields$classification %||% NA_character_,
-    type            = fields$type %||% NA_character_,
-    tax_free        = fields$tax_free_investing %||% NA_character_,
-    market_cap      = fields$market_cap %||% NA_character_,
-    ter             = fields$tic_ter_where_tic_not_indicated %||%
-      fields$tic %||% fields$ter %||% NA_character_,
-    distribution    = fields$distribution %||% NA_character_,
-    top_holdings    = fields$top_holdings %||% NA_character_,
-    mdd_updated     = fields$mdd_updated %||% NA_character_,
-    description     = fields$description %||% NA_character_
+    benchmark       = pluck("benchmark"),
+    classification  = pluck("classification", "asisa_classification"),
+    type            = pluck("type", "etf_type"),
+    tax_free        = pluck("tax_free_investing", "tax_free"),
+    market_cap      = pluck("market_cap", "market_capitalisation"),
+    ter             = pluck("tic_ter_where_tic_not_indicated",
+                            "tic_where_indicated_otherwise_ter",
+                            "tic", "ter"),
+    distribution    = pluck("distribution", "distributions"),
+    top_holdings    = pluck("top_holdings", "top_10_holdings", "holdings"),
+    mdd_updated     = pluck("mdd_updated", "minimum_disclosure_document_updated"),
+    description     = pluck("description", "fund_description")
   )
 }
 
@@ -547,11 +582,38 @@ parse_ter <- function(s) {
 # PRICE FETCHER — Yahoo primary, Stooq fallback
 # =============================================================================
 
+#' Filter obvious price-data errors. Yahoo occasionally returns a single
+#' bad row where the close is off by 100x or 1000x (e.g. STX40.JO returning
+#' 84.44 instead of 8444 on 2025-04-25). Such errors poison every metric
+#' downstream — annualised vol can balloon to >1000% from one row.
+#'
+#' Heuristic: if the day-over-day price change is larger than 50% AND
+#' reverses on the next day, drop the offending row.
+clean_price_outliers <- function(df) {
+  if (is.null(df) || nrow(df) < 3) return(df)
+  df <- df |> arrange(date) |> mutate(
+    .ret_in  = adjusted / lag(adjusted) - 1,
+    .ret_out = lead(adjusted) / adjusted - 1
+  )
+  bad <- with(df,
+              !is.na(.ret_in) & !is.na(.ret_out) &
+                abs(.ret_in) > 0.5 &
+                sign(.ret_in) != sign(.ret_out) &
+                abs(.ret_out) > 0.5
+  )
+  n_bad <- sum(bad, na.rm = TRUE)
+  if (n_bad > 0) {
+    message(glue("    ⚠ filtered {n_bad} likely bad price row(s)"))
+    df <- df[!bad, ]
+  }
+  df |> select(-.ret_in, -.ret_out)
+}
+
 fetch_prices <- function(yf_ticker) {
   out <- tryCatch({
     suppressWarnings(p <- tq_get(yf_ticker, from = START_DATE, to = END_DATE))
     if (is.null(p) || !is.data.frame(p) || nrow(p) < MIN_ROWS) NULL else
-      list(data = p, source = "yahoo")
+      list(data = clean_price_outliers(p), source = "yahoo")
   }, error = function(e) NULL)
   if (!is.null(out)) return(out)
   
@@ -560,17 +622,16 @@ fetch_prices <- function(yf_ticker) {
       x <- getSymbols(yf_ticker, src = "stooq", from = START_DATE, to = END_DATE,
                       auto.assign = FALSE)
     ))
-    if (is.null(x) || nrow(x) < MIN_ROWS) NULL else
-      list(
-        data = tibble(
-          symbol = yf_ticker, date = as.Date(zoo::index(x)),
-          open = as.numeric(x[,1]), high = as.numeric(x[,2]),
-          low = as.numeric(x[,3]),  close = as.numeric(x[,4]),
-          volume = as.numeric(x[,5]),
-          adjusted = as.numeric(x[,4])
-        ),
-        source = "stooq"
+    if (is.null(x) || nrow(x) < MIN_ROWS) NULL else {
+      df <- tibble(
+        symbol = yf_ticker, date = as.Date(zoo::index(x)),
+        open = as.numeric(x[,1]), high = as.numeric(x[,2]),
+        low = as.numeric(x[,3]),  close = as.numeric(x[,4]),
+        volume = as.numeric(x[,5]),
+        adjusted = as.numeric(x[,4])
       )
+      list(data = clean_price_outliers(df), source = "stooq")
+    }
   }, error = function(e) NULL)
   out
 }
@@ -629,6 +690,10 @@ compute_rolling_vol <- function(prices) {
 
 compute_drawdown_series <- function(prices) {
   prices |> arrange(date) |>
+    # Drop rows with missing prices BEFORE computing cumulative product —
+    # otherwise a single null cascades through cummax and zeros out every
+    # subsequent drawdown.
+    filter(!is.na(adjusted), is.finite(adjusted), adjusted > 0) |>
     mutate(cum=adjusted/first(adjusted), peak=cummax(cum), drawdown=round(cum/peak-1,6)) |>
     mutate(week=floor_date(date,"week")) |> group_by(week) |>
     slice_tail(n=1) |> ungroup() |> select(date,drawdown)
