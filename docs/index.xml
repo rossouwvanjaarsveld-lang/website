@@ -8042,81 +8042,70 @@ Note
 
 <p>We construct a stylised mid-sized South African bank — <strong>No Gut Feelings Bank Ltd</strong> — and find the optimal allocation of its ZAR 330 bn productive asset base that maximises Net Interest Income (NII) subject to all SARB Basel III regulatory floors. The problem is formulated as a Linear Programme and solved in Julia using <code>JuMP.jl</code> and <code>HiGHS.jl</code>.</p>
 <hr>
-<section id="mock-balance-sheet" class="level2">
+<section id="mock-balance-sheet" class="level2 page-columns page-full">
 <h2 class="anchored" data-anchor-id="mock-balance-sheet">1 — Mock Balance Sheet</h2>
 <p>The balance sheet has <strong>ZAR 350 bn</strong> in total assets. Liabilities and capital are held fixed; the seven asset classes below are the decision variables <img src="https://latex.codecogs.com/png.latex?%5Cmathbf%7Bx%7D%20=%20(x_1,%20%5Cldots,%20x_7)">.</p>
-<section id="assets" class="level3">
+<section id="assets" class="level3 page-columns page-full">
 <h3 class="anchored" data-anchor-id="assets">Assets</h3>
+<div class="column-page">
 <table class="caption-top table">
 <colgroup>
-<col style="width: 12%">
-<col style="width: 12%">
-<col style="width: 16%">
-<col style="width: 16%">
-<col style="width: 16%">
-<col style="width: 16%">
+<col style="width: 11%">
+<col style="width: 24%">
+<col style="width: 5%">
+<col style="width: 9%">
+<col style="width: 8%">
+<col style="width: 7%">
+<col style="width: 5%">
 <col style="width: 12%">
 </colgroup>
 <thead>
 <tr class="header">
+<th>Category</th>
 <th>Asset Class</th>
-<th>Var</th>
-<th style="text-align: right;">Initial (ZAR bn)</th>
-<th style="text-align: right;">Net Spread <img src="https://latex.codecogs.com/png.latex?c_i"></th>
-<th style="text-align: right;">Risk Weight</th>
-<th style="text-align: right;">RSF Factor</th>
-<th>LCR HQLA</th>
+<th style="text-align: center;">Var</th>
+<th style="text-align: right;">Initial (bn)</th>
+<th style="text-align: right;">Spread <img src="https://latex.codecogs.com/png.latex?c_i"></th>
+<th style="text-align: right;">Risk Wt</th>
+<th style="text-align: right;">RSF</th>
+<th>HQLA Tier</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td><strong>Liquidity Buffer</strong></td>
-<td></td>
-<td style="text-align: right;"></td>
-<td style="text-align: right;"></td>
-<td style="text-align: right;"></td>
-<td style="text-align: right;"></td>
-<td></td>
-</tr>
-<tr class="even">
+<td>Liquidity</td>
 <td>Cash &amp; SARB Reserves</td>
-<td><img src="https://latex.codecogs.com/png.latex?x_1"></td>
+<td style="text-align: center;"><img src="https://latex.codecogs.com/png.latex?x_1"></td>
 <td style="text-align: right;">15.0</td>
 <td style="text-align: right;">−0.50%</td>
 <td style="text-align: right;">0%</td>
 <td style="text-align: right;">0%</td>
 <td>Level 1 — 100%</td>
 </tr>
-<tr class="odd">
+<tr class="even">
+<td>Liquidity</td>
 <td>RSA Government Bonds</td>
-<td><img src="https://latex.codecogs.com/png.latex?x_2"></td>
+<td style="text-align: center;"><img src="https://latex.codecogs.com/png.latex?x_2"></td>
 <td style="text-align: right;">25.0</td>
 <td style="text-align: right;">+0.80%</td>
 <td style="text-align: right;">0%</td>
 <td style="text-align: right;">5%</td>
 <td>Level 1 — 100%</td>
 </tr>
-<tr class="even">
+<tr class="odd">
+<td>Liquidity</td>
 <td>SOE / Parastatals Bonds</td>
-<td><img src="https://latex.codecogs.com/png.latex?x_3"></td>
+<td style="text-align: center;"><img src="https://latex.codecogs.com/png.latex?x_3"></td>
 <td style="text-align: right;">15.0</td>
 <td style="text-align: right;">+1.20%</td>
 <td style="text-align: right;">20%</td>
 <td style="text-align: right;">15%</td>
 <td>Level 2A — 85%</td>
 </tr>
-<tr class="odd">
-<td><strong>Money Market</strong></td>
-<td></td>
-<td style="text-align: right;"></td>
-<td style="text-align: right;"></td>
-<td style="text-align: right;"></td>
-<td style="text-align: right;"></td>
-<td></td>
-</tr>
 <tr class="even">
+<td>Money Mkt</td>
 <td>Interbank Loans (&lt; 30d)</td>
-<td><img src="https://latex.codecogs.com/png.latex?x_4"></td>
+<td style="text-align: center;"><img src="https://latex.codecogs.com/png.latex?x_4"></td>
 <td style="text-align: right;">10.0</td>
 <td style="text-align: right;">+0.50%</td>
 <td style="text-align: right;">20%</td>
@@ -8124,53 +8113,49 @@ Note
 <td>Inflow only</td>
 </tr>
 <tr class="odd">
-<td><strong>Loan Book</strong></td>
-<td></td>
-<td style="text-align: right;"></td>
-<td style="text-align: right;"></td>
-<td style="text-align: right;"></td>
-<td style="text-align: right;"></td>
-<td></td>
-</tr>
-<tr class="even">
+<td>Loans</td>
 <td>Corporate Loans</td>
-<td><img src="https://latex.codecogs.com/png.latex?x_5"></td>
+<td style="text-align: center;"><img src="https://latex.codecogs.com/png.latex?x_5"></td>
 <td style="text-align: right;">80.0</td>
 <td style="text-align: right;">+3.00%</td>
 <td style="text-align: right;">100%</td>
 <td style="text-align: right;">50%</td>
-<td>50% inflow</td>
+<td>—</td>
 </tr>
-<tr class="odd">
+<tr class="even">
+<td>Loans</td>
 <td>Retail Mortgages</td>
-<td><img src="https://latex.codecogs.com/png.latex?x_6"></td>
+<td style="text-align: center;"><img src="https://latex.codecogs.com/png.latex?x_6"></td>
 <td style="text-align: right;">120.0</td>
 <td style="text-align: right;">+2.50%</td>
 <td style="text-align: right;">35%</td>
 <td style="text-align: right;">65%</td>
 <td>—</td>
 </tr>
-<tr class="even">
+<tr class="odd">
+<td>Loans</td>
 <td>Unsecured Retail Loans</td>
-<td><img src="https://latex.codecogs.com/png.latex?x_7"></td>
+<td style="text-align: center;"><img src="https://latex.codecogs.com/png.latex?x_7"></td>
 <td style="text-align: right;">45.0</td>
 <td style="text-align: right;">+6.00%</td>
 <td style="text-align: right;">75%</td>
 <td style="text-align: right;">85%</td>
 <td>—</td>
 </tr>
-<tr class="odd">
+<tr class="even">
+<td>Other</td>
 <td>Fixed Assets &amp; Other</td>
-<td><img src="https://latex.codecogs.com/png.latex?x_8"></td>
+<td style="text-align: center;"><img src="https://latex.codecogs.com/png.latex?x_8"></td>
 <td style="text-align: right;">20.0</td>
 <td style="text-align: right;">0.00%</td>
 <td style="text-align: right;">100%</td>
 <td style="text-align: right;">100%</td>
 <td>—</td>
 </tr>
-<tr class="even">
-<td><strong>Total Assets</strong></td>
+<tr class="odd">
 <td></td>
+<td><strong>Total</strong></td>
+<td style="text-align: center;"></td>
 <td style="text-align: right;"><strong>330.0</strong></td>
 <td style="text-align: right;"></td>
 <td style="text-align: right;"></td>
@@ -8179,6 +8164,7 @@ Note
 </tr>
 </tbody>
 </table>
+</div>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -8193,18 +8179,21 @@ Note
 </div>
 </div>
 </section>
-<section id="liabilities-capital-fixed" class="level3">
+<section id="liabilities-capital-fixed" class="level3 page-columns page-full">
 <h3 class="anchored" data-anchor-id="liabilities-capital-fixed">Liabilities &amp; Capital (Fixed)</h3>
+<div class="column-page">
 <table class="caption-top table">
 <colgroup>
-<col style="width: 20%">
-<col style="width: 26%">
-<col style="width: 26%">
-<col style="width: 26%">
+<col style="width: 11%">
+<col style="width: 37%">
+<col style="width: 16%">
+<col style="width: 18%">
+<col style="width: 10%">
 </colgroup>
 <thead>
 <tr class="header">
-<th>Liability / Capital Item</th>
+<th>Category</th>
+<th>Item</th>
 <th style="text-align: right;">Balance (ZAR bn)</th>
 <th style="text-align: right;">LCR Outflow Rate</th>
 <th style="text-align: right;">ASF Factor</th>
@@ -8212,97 +8201,85 @@ Note
 </thead>
 <tbody>
 <tr class="odd">
-<td><strong>Retail Deposits</strong></td>
-<td style="text-align: right;"></td>
-<td style="text-align: right;"></td>
-<td style="text-align: right;"></td>
-</tr>
-<tr class="even">
-<td>Retail Stable Deposits (insured / loyal)</td>
+<td>Retail</td>
+<td>Stable Deposits (insured / loyal)</td>
 <td style="text-align: right;">80.0</td>
 <td style="text-align: right;">5%</td>
 <td style="text-align: right;">95%</td>
 </tr>
-<tr class="odd">
-<td>Retail Less Stable Deposits</td>
+<tr class="even">
+<td>Retail</td>
+<td>Less Stable Deposits</td>
 <td style="text-align: right;">70.0</td>
 <td style="text-align: right;">10%</td>
 <td style="text-align: right;">90%</td>
 </tr>
-<tr class="even">
-<td><strong>Corporate Deposits</strong></td>
-<td style="text-align: right;"></td>
-<td style="text-align: right;"></td>
-<td style="text-align: right;"></td>
-</tr>
 <tr class="odd">
-<td>Corporate Demand / Operational (&lt; 6 months)</td>
+<td>Corporate</td>
+<td>Demand / Operational (&lt; 6 months)</td>
 <td style="text-align: right;">50.0</td>
 <td style="text-align: right;">25%</td>
 <td style="text-align: right;">50%</td>
 </tr>
 <tr class="even">
-<td>Corporate Term (&gt; 1 year)</td>
+<td>Corporate</td>
+<td>Term (&gt; 1 year)</td>
 <td style="text-align: right;">40.0</td>
 <td style="text-align: right;">5%</td>
 <td style="text-align: right;">100%</td>
 </tr>
 <tr class="odd">
-<td><strong>Wholesale Funding</strong></td>
-<td style="text-align: right;"></td>
-<td style="text-align: right;"></td>
-<td style="text-align: right;"></td>
-</tr>
-<tr class="even">
-<td>Wholesale Funding (&lt; 6 months)</td>
+<td>Wholesale</td>
+<td>Funding &lt; 6 months</td>
 <td style="text-align: right;">30.0</td>
 <td style="text-align: right;">25%</td>
 <td style="text-align: right;">50%</td>
 </tr>
-<tr class="odd">
-<td>Wholesale Funding (&gt; 1 year)</td>
+<tr class="even">
+<td>Wholesale</td>
+<td>Funding &gt; 1 year</td>
 <td style="text-align: right;">30.0</td>
 <td style="text-align: right;">5%</td>
 <td style="text-align: right;">100%</td>
 </tr>
-<tr class="even">
+<tr class="odd">
+<td>Wholesale</td>
 <td>Interbank Borrowings (&lt; 30 days)</td>
 <td style="text-align: right;">15.0</td>
 <td style="text-align: right;">100%</td>
 <td style="text-align: right;">0%</td>
 </tr>
-<tr class="odd">
-<td><strong>Capital</strong></td>
-<td style="text-align: right;"></td>
-<td style="text-align: right;"></td>
-<td style="text-align: right;"></td>
-</tr>
 <tr class="even">
+<td>Capital</td>
 <td>Tier 2 Subordinated Debt</td>
 <td style="text-align: right;">10.0</td>
 <td style="text-align: right;">—</td>
 <td style="text-align: right;">100%</td>
 </tr>
 <tr class="odd">
+<td>Capital</td>
 <td>Additional Tier 1 (AT1)</td>
 <td style="text-align: right;">5.0</td>
 <td style="text-align: right;">—</td>
 <td style="text-align: right;">100%</td>
 </tr>
 <tr class="even">
+<td>Capital</td>
 <td>Common Equity Tier 1 (CET1)</td>
 <td style="text-align: right;">20.0</td>
 <td style="text-align: right;">—</td>
 <td style="text-align: right;">100%</td>
 </tr>
 <tr class="odd">
-<td><strong>Total Liabilities &amp; Capital</strong></td>
+<td></td>
+<td><strong>Total</strong></td>
 <td style="text-align: right;"><strong>350.0</strong></td>
 <td style="text-align: right;"></td>
 <td style="text-align: right;"></td>
 </tr>
 </tbody>
 </table>
+</div>
 <hr>
 </section>
 </section>
@@ -9269,7 +9246,7 @@ Shadow prices — LCR: 0.01529   Tier1: 0.03462   NSFR: 0.0</code></pre>
   <category>Banking</category>
   <guid>https://rossouwvanjaarsveld-lang.github.io/website/posts/alm-optimization/</guid>
   <pubDate>Tue, 23 Dec 2025 00:00:00 GMT</pubDate>
-  <media:content url="https://rossouwvanjaarsveld-lang.github.io/website/posts/alm-optimization/thumbnail.png" medium="image" type="image/png"/>
+  <media:content url="https://rossouwvanjaarsveld-lang.github.io/website/posts/alm-optimization/thumbnail.JPG" medium="image"/>
 </item>
 </channel>
 </rss>
