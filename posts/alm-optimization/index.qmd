@@ -3,7 +3,7 @@ title: "Balance Sheet Optimisation Under South African Regulatory Constraints"
 description: "A worked Linear Programming example for the bank treasury function using SARB Basel III requirements (LCR, NSFR, CET1). Includes full LP formulation, step-by-step Simplex solution, shadow price interpretation, extensions to stochastic programming, and how the solver works mathematically."
 date: 2025-12-23
 categories: [Finance, Optimisation, ALM, Banking]
-image: thumbnail.png
+image: thumbnail.JPG
 ---
 
 We construct a stylised mid-sized South African bank — **No Gut Feelings Bank Ltd** — and find the optimal allocation of its ZAR 330 bn productive asset base that maximises Net Interest Income (NII) subject to all SARB Basel III regulatory floors. The problem is formulated as a Linear Programme and solved in Julia using `JuMP.jl` and `HiGHS.jl`.
