@@ -12,49 +12,57 @@ We construct a stylised mid-sized South African bank — **No Gut Feelings Bank 
 
 ## 1 — Mock Balance Sheet
 
-The balance sheet has **ZAR 350 bn** in total assets. Liabilities and capital are held fixed; the seven asset classes below are the decision variables $\mathbf{x} = (x_1, \ldots, x_7)$.
+The balance sheet has **ZAR 350 bn** in total assets. Liabilities and capital are held
+fixed; the seven asset classes below are the decision variables
+$\mathbf{x} = (x_1, \ldots, x_7)$.
 
 ### Assets
 
-| Asset Class | Var | Initial (ZAR bn) | Net Spread $c_i$ | Risk Weight | RSF Factor | LCR HQLA |
-|---|---|---:|---:|---:|---:|---|
-| **Liquidity Buffer** | | | | | | |
-| Cash & SARB Reserves | $x_1$ | 15.0 | −0.50% | 0% | 0% | Level 1 — 100% |
-| RSA Government Bonds | $x_2$ | 25.0 | +0.80% | 0% | 5% | Level 1 — 100% |
-| SOE / Parastatals Bonds | $x_3$ | 15.0 | +1.20% | 20% | 15% | Level 2A — 85% |
-| **Money Market** | | | | | | |
-| Interbank Loans (< 30d) | $x_4$ | 10.0 | +0.50% | 20% | 15% | Inflow only |
-| **Loan Book** | | | | | | |
-| Corporate Loans | $x_5$ | 80.0 | +3.00% | 100% | 50% | 50% inflow |
-| Retail Mortgages | $x_6$ | 120.0 | +2.50% | 35% | 65% | — |
-| Unsecured Retail Loans | $x_7$ | 45.0 | +6.00% | 75% | 85% | — |
-| Fixed Assets & Other | $x_8$ | 20.0 | 0.00% | 100% | 100% | — |
-| **Total Assets** | | **330.0** | | | | |
+::: {.column-page}
+
+| Category | Asset Class | Var | Initial (bn) | Spread $c_i$ | Risk Wt | RSF | HQLA Tier |
+|---|---|:---:|---:|---:|---:|---:|---|
+| Liquidity | Cash & SARB Reserves | $x_1$ | 15.0 | −0.50% | 0% | 0% | Level 1 — 100% |
+| Liquidity | RSA Government Bonds | $x_2$ | 25.0 | +0.80% | 0% | 5% | Level 1 — 100% |
+| Liquidity | SOE / Parastatals Bonds | $x_3$ | 15.0 | +1.20% | 20% | 15% | Level 2A — 85% |
+| Money Mkt | Interbank Loans (< 30d) | $x_4$ | 10.0 | +0.50% | 20% | 15% | Inflow only |
+| Loans | Corporate Loans | $x_5$ | 80.0 | +3.00% | 100% | 50% | — |
+| Loans | Retail Mortgages | $x_6$ | 120.0 | +2.50% | 35% | 65% | — |
+| Loans | Unsecured Retail Loans | $x_7$ | 45.0 | +6.00% | 75% | 85% | — |
+| Other | Fixed Assets & Other | $x_8$ | 20.0 | 0.00% | 100% | 100% | — |
+| | **Total** | | **330.0** | | | | |
+
+: {tbl-colwidths="[11,24,5,9,8,7,5,12]"}
+
+:::
 
 ::: {.callout-note}
-Spreads are annualised net margins above the blended cost of funds (approximately SARB repo rate + term premium). Cash earns below repo, creating a negative carry of −0.50%.
+Spreads are annualised net margins above the blended cost of funds (approximately
+SARB repo rate + term premium). Cash earns below repo, creating a negative carry
+of −0.50%.
 :::
 
 ### Liabilities & Capital (Fixed)
 
-| Liability / Capital Item | Balance (ZAR bn) | LCR Outflow Rate | ASF Factor |
-|---|---:|---:|---:|
-| **Retail Deposits** | | | |
-| Retail Stable Deposits (insured / loyal) | 80.0 | 5% | 95% |
-| Retail Less Stable Deposits | 70.0 | 10% | 90% |
-| **Corporate Deposits** | | | |
-| Corporate Demand / Operational (< 6 months) | 50.0 | 25% | 50% |
-| Corporate Term (> 1 year) | 40.0 | 5% | 100% |
-| **Wholesale Funding** | | | |
-| Wholesale Funding (< 6 months) | 30.0 | 25% | 50% |
-| Wholesale Funding (> 1 year) | 30.0 | 5% | 100% |
-| Interbank Borrowings (< 30 days) | 15.0 | 100% | 0% |
-| **Capital** | | | |
-| Tier 2 Subordinated Debt | 10.0 | — | 100% |
-| Additional Tier 1 (AT1) | 5.0 | — | 100% |
-| Common Equity Tier 1 (CET1) | 20.0 | — | 100% |
-| **Total Liabilities & Capital** | **350.0** | | |
+::: {.column-page}
 
+| Category | Item | Balance (ZAR bn) | LCR Outflow Rate | ASF Factor |
+|---|---|---:|---:|---:|
+| Retail | Stable Deposits (insured / loyal) | 80.0 | 5% | 95% |
+| Retail | Less Stable Deposits | 70.0 | 10% | 90% |
+| Corporate | Demand / Operational (< 6 months) | 50.0 | 25% | 50% |
+| Corporate | Term (> 1 year) | 40.0 | 5% | 100% |
+| Wholesale | Funding < 6 months | 30.0 | 25% | 50% |
+| Wholesale | Funding > 1 year | 30.0 | 5% | 100% |
+| Wholesale | Interbank Borrowings (< 30 days) | 15.0 | 100% | 0% |
+| Capital | Tier 2 Subordinated Debt | 10.0 | — | 100% |
+| Capital | Additional Tier 1 (AT1) | 5.0 | — | 100% |
+| Capital | Common Equity Tier 1 (CET1) | 20.0 | — | 100% |
+| | **Total** | **350.0** | | |
+
+: {tbl-colwidths="[11,37,16,18,10]"}
+
+:::
 ---
 
 ## 2 — South African Regulatory Framework
