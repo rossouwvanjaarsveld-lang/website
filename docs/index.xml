@@ -8346,27 +8346,7 @@ Note
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p><strong>Data sources:</strong> Prices from Yahoo Finance (with Stooq fallback). Holdings, benchmarks and descriptions scraped from <a href="https://justonelap.com/etfdatabase/">Just One Lap</a>, which aggregates Minimum Disclosure Documents — the regulatory monthly fact sheets every JSE-listed ETF must publish. Risk-free rate: SA repo rate (~8.25% p.a.). <strong>For educational purposes only — not financial advice.</strong></p>
-</div>
-</div>
-<div class="callout callout-style-default callout-tip callout-titled">
-<div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-2-contents" aria-controls="callout-2" aria-expanded="false" aria-label="Toggle callout">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
-</div>
-<div class="callout-title-container flex-fill">
-<span class="screen-reader-only">Tip</span>How to refresh the data
-</div>
-<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
-</div>
-<div id="callout-2" class="callout-2-contents callout-collapse collapse">
-<div class="callout-body-container callout-body">
-<ol type="1">
-<li>Run <code>scrape_etfs.R</code> from the project root — regenerates JSON files under <code>posts/ee-etf-tracker/data/</code></li>
-<li>Run <code>quarto render</code> (or push to <code>main</code> for GitHub Actions)</li>
-</ol>
-<p>The pipeline reads its ETF list from <code>posts/ee-etf-tracker/data/easy_equities_tfsa_etfs.csv</code>. Edit that CSV to add or remove funds.</p>
-</div>
+<p><strong>Data sources:</strong> Prices from Yahoo Finance (with Stooq fallback). Holdings, benchmarks and descriptions scraped from <a href="https://justonelap.com/etfdatabase/">Just One Lap</a>, which aggregates Minimum Disclosure Documents — the regulatory monthly fact sheets every JSE-listed ETF must publish. Risk-free rate: SA repo rate (~6.75% p.a.). <strong>For educational purposes only — not financial advice.</strong></p>
 </div>
 </div>
 
@@ -8383,7 +8363,7 @@ Note
   <category>Interactive</category>
   <guid>https://rossouwvanjaarsveld-lang.github.io/website/posts/ee-etf-tracker/</guid>
   <pubDate>Sun, 10 May 2026 00:00:00 GMT</pubDate>
-  <media:content url="https://rossouwvanjaarsveld-lang.github.io/website/posts/ee-etf-tracker/thumbnail.png" medium="image" type="image/png"/>
+  <media:content url="https://rossouwvanjaarsveld-lang.github.io/website/posts/ee-etf-tracker/thumbnail.JPG" medium="image"/>
 </item>
 <item>
   <title>Balance Sheet Optimisation Under South African Regulatory Constraints</title>
