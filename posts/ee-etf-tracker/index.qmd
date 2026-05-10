@@ -3,7 +3,7 @@ title: "Easy Equities TFSA ETF Analytics"
 description: "Interactive trading analytics for every ETF available on the Easy Equities Tax-Free Savings Account — leaderboards, price history, risk metrics, top holdings and index rules."
 date: today
 categories: [R, ETF, Finance, South Africa, Interactive]
-image: thumbnail.png
+image: thumbnail.JPG
 ---
 
 ```{r setup}
@@ -851,14 +851,7 @@ comparison_table = (() => {
 ---
 
 ::: {.callout-note}
-**Data sources:** Prices from Yahoo Finance (with Stooq fallback). Holdings, benchmarks and descriptions scraped from [Just One Lap](https://justonelap.com/etfdatabase/), which aggregates Minimum Disclosure Documents — the regulatory monthly fact sheets every JSE-listed ETF must publish. Risk-free rate: SA repo rate (~8.25% p.a.). **For educational purposes only — not financial advice.**
+**Data sources:** Prices from Yahoo Finance (with Stooq fallback). Holdings, benchmarks and descriptions scraped from [Just One Lap](https://justonelap.com/etfdatabase/), which aggregates Minimum Disclosure Documents — the regulatory monthly fact sheets every JSE-listed ETF must publish. Risk-free rate: SA repo rate (~6.75% p.a.). **For educational purposes only — not financial advice.**
 :::
 
-::: {.callout-tip collapse="true"}
-## How to refresh the data
 
-1. Run `scrape_etfs.R` from the project root — regenerates JSON files under `posts/ee-etf-tracker/data/`
-2. Run `quarto render` (or push to `main` for GitHub Actions)
-
-The pipeline reads its ETF list from `posts/ee-etf-tracker/data/easy_equities_tfsa_etfs.csv`. Edit that CSV to add or remove funds.
-:::
