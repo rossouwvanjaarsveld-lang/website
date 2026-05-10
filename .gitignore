@@ -7,6 +7,8 @@
 __pycache__/
 .ipynb_checkpoints/
 /docs
+posts/ee-etf-tracker/scrape_etfs.R
+
 
 # Do NOT ignore /docs — GitHub Pages needs it committed
 

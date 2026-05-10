@@ -1,9 +1,9 @@
 ---
 title: "Easy Equities TFSA ETF Analytics"
-description: "Interactive trading analytics for every ETF available on the Easy Equities Tax-Free Savings Account — leaderboards, price history, risk metrics, top holdings and index rules. There are some AMETFs which I can't find reliable data for to scrape."
+description: "Interactive trading analytics for every ETF available on the Easy Equities Tax-Free Savings Account — leaderboards, price history, risk metrics, top holdings and index rules."
 date: today
-categories: [R, Finance]
-image: thumbnail.JPG
+categories: [R, ETF, Finance, South Africa, Interactive]
+image: thumbnail.png
 ---
 
 ```{r setup}
@@ -209,32 +209,82 @@ viewof search_query = Inputs.text({
 ```{ojs}
 //| echo: false
 
-filtered_for_select = (() => {
+// Compute search matches reactively. Empty query → null (don't render results).
+search_matches = (() => {
   const q = (search_query || "").trim().toLowerCase()
-  if (q === "") return etf_search_index
-  // Split on whitespace — every token must match
+  if (q.length < 1) return null
   const tokens = q.split(/\s+/).filter(t => t.length > 0)
-  return etf_search_index.filter(d =>
-    tokens.every(t => d.haystack.includes(t))
-  )
-})
-
-html`<div style="font-size:0.78rem;color:#888;margin-bottom:6px">
-  ${filtered_for_select.length} of ${etf_search_index.length} ETFs match
-</div>`
+  return etf_search_index.filter(d => tokens.every(t => d.haystack.includes(t)))
+})()
 ```
 
 ```{ojs}
 //| echo: false
+
+// Render search results as clickable cards. This sidesteps the previous bug
+// where filtering rebuilt the dropdown on every keystroke (resetting its value).
+// Now the dropdown stays stable at all 82 ETFs and the search has its own UI.
+search_results_node = (() => {
+  if (search_matches === null) return html`<div></div>`
+
+  const wrap = document.createElement("div")
+  wrap.style.cssText = "margin-bottom:1rem"
+
+  const counter = document.createElement("div")
+  counter.style.cssText = "font-size:0.78rem;color:#888;margin-bottom:8px"
+  counter.textContent =
+    search_matches.length === 0
+      ? `No ETFs match "${search_query}". Try a shorter or different search.`
+      : `${search_matches.length} match${search_matches.length === 1 ? "" : "es"} — click to load:`
+  wrap.appendChild(counter)
+
+  if (search_matches.length === 0) return wrap
+
+  const grid = document.createElement("div")
+  grid.style.cssText =
+    "display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px"
+
+  for (const etf of search_matches.slice(0, 60)) {
+    const card = document.createElement("div")
+    card.style.cssText =
+      "background:#1c1c1c;border:1px solid #2a2a2a;border-radius:8px;" +
+      "padding:10px 14px;cursor:pointer;transition:all 0.12s"
+    card.innerHTML = `
+      <div style="font-weight:700;color:#a8d4f5;font-size:0.85rem">${etf.ticker}</div>
+      <div style="color:#aaa;font-size:0.74rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${etf.name}</div>
+      <div style="color:#666;font-size:0.68rem;margin-top:2px">${etf.provider}</div>
+    `
+    card.addEventListener("mouseover", () => {
+      card.style.borderColor = "#4a7aab"
+      card.style.background = "#222"
+    })
+    card.addEventListener("mouseout", () => {
+      card.style.borderColor = "#2a2a2a"
+      card.style.background = "#1c1c1c"
+    })
+    card.addEventListener("click", () => setTicker(etf.ticker))
+    grid.appendChild(card)
+  }
+  wrap.appendChild(grid)
+  return wrap
+})()
+```
+
+```{ojs}
+//| echo: false
+
+// The dropdown ALWAYS shows the full universe — it's a stable "browse all"
+// alternative to typing. Type-ahead inside the native <select> still works,
+// so users can press a letter to jump to that section.
 viewof selected_ticker = Inputs.select(
-  filtered_for_select.length > 0 ? filtered_for_select.map(d => d.ticker) : etf_search_index.map(d => d.ticker),
+  etf_list.map(d => d.ticker),
   {
-    label: "Select ETF",
+    label: "Or browse all",
     format: t => {
       const i = etf_list.find(d => d.ticker === t)
       return i ? `${t}  —  ${i.name}` : t
     },
-    value: filtered_for_select[0]?.ticker || etf_list[0]?.ticker
+    value: etf_list[0]?.ticker
   }
 )
 ```
@@ -242,21 +292,22 @@ viewof selected_ticker = Inputs.select(
 ```{ojs}
 //| echo: false
 
-// Helper for programmatic ticker switching (leaderboard / table clicks)
+// Helper for programmatic ticker switching from leaderboard / table /
+// search-result clicks.
 setTicker = function(ticker) {
-  // Clearing the search ensures the requested ticker is in the dropdown
-  const search = viewof search_query;
+  // Clear the search box so the user can see the result loaded
+  const search = viewof search_query
   if (search.value !== "") {
-    search.value = "";
-    search.dispatchEvent(new Event('input', {bubbles: true}));
+    search.value = ""
+    search.dispatchEvent(new Event('input', {bubbles: true}))
   }
-  setTimeout(() => {
-    const sel = viewof selected_ticker;
-    sel.value = ticker;
-    sel.dispatchEvent(new Event('input', {bubbles: true}));
-    const target = document.getElementById('etf-detail-anchor');
-    if (target) target.scrollIntoView({behavior: 'smooth', block: 'start'});
-  }, 50);
+  // Update the dropdown
+  const sel = viewof selected_ticker
+  sel.value = ticker
+  sel.dispatchEvent(new Event('input', {bubbles: true}))
+  // Smooth-scroll to the analytics section
+  const target = document.getElementById('etf-detail-anchor')
+  if (target) target.scrollIntoView({behavior: 'smooth', block: 'start'})
 }
 ```
 
