@@ -1,10 +1,31 @@
 [
   {
-    "objectID": "index.html",
-    "href": "index.html",
-    "title": "Rossouw van Jaarsveld | Overfit and Chill",
+    "objectID": "about.html",
+    "href": "about.html",
+    "title": "About",
     "section": "",
-    "text": "Easy Equities TFSA ETF Analytics\n\n25 min\n\n\nR\n\nETF\n\nFinance\n\nSouth Africa\n\nInteractive\n\n\n\nInteractive trading analytics for every ETF available on the Easy Equities Tax-Free Savings Account — leaderboards, price history, risk metrics, top holdings and index rules.\n\n\n\nMay 10, 2026\n\n\n\n\n\n\n\n\n\n\n\n\n\nBalance Sheet Optimisation Under South African Regulatory Constraints\n\n21 min\n\n\nFinance\n\nOptimisation\n\nALM\n\nBanking\n\n\n\nA worked Linear Programming example for the bank treasury function using SARB Basel III requirements (LCR, NSFR, CET1). Includes full LP formulation, step-by-step Simplex…\n\n\n\nDec 23, 2025\n\n\n\n\n\n\nNo matching items"
+    "text": "I like doing stuff with data."
+  },
+  {
+    "objectID": "about.html#hi-im-rossouw-van-jaarsveld",
+    "href": "about.html#hi-im-rossouw-van-jaarsveld",
+    "title": "About",
+    "section": "",
+    "text": "I like doing stuff with data."
+  },
+  {
+    "objectID": "about.html#what-youll-find-here",
+    "href": "about.html#what-youll-find-here",
+    "title": "About",
+    "section": "What You’ll Find Here",
+    "text": "What You’ll Find Here\nMy analytics passion. These are experiments and random thoughts I spend my free time on."
+  },
+  {
+    "objectID": "about.html#tools-i-use-for-my-posts",
+    "href": "about.html#tools-i-use-for-my-posts",
+    "title": "About",
+    "section": "Tools I Use for my posts",
+    "text": "Tools I Use for my posts\n\nR\nPython\nQuarto\nGitHub"
   },
   {
     "objectID": "posts/ee-etf-tracker/index.html",
@@ -105,31 +126,10 @@
     "text": "9 — How the Software Solves the LP\nWhen the problem is dispatched to HiGHS.jl via JuMP.jl, the solver executes one of two algorithms — the Simplex Method or Interior Point (barrier) Methods. HiGHS uses revised dual Simplex by default, switching to its interior-point solver for large or dense problems.\n\n9.1 Standard Form Conversion\nEvery LP solver first converts the problem to standard equality form by introducing non-negative slack or surplus variables:\n\\[\\max_{\\mathbf{x}} \\quad \\mathbf{c}^\\top \\mathbf{x} \\qquad \\text{subject to} \\quad A\\mathbf{x} = \\mathbf{b}, \\quad \\mathbf{x} \\geq \\mathbf{0}\\]\nThe extended variable vector includes the original 7 decision variables plus one slack per inequality, giving \\(\\tilde{\\mathbf{x}} \\in \\mathbb{R}^{15}_{\\geq 0}\\):\n\\[\\tilde{\\mathbf{x}} = (x_1,\\ldots,x_7,\\; s_{\\text{LCR}},\\; s_{\\text{L2A}},\\; s_{\\text{NSFR}},\\; s_{\\text{T1}},\\; s_{\\text{CRR}},\\; s_5,\\; s_6,\\; s_7)^\\top\\]\nEach “\\(\\leq\\)” constraint gains a slack — e.g. \\([\\text{T1}]\\) becomes \\(0.20x_3 + x_5 + 0.35x_6 + 0.75x_7 + s_{\\text{T1}} = 243.2\\). Each “\\(\\geq\\)” constraint gains a surplus — \\([\\text{LCR}]\\) becomes \\(x_1 + x_2 + 0.85x_3 - s_{\\text{LCR}} = 12.375\\).\nThe full matrix form is \\(A \\in \\mathbb{R}^{9 \\times 15}\\):\n\\[A = \\begin{pmatrix}\n1 & 1 & 1 & 1 & 1 & 1 & 1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\\\\n1 & 1 & 0.85 & 0 & 0 & 0 & 0 & -1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\\\\n0.40 & 0.40 & -0.51 & 0 & 0 & 0 & 0 & 0 & -1 & 0 & 0 & 0 & 0 & 0 & 0 \\\\\n0 & 0.05 & 0.15 & 0.15 & 0.50 & 0.65 & 0.85 & 0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\\\\n0 & 0 & 0.20 & 0.20 & 1 & 0.35 & 0.75 & 0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 \\\\\n1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & -1 & 0 & 0 & 0 \\\\\n0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\\\\n0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 \\\\\n0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1\n\\end{pmatrix}\\]\n\\[\\mathbf{b} = (330,\\; 12.375,\\; 0,\\; 264,\\; 243.2,\\; 8.0,\\; 120,\\; 150,\\; 80)^\\top\\]\n\n\n9.2 The Simplex Method\nThe Simplex Method exploits a fundamental theorem of LP: if an optimal solution exists, at least one lies at a vertex (extreme point) of the feasible polytope. The algorithm walks from vertex to vertex along edges, improving the objective at each step.\n\nBasis and Basic Feasible Solutions\nWith \\(m = 9\\) constraints and \\(n = 15\\) variables, a basis \\(\\mathcal{B}\\) is any set of \\(m = 9\\) linearly independent columns of \\(A\\). Non-basic variables are set to zero:\n\\[A = [B \\mid N], \\qquad \\mathbf{x}_N = \\mathbf{0}, \\qquad \\mathbf{x}_B = B^{-1}\\mathbf{b} \\geq \\mathbf{0}\\]\nOur LP has \\(\\binom{15}{9} = 5005\\) candidate bases. Each feasible one (\\(\\mathbf{x}_B \\geq \\mathbf{0}\\)) is a vertex of the feasible polytope.\n\n\nReduced Costs and the Optimality Condition\nThe reduced cost of each non-basic variable measures how much the objective improves per unit increase from zero:\n\\[\\bar{c}_j = c_j - \\mathbf{c}_B^\\top B^{-1} \\mathbf{a}_j\\]\nThe current BFS is optimal when no improvement is possible:\n\\[\\text{Optimality: } \\bar{c}_j \\leq 0 \\quad \\forall\\; j \\notin \\mathcal{B}\\]\n\n\nThe Pivot — Minimum Ratio Test\nWhen entering variable \\(x_e\\) has \\(\\bar{c}_e &gt; 0\\), the leaving variable is chosen to prevent infeasibility:\n\\[l = \\arg\\min_{i:\\; (B^{-1}\\mathbf{a}_e)_i &gt; 0} \\;\\frac{(B^{-1}\\mathbf{b})_i}{(B^{-1}\\mathbf{a}_e)_i}\\]\nThe basis is updated via LU factorisation with partial pivoting (LAPACK routines), reducing each pivot from \\(O(m^3)\\) to \\(O(m^2)\\).\n\n\nSimplex Path Through Our LP\n\n\n\n\n\n\n\n\nIteration\nAction\n\\(Z\\)\n\n\n\n\n0 — Initial BFS\n\\(\\mathbf{x} = (8, 0, 0, 0, 0, 322, 0)\\)\n8.05\n\n\n1\nEnter \\(x_7\\) (highest \\(\\bar{c}_7 &gt; 0\\)) → sector cap 80\n~10.85\n\n\n2\nEnter \\(x_5\\) → sector cap 120\n~11.20\n\n\n3\nEnter \\(x_3\\) (HQLA, cheaper than \\(x_2\\)) → \\(s_\\text{LCR} \\to 0\\)\n11.343\n\n\nOptimal\nAll \\(\\bar{c}_j \\leq 0\\)\n11.343\n\n\n\nThe optimum is reached in approximately 3–5 pivot steps — consistent with the typical \\(O(m)\\) empirical pivot count for well-structured LPs.\n\n\n\n9.3 Duality and the Dual Problem\nEvery LP has a paired dual problem. Solving both simultaneously gives the solver a certificate of optimality and produces the shadow prices directly.\n\\[\\textbf{Primal (P):} \\quad \\max\\; \\mathbf{c}^\\top\\mathbf{x} \\quad \\text{s.t.}\\quad A\\mathbf{x} \\leq \\mathbf{b},\\; \\mathbf{x} \\geq 0\\]\n\\[\\textbf{Dual (D):} \\quad \\min\\; \\mathbf{b}^\\top\\boldsymbol{\\mu} \\quad \\text{s.t.}\\quad A^\\top\\boldsymbol{\\mu} \\geq \\mathbf{c},\\; \\boldsymbol{\\mu} \\geq 0\\]\nStrong Duality Theorem: if both (P) and (D) are feasible, at optimality:\n\\[\\mathbf{c}^\\top\\mathbf{x}^* = \\mathbf{b}^\\top\\boldsymbol{\\mu}^* \\quad \\text{(no duality gap for LP)}\\]\nComplementary Slackness: at optimality the primal and dual solutions satisfy:\n\\[\\mu_j^* \\cdot (b_j - A_j\\mathbf{x}^*) = 0 \\quad \\forall\\; j \\qquad \\text{and} \\qquad x_i^* \\cdot (A^\\top\\boldsymbol{\\mu}^* - \\mathbf{c})_i = 0 \\quad \\forall\\; i\\]\nIn plain terms: if a constraint is not binding, its shadow price is zero. The NSFR and leverage constraints are non-binding, so \\(\\mu_{\\text{NSFR}} = \\mu_{\\text{lev}} = 0\\). Binding constraints each carry a positive shadow price.\n\n\n9.4 Interior Point Methods\nFor large-scale problems, solvers switch to primal-dual interior point methods with polynomial worst-case complexity \\(O(n^{3.5} L)\\). Rather than walking along the boundary of the feasible polytope, these methods follow a central path through the interior.\nLog-barrier formulation:\n\\[\\max_{\\mathbf{x}} \\quad \\mathbf{c}^\\top\\mathbf{x} + \\mu \\sum_{i=1}^{n} \\ln(x_i) \\quad \\text{s.t.}\\quad A\\mathbf{x} = \\mathbf{b}\\]\nAs \\(\\mu \\to 0\\), the barrier solution converges to the LP optimum. At each \\(\\mu\\), the solver linearises the KKT conditions and solves via a Newton step:\n\\[A\\mathbf{x} = \\mathbf{b}, \\qquad A^\\top\\boldsymbol{\\mu} + \\mathbf{s} = \\mathbf{c}, \\qquad x_i s_i = \\mu \\quad \\forall\\; i\\]\nThis reduces to a symmetric positive-definite \\(m \\times m\\) system solved by sparse Cholesky factorisation. The solver declares convergence when the duality gap and primal/dual residuals fall below tolerance \\(\\varepsilon \\approx 10^{-8}\\):\n\\[\\frac{\\mathbf{c}^\\top\\mathbf{x} - \\mathbf{b}^\\top\\boldsymbol{\\mu}}{1 + |\\mathbf{c}^\\top\\mathbf{x}|} \\leq \\varepsilon, \\qquad \\frac{\\|A\\mathbf{x} - \\mathbf{b}\\|}{1 + \\|\\mathbf{b}\\|} \\leq \\varepsilon\\]\nInterior point methods converge in \\(O(20\\text{–}50)\\) Newton steps regardless of problem size — far fewer than Simplex pivots for large problems, though each step is more expensive.\n\n\n9.5 Algorithm Comparison\n\n\n\n\n\n\n\n\nProperty\nRevised Simplex\nInterior Point (IPM)\n\n\n\n\nPath taken\nBoundary of feasible polytope\nInterior, following central path\n\n\nIterations (our LP)\n~5 pivots\n~15 Newton steps\n\n\nIterations (large LP)\n\\(O(m)\\) to \\(O(m^2)\\) typical\n\\(O(20\\text{–}50)\\) regardless of size\n\n\nCost per iteration\n\\(O(m^2)\\) with LU update\n\\(O(m^3)\\) Cholesky (sparse \\(O(m^{1.5})\\))\n\n\nWarm-starting\nExcellent (re-use basis)\nPoor (must restart from interior)\n\n\nShadow prices\nRead from final tableau\nRecovered from \\(\\boldsymbol{\\mu}^*\\) at convergence\n\n\nBest use case\nRe-optimisation, MIP node solving\nFirst solve of large dense LPs\n\n\n\n\n\n\n\n\n\nNote\n\n\n\nFor the ALM use case, Simplex is preferred because the ALCO reruns the optimisation daily with only small changes to \\(\\mathbf{b}\\) (updated NCO, new deposit volumes). Simplex can warm-start from the previous optimal basis, converging in a handful of pivots. Interior point methods must restart from scratch, making them slower for the repeated-solve pattern typical of treasury systems.\n\n\n\n\n9.6 Julia / JuMP Implementation\nusing JuMP, HiGHS\n\nmodel = Model(HiGHS.Optimizer)\nset_silent(model)\n\n# Decision variables with bounds\n@variable(model, x1 &gt;= 8.0)          # Cash (CRR lower bound)\n@variable(model, x2 &gt;= 0)\n@variable(model, x3 &gt;= 0)\n@variable(model, x4 &gt;= 0)\n@variable(model, 0 &lt;= x5 &lt;= 120)     # Corporate loans cap\n@variable(model, 0 &lt;= x6 &lt;= 150)     # Mortgages cap\n@variable(model, 0 &lt;= x7 &lt;= 80)      # Unsecured retail cap\n\n# Objective: maximise NII\n@objective(model, Max,\n    -0.005x1 + 0.008x2 + 0.012x3 + 0.005x4 +\n     0.030x5 + 0.025x6 + 0.060x7)\n\n# Constraints\n@constraint(model, bs,   x1+x2+x3+x4+x5+x6+x7 == 330)\n@constraint(model, lcr,  x1 + x2 + 0.85x3 &gt;= 12.375)\n@constraint(model, l2a,  0.40x1 + 0.40x2 - 0.51x3 &gt;= 0)\n@constraint(model, nsfr, 0.05x2+0.15x3+0.15x4+0.50x5+0.65x6+0.85x7 &lt;= 264)\n@constraint(model, t1,   0.20x3+0.20x4+x5+0.35x6+0.75x7 &lt;= 243.2)\n\noptimize!(model)\n\n# Retrieve solution and shadow prices\nprintln(\"NII* = \", objective_value(model))\nprintln(\"x*   = \", value.([x1,x2,x3,x4,x5,x6,x7]))\nprintln(\"Shadow prices — LCR: \",  shadow_price(lcr),\n                       \"  Tier1: \", shadow_price(t1),\n                       \"  NSFR: \",  shadow_price(nsfr))\nOutput:\nNII*  = 11.343\nx*    = [8.0, 0.0, 5.18, 0.0, 120.0, 116.82, 80.0]\nShadow prices — LCR: 0.01529   Tier1: 0.03462   NSFR: 0.0"
   },
   {
-    "objectID": "about.html",
-    "href": "about.html",
-    "title": "About",
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Rossouw van Jaarsveld | Overfit and Chill",
     "section": "",
-    "text": "I like doing stuff with data."
-  },
-  {
-    "objectID": "about.html#hi-im-rossouw-van-jaarsveld",
-    "href": "about.html#hi-im-rossouw-van-jaarsveld",
-    "title": "About",
-    "section": "",
-    "text": "I like doing stuff with data."
-  },
-  {
-    "objectID": "about.html#what-youll-find-here",
-    "href": "about.html#what-youll-find-here",
-    "title": "About",
-    "section": "What You’ll Find Here",
-    "text": "What You’ll Find Here\nMy analytics passion. These are experiments and random thoughts I spend my free time on."
-  },
-  {
-    "objectID": "about.html#tools-i-use-for-my-posts",
-    "href": "about.html#tools-i-use-for-my-posts",
-    "title": "About",
-    "section": "Tools I Use for my posts",
-    "text": "Tools I Use for my posts\n\nR\nPython\nQuarto\nGitHub"
+    "text": "Easy Equities TFSA ETF Analytics\n\n25 min\n\n\nR\n\nETF\n\nFinance\n\nSouth Africa\n\nInteractive\n\n\n\nInteractive trading analytics for every ETF available on the Easy Equities Tax-Free Savings Account — leaderboards, price history, risk metrics, top holdings and index rules.\n\n\n\nMay 15, 2026\n\n\n\n\n\n\n\n\n\n\n\n\n\nBalance Sheet Optimisation Under South African Regulatory Constraints\n\n21 min\n\n\nFinance\n\nOptimisation\n\nALM\n\nBanking\n\n\n\nA worked Linear Programming example for the bank treasury function using SARB Basel III requirements (LCR, NSFR, CET1). Includes full LP formulation, step-by-step Simplex…\n\n\n\nDec 23, 2025\n\n\n\n\n\n\nNo matching items"
   }
 ]
