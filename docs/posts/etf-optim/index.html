@@ -1,0 +1,2114 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.37">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="dcterms.date" content="2026-05-17">
+<meta name="description" content="A LightGBM + conformal + Black-Litterman pipeline on 73 SA ETFs with macro-conditional features, producing three risk-tiered portfolios that beat the JSE Top 40 by 6.4 to 9.1 percentage points annualized.">
+
+<title>ML-Driven TFSA ETF Portfolio Optimization for EE – Rossouw van Jaarsveld | Overfit and Chill</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<link href="../../favicon.ico" rel="icon">
+<script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-dark-d0ae9245876894da5ac7e18953ecc5cc.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap-916aaf4f2c216c0035bd516cb166de5d.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="dark">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<link rel="stylesheet" href="../../styles.css">
+</head>
+
+<body class="nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../../index.html">
+    <span class="navbar-title">Rossouw van Jaarsveld | Overfit and Chill</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../index.html"> 
+<span class="menu-text">Home</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../../about.html"> 
+<span class="menu-text">About</span></a>
+  </li>  
+</ul>
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/yourusername"> <i class="bi bi-github" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://linkedin.com/in/yourprofile"> <i class="bi bi-linkedin" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#portfolio-rules-and-caveats" id="toc-portfolio-rules-and-caveats" class="nav-link active" data-scroll-target="#portfolio-rules-and-caveats">Portfolio rules and caveats</a></li>
+  <li><a href="#data" id="toc-data" class="nav-link" data-scroll-target="#data">Data</a></li>
+  <li><a href="#the-pipeline" id="toc-the-pipeline" class="nav-link" data-scroll-target="#the-pipeline">The pipeline</a>
+  <ul class="collapse">
+  <li><a href="#step-1-lightgbm-panel-forecast" id="toc-step-1-lightgbm-panel-forecast" class="nav-link" data-scroll-target="#step-1-lightgbm-panel-forecast">Step 1: LightGBM panel forecast</a></li>
+  <li><a href="#step-2-adaptive-conformal-inference-aci" id="toc-step-2-adaptive-conformal-inference-aci" class="nav-link" data-scroll-target="#step-2-adaptive-conformal-inference-aci">Step 2: Adaptive Conformal Inference (ACI)</a></li>
+  <li><a href="#step-3-black-litterman-posterior" id="toc-step-3-black-litterman-posterior" class="nav-link" data-scroll-target="#step-3-black-litterman-posterior">Step 3: Black-Litterman posterior</a></li>
+  <li><a href="#step-4-top-k-equal-weight-optional-defensive-sleeve" id="toc-step-4-top-k-equal-weight-optional-defensive-sleeve" class="nav-link" data-scroll-target="#step-4-top-k-equal-weight-optional-defensive-sleeve">Step 4: Top-K equal weight (+ optional defensive sleeve)</a></li>
+  </ul></li>
+  <li><a href="#three-configurations" id="toc-three-configurations" class="nav-link" data-scroll-target="#three-configurations">Three configurations</a></li>
+  <li><a href="#results" id="toc-results" class="nav-link" data-scroll-target="#results">Results</a>
+  <ul class="collapse">
+  <li><a href="#the-return-drawdown-trade-off" id="toc-the-return-drawdown-trade-off" class="nav-link" data-scroll-target="#the-return-drawdown-trade-off">The return-drawdown trade-off</a></li>
+  <li><a href="#performance-vs-jse-top-40" id="toc-performance-vs-jse-top-40" class="nav-link" data-scroll-target="#performance-vs-jse-top-40">Performance vs JSE Top 40</a></li>
+  </ul></li>
+  <li><a href="#macro-impact-empirical-evidence" id="toc-macro-impact-empirical-evidence" class="nav-link" data-scroll-target="#macro-impact-empirical-evidence">Macro impact — empirical evidence</a>
+  <ul class="collapse">
+  <li><a href="#before-vs-after-same-oos-window" id="toc-before-vs-after-same-oos-window" class="nav-link" data-scroll-target="#before-vs-after-same-oos-window">Before vs after — same OOS window</a></li>
+  <li><a href="#where-the-gains-come-from-stress-regimes" id="toc-where-the-gains-come-from-stress-regimes" class="nav-link" data-scroll-target="#where-the-gains-come-from-stress-regimes">Where the gains come from — stress regimes</a></li>
+  <li><a href="#holdings-the-balanced-configuration" id="toc-holdings-the-balanced-configuration" class="nav-link" data-scroll-target="#holdings-the-balanced-configuration">Holdings — the balanced configuration</a></li>
+  </ul></li>
+  <li><a href="#why-this-works-and-what-the-trade-offs-are" id="toc-why-this-works-and-what-the-trade-offs-are" class="nav-link" data-scroll-target="#why-this-works-and-what-the-trade-offs-are">Why this works — and what the trade-offs are</a></li>
+  <li><a href="#what-i-tested-that-didnt-make-the-cut" id="toc-what-i-tested-that-didnt-make-the-cut" class="nav-link" data-scroll-target="#what-i-tested-that-didnt-make-the-cut">What I tested that didn’t make the cut</a></li>
+  <li><a href="#whats-left-worth-exploring" id="toc-whats-left-worth-exploring" class="nav-link" data-scroll-target="#whats-left-worth-exploring">What’s left worth exploring</a></li>
+  <li><a href="#do-i-actually-use-this" id="toc-do-i-actually-use-this" class="nav-link" data-scroll-target="#do-i-actually-use-this">Do I actually use this?</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<div class="quarto-title-block"><div><h1 class="title">ML-Driven TFSA ETF Portfolio Optimization for EE</h1><button type="button" class="btn code-tools-button" id="quarto-code-tools-source"><i class="bi"></i> Code</button></div></div>
+  <div class="quarto-categories">
+    <div class="quarto-category">portfolio optimization</div>
+    <div class="quarto-category">machine learning</div>
+    <div class="quarto-category">quant finance</div>
+  </div>
+  </div>
+
+<div>
+  <div class="description">
+    A LightGBM + conformal + Black-Litterman pipeline on 73 SA ETFs with macro-conditional features, producing three risk-tiered portfolios that beat the JSE Top 40 by 6.4 to 9.1 percentage points annualized.
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">May 17, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>This is not financial advice.</p>
+</div>
+</div>
+<p>I’ve been working on this ETF-picking framework for so long that my code probably deserves anniversary flowers. When it comes to a TFSA, most people toss a couple of ETFs in there, let compounding do its quiet magic, and move on with their lives. Me? I went full nerd and built a machine-learning pipeline with macro-conditional features and Bayesian shrinkage. The payoff: a system that outpaces the JSE Top 40 by 6.4 to 9.1 percentage points annualized, with Sharpe ratios twice as high — all while I keep insisting this is “just passive investing”. Over-engineered retirement planning? Guilty as charged.</p>
+<p>The <strong>macro-conditional features</strong> is the real star of the show. This lets the model learn that the same momentum reading means something different in a high-vol regime than in a calm one — a regime-dependence that pure momentum signals cannot capture. The sophistication lives entirely in the forecast — the rest is just me pretending I’m not running a glorified “sort and slice” function.</p>
+<section id="portfolio-rules-and-caveats" class="level2">
+<h2 class="anchored" data-anchor-id="portfolio-rules-and-caveats">Portfolio rules and caveats</h2>
+<ul>
+<li>An ETF only becomes eligible for selection when more than 6 months of data is available,</li>
+<li>Rebalancing occurs at a quarterly frequency,</li>
+<li>Only <span class="math inline">\(K=8\)</span> ETFs are allowed in the portfolio. If you can make it to the end of the post you will understand why.</li>
+<li>I am only considering ETFs that are eligible for TFSA and available on EE. Why? Because I’ve been hoarding data on them like a dragon sitting on a pile of CSV files.<br>
+</li>
+<li>The out-of sample test is not nearly as long as I would like. It’s basically the financial equivalent of a movie trailer — just enough to get you excited, but not enough to prove the plot won’t collapse halfway through so please read the disclaimer up top again!</li>
+</ul>
+</section>
+<section id="data" class="level2">
+<h2 class="anchored" data-anchor-id="data">Data</h2>
+<p>73 TFSA-listed ETFs from January 2019 to April 2026. The universe spans six broad categories:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Category</th>
+<th>Count</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Global Equity</td>
+<td>30</td>
+</tr>
+<tr class="even">
+<td>Local Equity</td>
+<td>18</td>
+</tr>
+<tr class="odd">
+<td>Local Income</td>
+<td>7</td>
+</tr>
+<tr class="even">
+<td>Global Income</td>
+<td>5</td>
+</tr>
+<tr class="odd">
+<td>Global REIT</td>
+<td>4</td>
+</tr>
+<tr class="even">
+<td>Local REIT</td>
+<td>3</td>
+</tr>
+<tr class="odd">
+<td>Multi-Asset / Other</td>
+<td>6</td>
+</tr>
+</tbody>
+</table>
+<p>I use three macro time series from FRED:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Series</th>
+<th>FRED ID</th>
+<th>What it measures</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>USD/ZAR exchange rate</td>
+<td><code>EXSFUS</code></td>
+<td>Rand strength against the US dollar</td>
+</tr>
+<tr class="even">
+<td>US 10-Year Treasury yield</td>
+<td><code>GS10</code></td>
+<td>Global rate environment</td>
+</tr>
+<tr class="odd">
+<td>CBOE VIX</td>
+<td><code>VIXCLS</code> (monthly avg)</td>
+<td>Global equity risk sentiment</td>
+</tr>
+</tbody>
+</table>
+<p>Monthly returns are computed from each ETF’s total-return series. No cheating is allowed — features and forecasts at time <span class="math inline">\(t\)</span> only use data through <span class="math inline">\(t\)</span>.</p>
+<p>The JSE top40 benchmark is the average return of the JSE top 40 ETFs. The equal weighting benchmark is the result of buying every ETF (when they are available) and allocating equal weights.</p>
+</section>
+<section id="the-pipeline" class="level2">
+<h2 class="anchored" data-anchor-id="the-pipeline">The pipeline</h2>
+<p>Four sequential steps. Steps 1-3 produce a calibrated posterior forecast of expected returns per ETF; Step 4 converts that into portfolio weights.</p>
+<section id="step-1-lightgbm-panel-forecast" class="level3">
+<h3 class="anchored" data-anchor-id="step-1-lightgbm-panel-forecast">Step 1: LightGBM panel forecast</h3>
+<p>I build a “panel” — one row per (ETF <span class="math inline">\(i\)</span>, month <span class="math inline">\(t\)</span>) combination — with <strong>9 feature columns</strong> plus the next-month return as the target. LightGBM is trained on this panel to predict expected return per ETF per month.</p>
+<p>The 8 features split into two groups:</p>
+<ul>
+<li><strong>Feature group A (5 features): ETF-level signals.</strong> Tell the model what each ETF has been doing — momentum, volatility, risk-adjusted momentum, etc.</li>
+<li><strong>Feature group B (3 features): macro-conditional interactions.</strong> Tell the model what <em>kind of environment</em> the ETF is operating in. These are the most important features in the pipeline.</li>
+</ul>
+<p>The macro interactions are not optional add-ons — they are responsible for most of the pipeline’s edge.</p>
+<section id="feature-group-a-etf-level-features-5" class="level4">
+<h4 class="anchored" data-anchor-id="feature-group-a-etf-level-features-5">Feature group A: ETF-level features (5)</h4>
+<p>These describe each ETF’s own price behaviour:</p>
+<p><span class="math display">\[
+\begin{aligned}
+\text{mom}_{6-1, i, t} &amp;= \sum_{s=t-6}^{t-1} \log(1 + r_{i, s}) \\
+\text{mom}_{3-1, i, t} &amp;= \sum_{s=t-3}^{t-1} \log(1 + r_{i, s}) \\
+\sigma_{i, t} &amp;= \sqrt{12} \cdot \text{stdev}(r_{i, t-5:t-1}) \\
+\text{mom\_scaled}_{i, t} &amp;= \text{mom}_{6-1, i, t} \;/\; \sigma_{i, t} \\
+\text{defensive}_{i, t} &amp;= 1 \;/\; \sigma_{i, t}
+\end{aligned}
+\]</span></p>
+<p><strong>What each variable means:</strong></p>
+<ul>
+<li><span class="math inline">\(r_{i, s}\)</span> — simple monthly return of ETF <span class="math inline">\(i\)</span> in month <span class="math inline">\(s\)</span></li>
+<li><strong><span class="math inline">\(\text{mom}_{6-1}\)</span></strong> — 6-month log-return ending one month back. Captures medium-term trend. The “<span class="math inline">\(-1\)</span>” lag avoids using same-month return as both feature and target.</li>
+<li><strong><span class="math inline">\(\text{mom}_{3-1}\)</span></strong> — 3-month log-return ending one month back. Captures shorter-term trend; reacts faster than the 6-month version.</li>
+<li><strong><span class="math inline">\(\sigma_{i, t}\)</span></strong> — annualized volatility over the past 6 months. Higher = more risky.</li>
+<li><strong><span class="math inline">\(\text{mom\_scaled}\)</span></strong> — risk-adjusted momentum. A 10% gain on a high-vol ETF is less convincing than the same gain on a stable ETF.</li>
+<li><strong><span class="math inline">\(\text{defensive}\)</span></strong> — inverse volatility. A “stability score”; high values flag low-vol ETFs (bonds, income, defensive equities).</li>
+</ul>
+</section>
+<section id="feature-group-b-macro-conditional-interaction-features" class="level4">
+<h4 class="anchored" data-anchor-id="feature-group-b-macro-conditional-interaction-features">Feature group B: Macro-conditional interaction features</h4>
+<p>The 5 ETF-level features above tell the model <em>what each ETF has been doing</em>. They don’t tell it <em>what kind of environment that’s happening in</em>. Adding macro context is essential — but the way macros are encoded matters enormously, and the naive approach fails badly.</p>
+<p>Pure ETF features are regime-blind. A 10% rally looks the same whether it’s March 2020 (VIX screaming at 50, world on fire) or January 2024 (VIX chilling at 14, markets sipping piña coladas). Without macro context, the model is basically that friend who insists “all parties are the same” — which is why we had to teach it that a rave at 3 a.m. is not the same as a Sunday brunch. Enter macro interactions: multiplying ETF signals by z-scored macros so the model finally stops being socially oblivious.</p>
+<p>The obvious fix is to add macro variables as new columns to the panel:</p>
+<pre class="text"><code>panel columns (naive approach):
+  [mom_3_1, mom_6_1, vol_recent, mom_scaled, defensive,
+   vix_level, usdzar_mom6, us10y_mom6]</code></pre>
+<p>I tested this. It <em>hurt</em> performance by 2.6 to 4.3 percentage points of return across all three configurations.</p>
+<p>The reason is structural. Macro variables are <strong>identical across all ETFs at any given month</strong>. At month <span class="math inline">\(t\)</span>:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>ETF</th>
+<th style="text-align: center;"><span class="math inline">\(\text{mom}_{3-1}\)</span></th>
+<th style="text-align: center;"><span class="math inline">\(\text{VIX}_t\)</span></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>ETF A</td>
+<td style="text-align: center;">+0.10</td>
+<td style="text-align: center;">28.5</td>
+</tr>
+<tr class="even">
+<td>ETF B</td>
+<td style="text-align: center;">-0.05</td>
+<td style="text-align: center;">28.5</td>
+</tr>
+<tr class="odd">
+<td>ETF C</td>
+<td style="text-align: center;">+0.02</td>
+<td style="text-align: center;">28.5</td>
+</tr>
+</tbody>
+</table>
+<p>The VIX column has the same value for every ETF. A LightGBM split like “if vix_level &gt; 25, predict lower return” affects <em>every ETF identically</em> — it shifts the level of all predictions but doesn’t change the <strong>ranking</strong> of ETFs.</p>
+<p>Portfolio construction is fundamentally a <strong>cross-sectional</strong> problem: pick the top-K out of 70+ ETFs at each rebalance. What matters is which ETF outperforms others, not whether the average ETF will have a good or bad month. Standalone macros provide no help with ranking ETFs against each other.</p>
+<p>Feature importance analysis confirmed the failure point. Standalone macros accumulated <strong>57% of total LightGBM feature importance</strong>, crowding out the ETF-specific signals that actually drive selection. The model became a regime predictor instead of an ETF picker.</p>
+<p>The solution is to <strong>multiply</strong> each macro variable by an ETF-specific signal. Econometricians have been doing this since dinosaurs roamed the earth (okay, maybe since the 1970s), but slap a “feature engineering” label on it and suddenly it’s treated like the moon landing. The result is a feature that actually varies across ETFs at every timestep:</p>
+<p><span class="math display">\[
+\begin{aligned}
+\widetilde{x}_t &amp;= \dfrac{x_t - \bar{x}_{0:t}}{\text{std}(x_{0:t})} \quad
+  \text{(causal expanding z-score)} \\[6pt]
+\text{mom3\_x\_vix}_{i, t}     &amp;= \text{mom}_{3-1, i, t} \cdot \widetilde{\text{VIX}}_t \\
+\text{mom3\_x\_us10y}_{i, t}   &amp;= \text{mom}_{3-1, i, t} \cdot \widetilde{\Delta\text{US10Y}}_t \\
+\text{mom6\_x\_usdzar}_{i, t}  &amp;= \text{mom}_{6-1, i, t} \cdot \widetilde{\Delta\text{USDZAR}}_t \\
+\text{vol\_x\_vix}_{i, t}      &amp;= \sigma_{i, t} \cdot \widetilde{\text{VIX}}_t
+\end{aligned}
+\]</span></p>
+<p><strong>What each variable means:</strong></p>
+<ul>
+<li><strong><span class="math inline">\(\widetilde{x}_t\)</span></strong> — the z-score of macro variable <span class="math inline">\(x\)</span> at month <span class="math inline">\(t\)</span>, using only data through <span class="math inline">\(t\)</span> (expanding mean and standard deviation). A positive z-score means <span class="math inline">\(x\)</span> is above its historical average; negative means below.</li>
+<li><strong><span class="math inline">\(\widetilde{\text{VIX}}_t\)</span></strong> — VIX level relative to its own history. Positive = elevated global equity risk.</li>
+<li><strong><span class="math inline">\(\widetilde{\Delta\text{US10Y}}_t\)</span></strong> — 6-month change in US 10y yield, z-scored. Positive = rates rising fast (typically headwind for growth/duration-sensitive assets).</li>
+<li><strong><span class="math inline">\(\widetilde{\Delta\text{USDZAR}}_t\)</span></strong> — 6-month log change in USD/ZAR, z-scored. Positive = rand weakening (helps SA resources, hurts importers).</li>
+<li>The <strong>four interaction terms</strong> are each ETF-specific (because they contain an ETF-specific factor) AND regime-aware (because they contain a macro factor).</li>
+</ul>
+<p>Now look at the same panel example, but using the interaction column:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 16%">
+<col style="width: 27%">
+<col style="width: 27%">
+<col style="width: 27%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>ETF</th>
+<th style="text-align: center;"><span class="math inline">\(\text{mom}_{3-1}\)</span></th>
+<th style="text-align: center;"><span class="math inline">\(\widetilde{\text{VIX}}_t\)</span></th>
+<th style="text-align: center;"><span class="math inline">\(\text{mom3\_x\_vix}\)</span></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>ETF A</td>
+<td style="text-align: center;">+0.10</td>
+<td style="text-align: center;">+1.5</td>
+<td style="text-align: center;"><span class="math inline">\(+0.10 \times 1.5 = +0.15\)</span></td>
+</tr>
+<tr class="even">
+<td>ETF B</td>
+<td style="text-align: center;">-0.05</td>
+<td style="text-align: center;">+1.5</td>
+<td style="text-align: center;"><span class="math inline">\(-0.05 \times 1.5 = -0.075\)</span></td>
+</tr>
+<tr class="odd">
+<td>ETF C</td>
+<td style="text-align: center;">+0.02</td>
+<td style="text-align: center;">+1.5</td>
+<td style="text-align: center;"><span class="math inline">\(+0.02 \times 1.5 = +0.03\)</span></td>
+</tr>
+</tbody>
+</table>
+<p>The interaction column <strong>varies across ETFs</strong>. A tree split on this column produces different outcomes for different ETFs — exactly what we need for cross-sectional selection.</p>
+<section id="how-lightgbm-uses-these-features-for-selection" class="level5">
+<h5 class="anchored" data-anchor-id="how-lightgbm-uses-these-features-for-selection">How LightGBM uses these features for selection</h5>
+<p>LightGBM is a gradient-boosted tree model. Each tree learns a series of splits like:</p>
+<pre class="text"><code>if mom3_x_vix &lt; -0.05:
+    predict +1.2% (next-month return)
+else if mom3_x_vix &gt; 0.10:
+    predict -0.8%
+else:
+    predict +0.4%</code></pre>
+<p>These splits encode <strong>regime-conditional</strong> rules that pure momentum or standalone macros fundamentally cannot express:</p>
+<ul>
+<li>A split like “<span class="math inline">\(\text{mom3\_x\_vix} &gt; 0.10\)</span>” triggers only when <em>both</em> short-term momentum is positive <em>and</em> VIX is elevated (their product is large and positive). This is the “high-momentum-in-stress” bucket, which historically tends to mean-revert.</li>
+<li>The same split is dormant when the macro is neutral (<span class="math inline">\(\widetilde{\text{VIX}}_t \approx 0\)</span>): the product is near zero regardless of the ETF’s momentum, so the split doesn’t fire for any ETF.</li>
+<li>Different ETFs at the same timestep produce different values of <span class="math inline">\(\text{mom3\_x\_vix}\)</span> (because their <span class="math inline">\(\text{mom}_{3-1}\)</span> differs). So one ETF might end up in the “predict <span class="math inline">\(-0.8\%\)</span>” bucket while another ends up in “predict <span class="math inline">\(+1.2\%\)</span>” — directly creating a <strong>cross-sectional ranking signal</strong>.</li>
+</ul>
+<p>The end result: at each rebalance time, LightGBM produces an expected return <span class="math inline">\(\hat{\mu}_i\)</span> for every ETF that reflects <em>both</em> its ETF-specific behavior <em>and</em> the current macro regime. ETFs whose momentum signal “aligns with” the regime (e.g., strong momentum in a benign environment) get higher <span class="math inline">\(\hat{\mu}_i\)</span>. ETFs whose signal “fights” the regime (e.g., strong momentum during stress) get lower <span class="math inline">\(\hat{\mu}_i\)</span> — even if their pure momentum is the same.</p>
+<p>This regime-conditional forecast then flows <strong>unchanged</strong> through Steps 2-4. ACI, Black-Litterman, and Top-K selection all operate on <span class="math inline">\(\hat{\mu}_i\)</span> and <span class="math inline">\(\hat{q}_i\)</span> values — they don’t need to know about macros, because the macro information is already baked into those predictions.</p>
+<p>The four chosen interactions each have an economic story:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Interaction</th>
+<th>Economic intuition</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">\(\text{mom}_{3-1} \times \widetilde{\text{VIX}}\)</span></td>
+<td>High short-momentum during high-vol regimes tends to mean-revert</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(\text{mom}_{3-1} \times \widetilde{\Delta\text{US10Y}}\)</span></td>
+<td>Rising rates penalize rate-sensitive picks; flat rates do not</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\(\text{mom}_{6-1} \times \widetilde{\Delta\text{USDZAR}}\)</span></td>
+<td>Rand-weakening helps ZAR-exposed picks (resources) and hurts others</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(\sigma \times \widetilde{\text{VIX}}\)</span></td>
+<td>High-vol assets in a high global-vol regime are doubly exposed</td>
+</tr>
+</tbody>
+</table>
+<p>I don’t bother including Brent crude, GDP, inflation, or interest rate interactions — even though I freaking sourced them and tried. In my tests, they added about as much predictive value as a horoscope. Their moves in the model is basically just USD/ZAR and VIX in disguise, so the information was already absorbed. In other words, throwing them in would be like adding extra garlic to a dish that’s already 90% garlic: technically possible, but nobody’s going to thank you for it.</p>
+</section>
+</section>
+<section id="training-three-lightgbm-models" class="level4">
+<h4 class="anchored" data-anchor-id="training-three-lightgbm-models">Training three LightGBM models</h4>
+<p>I pool all observations into a single panel and train three gradient-boosted tree models:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Model</th>
+<th>Objective</th>
+<th>What it predicts</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>m_mean</code></td>
+<td>Regression (squared loss)</td>
+<td>Expected return <span class="math inline">\(\hat{\mu}_i\)</span></td>
+</tr>
+<tr class="even">
+<td><code>m_lo</code></td>
+<td>Quantile, <span class="math inline">\(\alpha = 0.10\)</span></td>
+<td>10th percentile <span class="math inline">\(\hat{q}_{i, 0.1}\)</span></td>
+</tr>
+<tr class="odd">
+<td><code>m_hi</code></td>
+<td>Quantile, <span class="math inline">\(\alpha = 0.90\)</span></td>
+<td>90th percentile <span class="math inline">\(\hat{q}_{i, 0.9}\)</span></td>
+</tr>
+</tbody>
+</table>
+<p>Hyperparameters: 300 trees, max_depth=4, learning_rate=0.03, num_leaves=15, min_child_samples=30, mild L1/L2 regularization.</p>
+<p><strong>Why three models?</strong> The mean prediction <span class="math inline">\(\hat{\mu}_i\)</span> tells us <em>what we expect</em> the next monthly return to be. The 10th and 90th percentile predictions bracket the range of plausible outcomes. The wider this bracket, the less confident the model is about the prediction — which is critical information for the Bayesian step that follows.</p>
+</section>
+</section>
+<section id="step-2-adaptive-conformal-inference-aci" class="level3">
+<h3 class="anchored" data-anchor-id="step-2-adaptive-conformal-inference-aci">Step 2: Adaptive Conformal Inference (ACI)</h3>
+<p>A naive 10-90 quantile interval covers 80% of observations <em>only if the model is well-calibrated</em>. But monthly returns are non-stationary: the model will be over- or under-confident depending on regime.</p>
+<p>ACI <a href="https://arxiv.org/abs/2106.00170">(Gibbs &amp; Candès, 2021)</a> adjusts the effective <span class="math inline">\(\alpha\)</span> over time so that long-run coverage matches the target:</p>
+<p><span class="math display">\[
+\alpha_{t+1} = \alpha_t + \gamma \cdot \left( \alpha^{*} - \mathbb{1}\{y_t \notin C_t\} \right)
+\]</span></p>
+<p><strong>What each variable means:</strong></p>
+<ul>
+<li><strong><span class="math inline">\(\alpha^{*}\)</span></strong> — target miscoverage rate. We use <span class="math inline">\(\alpha^{*} = 0.20\)</span>, i.e.&nbsp;we want the interval to <em>fail</em> 20% of the time on average (equivalent to 80% coverage).</li>
+<li><strong><span class="math inline">\(\alpha_t\)</span></strong> — the <em>effective</em> miscoverage we’re using at time <span class="math inline">\(t\)</span>. Starts at <span class="math inline">\(\alpha^{*}\)</span> and adapts.</li>
+<li><strong><span class="math inline">\(\mathbb{1}\{y_t \notin C_t\}\)</span></strong> — indicator that equals 1 if the actual return <span class="math inline">\(y_t\)</span> fell <em>outside</em> the previous interval <span class="math inline">\(C_t\)</span>, and 0 if it was inside.</li>
+<li><strong><span class="math inline">\(\gamma\)</span></strong> — adaptation step size. We use <span class="math inline">\(\gamma = 0.02\)</span>. Small enough to be smooth, large enough to adapt within a few months.</li>
+<li><strong>The intuition</strong>: if the interval keeps missing (<span class="math inline">\(\mathbb{1} = 1\)</span> often), <span class="math inline">\(\alpha_t\)</span> decreases → wider intervals are demanded. If the interval keeps covering (<span class="math inline">\(\mathbb{1} = 0\)</span> often), <span class="math inline">\(\alpha_t\)</span> increases → tighter intervals are allowed.</li>
+</ul>
+<p>The width adjustment <span class="math inline">\(\hat{Q}_t\)</span> is the empirical quantile (at level <span class="math inline">\(1 - \alpha_t\)</span>) of recent <em>non-conformity scores</em> — how much each recent observation fell outside the predicted interval. The calibrated interval becomes:</p>
+<p><span class="math display">\[
+C_t = \left[\hat{q}_{i, 0.1} - \hat{Q}_t,\; \hat{q}_{i, 0.9} + \hat{Q}_t\right]
+\]</span></p>
+<p>This is the interval the next step (Black-Litterman) uses as the “uncertainty” attached to each view.</p>
+</section>
+<section id="step-3-black-litterman-posterior" class="level3">
+<h3 class="anchored" data-anchor-id="step-3-black-litterman-posterior">Step 3: Black-Litterman posterior</h3>
+<p>Raw LightGBM forecasts are noisy — like a toddler with a drum set. Black‑Litterman steps in like the responsible adult, combining them with a market equilibrium prior in a Bayesian way. Think of it as noise‑canceling headphones for your portfolio: the forecasts are still banging away in the background, but now they’re blended with something sensible so you don’t lose your mind (or your Sharpe ratio).</p>
+<p><span class="math display">\[
+\mu_{BL} = \left[(\tau\Sigma)^{-1} + \Omega^{-1}\right]^{-1}
+           \left[(\tau\Sigma)^{-1}\pi + \Omega^{-1}\hat{\mu}\right]
+\]</span></p>
+<p><strong>What each variable means:</strong></p>
+<ul>
+<li><strong><span class="math inline">\(\mu_{BL}\)</span></strong> — the posterior expected return vector (one number per ETF). This is what Step 4 uses to rank ETFs.</li>
+<li><strong><span class="math inline">\(\hat{\mu}\)</span></strong> — the raw mean prediction from LightGBM (the “views”). This is what it <em>think</em> will happen, but it’s noisy.</li>
+<li><strong><span class="math inline">\(\pi = \delta \Sigma w_{\text{mkt}}\)</span></strong> — the equilibrium return vector. It’s what returns <em>would have to be</em> for the current market weights to make sense given risk aversion <span class="math inline">\(\delta\)</span>.
+<ul>
+<li><strong><span class="math inline">\(\delta = 2.5\)</span></strong> — risk-aversion coefficient (standard textbook value)</li>
+<li><strong><span class="math inline">\(w_{\text{mkt}}\)</span></strong> — equal-weighted market portfolio (we don’t have market caps for all ETFs, so equal-weighted is the neutral prior)</li>
+</ul></li>
+<li><strong><span class="math inline">\(\Sigma\)</span></strong> — the covariance matrix of ETF returns, estimated using the past 36 months with 20% diagonal shrinkage (Ledoit-Wolf style, to stabilize the inverse when some pairs lack overlap).</li>
+<li><strong><span class="math inline">\(\tau = 0.05\)</span></strong> — scaling parameter. Small <span class="math inline">\(\tau\)</span> means the prior is “tight” (we trust the equilibrium more); large <span class="math inline">\(\tau\)</span> means the prior is “loose” (we trust the views more).</li>
+<li><strong><span class="math inline">\(\Omega = \text{diag}(\text{view\_std}^2)\)</span></strong> — diagonal matrix of view uncertainties, derived from the ACI-calibrated interval widths. When ACI says “the interval is wide right now,” <span class="math inline">\(\Omega\)</span> is large and the views get down-weighted.</li>
+</ul>
+<p><strong>Intuition</strong>: <span class="math inline">\(\mu_{BL}\)</span> is a precision-weighted average of the prior <span class="math inline">\(\pi\)</span> and the views <span class="math inline">\(\hat{\mu}\)</span>. Where ACI says the views are reliable, <span class="math inline">\(\mu_{BL}\)</span> leans toward <span class="math inline">\(\hat{\mu}\)</span>. Where ACI says the views are unreliable, <span class="math inline">\(\mu_{BL}\)</span> leans toward <span class="math inline">\(\pi\)</span>. This is a principled way to shrink noisy forecasts toward a sensible baseline.</p>
+</section>
+<section id="step-4-top-k-equal-weight-optional-defensive-sleeve" class="level3">
+<h3 class="anchored" data-anchor-id="step-4-top-k-equal-weight-optional-defensive-sleeve">Step 4: Top-K equal weight (+ optional defensive sleeve)</h3>
+<p>The portfolio is built in two lines. Step 1, rank ETFs by <span class="math inline">\(\mu_{BL}\)</span> and equal-weight the top <span class="math inline">\(K\)</span>:</p>
+<p><span class="math display">\[
+\text{top}_K = \text{argsort}(-\mu_{BL})[:K], \quad
+w_i^{\text{equity}} = \frac{1}{K} \cdot \mathbb{1}\{i \in \text{top}_K\}
+\]</span></p>
+<p><strong>What each variable means:</strong></p>
+<ul>
+<li><strong><span class="math inline">\(\mu_{BL}\)</span></strong> — the Black-Litterman posterior expected returns from Step 3</li>
+<li><strong><span class="math inline">\(\text{argsort}(-\mu_{BL})\)</span></strong> — index permutation that sorts ETFs from highest expected return to lowest</li>
+<li><strong><span class="math inline">\([:K]\)</span></strong> — keep only the first <span class="math inline">\(K\)</span> (the top performers)</li>
+<li><strong><span class="math inline">\(\mathbb{1}\{i \in \text{top}_K\}\)</span></strong> — indicator: 1 if ETF <span class="math inline">\(i\)</span> is in the top-<span class="math inline">\(K\)</span>, 0 otherwise</li>
+</ul>
+<p>Step 2, optionally, reserve a fraction <span class="math inline">\(d\)</span> for a defensive asset:</p>
+<p><span class="math display">\[
+w_i^{\text{final}} =
+\begin{cases}
+(1 - d) \cdot w_i^{\text{equity}} + d &amp; \text{if } i = \text{STXNAM} \\[4pt]
+(1 - d) \cdot w_i^{\text{equity}} &amp; \text{otherwise}
+\end{cases}
+\]</span></p>
+<p><strong>What each variable means:</strong></p>
+<ul>
+<li><strong><span class="math inline">\(d\)</span></strong> — defensive fraction (0%, 25%, or 30% in my three configs)</li>
+<li><strong>STXNAM</strong> — Satrix S&amp;P Namibia Bond ETF (see “Why STXNAM” below)</li>
+</ul>
+</section>
+</section>
+<section id="three-configurations" class="level2">
+<h2 class="anchored" data-anchor-id="three-configurations">Three configurations</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Config</th>
+<th>K</th>
+<th>Defensive %</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>TopK</strong></td>
+<td>10</td>
+<td>0%</td>
+<td>Pure aggressive — top-10 ETFs at 10% each</td>
+</tr>
+<tr class="even">
+<td><strong>TopK8-Def25</strong></td>
+<td>8</td>
+<td>25% (STXNAM)</td>
+<td>Balanced — top-8 ETFs at 9.375% + 25% Namibian bonds</td>
+</tr>
+<tr class="odd">
+<td><strong>TopK-Def30</strong></td>
+<td>10</td>
+<td>30% (STXNAM)</td>
+<td>Defensive — top-10 ETFs at 7% + 30% Namibian bonds</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Why STXNAM?</strong> The Satrix S&amp;P Namibia Bond ETF was chosen as the defensive asset over more obvious candidates (STXILB inflation-linked bonds, ETFBND nominal bonds, ETFUSD US Treasuries) after head-to-head testing. The mechanism:</p>
+<ol type="1">
+<li>Namibia is in the Common Monetary Area — NAD is pegged 1:1 to ZAR, so there’s no FX risk for an SA investor.</li>
+<li>Namibian sovereign yields are typically higher than SA yields (lower credit rating + similar macro = higher carry).</li>
+<li>Different economic exposure (uranium and diamonds vs SA’s gold and platinum) provides genuine diversification.</li>
+<li>The macro-conditional model doesn’t pick STXNAM directly — it’s not a momentum-driven asset — but as a fixed allocation it adds material risk-adjusted return.</li>
+</ol>
+</section>
+<section id="results" class="level2">
+<h2 class="anchored" data-anchor-id="results">Results</h2>
+<p>After 23 quarterly rebalances (68 months out of sample, September 2020 to April 2026):</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="figures/fig_01_cumret.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<figcaption>Cumulative returns and drawdowns vs benchmarks</figcaption>
+</figure>
+</div>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 14%">
+<col style="width: 19%">
+<col style="width: 14%">
+<col style="width: 11%">
+<col style="width: 11%">
+<col style="width: 11%">
+<col style="width: 14%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Strategy</th>
+<th style="text-align: center;">Ann. Return</th>
+<th style="text-align: center;">Ann. Vol</th>
+<th style="text-align: center;">Sharpe</th>
+<th style="text-align: center;">Max DD</th>
+<th style="text-align: center;">Calmar</th>
+<th style="text-align: center;">Win Rate</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>TopK (pure)</strong></td>
+<td style="text-align: center;"><strong>19.84%</strong></td>
+<td style="text-align: center;">12.83%</td>
+<td style="text-align: center;"><strong>1.547</strong></td>
+<td style="text-align: center;">-10.77%</td>
+<td style="text-align: center;">1.843</td>
+<td style="text-align: center;">70.6%</td>
+</tr>
+<tr class="even">
+<td><strong>TopK8-Def25 (balanced)</strong></td>
+<td style="text-align: center;"><strong>17.94%</strong></td>
+<td style="text-align: center;">10.50%</td>
+<td style="text-align: center;"><strong>1.708</strong></td>
+<td style="text-align: center;">-7.90%</td>
+<td style="text-align: center;">2.270</td>
+<td style="text-align: center;">67.6%</td>
+</tr>
+<tr class="odd">
+<td><strong>TopK-Def30 (defensive)</strong></td>
+<td style="text-align: center;"><strong>17.18%</strong></td>
+<td style="text-align: center;">9.45%</td>
+<td style="text-align: center;"><strong>1.819</strong></td>
+<td style="text-align: center;">-6.36%</td>
+<td style="text-align: center;">2.700</td>
+<td style="text-align: center;">70.6%</td>
+</tr>
+<tr class="even">
+<td><em>Equal-Weight Benchmark</em></td>
+<td style="text-align: center;"><em>9.24%</em></td>
+<td style="text-align: center;"><em>9.23%</em></td>
+<td style="text-align: center;"><em>1.001</em></td>
+<td style="text-align: center;"><em>-10.93%</em></td>
+<td style="text-align: center;"><em>0.846</em></td>
+<td style="text-align: center;"><em>63.2%</em></td>
+</tr>
+<tr class="odd">
+<td><em>JSE Top 40 (avg)</em></td>
+<td style="text-align: center;"><em>10.75%</em></td>
+<td style="text-align: center;"><em>13.83%</em></td>
+<td style="text-align: center;"><em>0.777</em></td>
+<td style="text-align: center;"><em>-12.60%</em></td>
+<td style="text-align: center;"><em>0.853</em></td>
+<td style="text-align: center;"><em>61.8%</em></td>
+</tr>
+</tbody>
+</table>
+<p>All three configurations dominate both benchmarks across every metric that matters:</p>
+<ul>
+<li>vs JSE Top 40: pipeline wins by <strong>+6.4 to +9.1pp</strong> annualized; Sharpe is roughly 2 to 2.4x higher; max drawdown is half or less.</li>
+<li>vs Equal-Weight Benchmark: pipeline wins by <strong>+7.9 to +10.6pp</strong> on return; Sharpe ratios are 1.5 to 1.8x higher.</li>
+</ul>
+<p>After 23 quarterly rebalances, the pipeline crushed the JSE Top 40 so hard it probably owes it therapy. Annualized returns are +6.4 to +9.1 percentage points higher, Sharpe ratios are double, and drawdowns are half. Compounded, that’s turning R1 into R2.46–R2.79 while the Top 40 limps to R1.78. Translation: my “passive investing” looks suspiciously like active wizardry.</p>
+<section id="the-return-drawdown-trade-off" class="level3">
+<h3 class="anchored" data-anchor-id="the-return-drawdown-trade-off">The return-drawdown trade-off</h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="figures/fig_02_tradeoff.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<figcaption>Return vs max drawdown with iso-Calmar lines</figcaption>
+</figure>
+</div>
+<p>The chart shows the choice cleanly. The diagonal lines are iso-Calmar: points sitting on the same line have proportionally the same return-per-drawdown trade-off. The Top 40 sits at Calmar = 0.85. <strong>All three of my configurations are above Calmar = 1.8</strong> — the defensive configuration reaches 2.70, which is roughly 3.2x more return per unit of drawdown risk than the benchmark.</p>
+<p>The pure TopK gives up some Calmar (1.84) to chase return — but the absolute return advantage is +9.1pp over the Top 40 and +10.6pp over the Equal-Weight Benchmark.</p>
+</section>
+<section id="performance-vs-jse-top-40" class="level3">
+<h3 class="anchored" data-anchor-id="performance-vs-jse-top-40">Performance vs JSE Top 40</h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="figures/fig_04_vs_top40.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<figcaption>All three configurations vs JSE Top 40</figcaption>
+</figure>
+</div>
+<p>The active-return chart in the bottom panel shows cumulative outperformance vs Top 40 across the OOS window. All three configurations build a substantial and persistent lead from 2021 onwards.</p>
+<p>The pipeline’s compounding edge is most visible during stress periods:</p>
+<ul>
+<li><strong>2022 inflation-shock sell-off</strong> (Jan-Oct 2022): when Top 40 lost -7.4%, the macro-conditional defensive config lost only <strong>-1.78%</strong>, and the balanced config lost only -2.70%. The macro signals (rising rates, elevated VIX) flagged the regime change early and the model rotated away from interest-rate-sensitive picks.</li>
+<li><strong>Late-2024 SA-specific correction</strong> (Oct 2024-Feb 2025): when Top 40 lost -3.2%, the pipeline actually <em>gained</em> between +8.9% and +12.0%, because the macro signals were not flashing global risk-off even as SA-specific factors weighed on the index.</li>
+</ul>
+</section>
+</section>
+<section id="macro-impact-empirical-evidence" class="level2">
+<h2 class="anchored" data-anchor-id="macro-impact-empirical-evidence">Macro impact — empirical evidence</h2>
+<p>Step 1’s “feature group B” describes the <em>mechanics</em> of how macro interactions enter the model. This section quantifies the <em>contribution</em> of those features to the final results.</p>
+<p>To isolate the macro contribution cleanly, we re-run the entire pipeline <em>without</em> the 4 macro interaction features (using only the 5 ETF-level features) on the same 68-month OOS window. Steps 2-4 are identical; the only difference is which columns are in the LightGBM panel.</p>
+<section id="before-vs-after-same-oos-window" class="level3">
+<h3 class="anchored" data-anchor-id="before-vs-after-same-oos-window">Before vs after — same OOS window</h3>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 9%">
+<col style="width: 9%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Config</th>
+<th>Variant</th>
+<th style="text-align: center;">Ann. Return</th>
+<th style="text-align: center;">Ann. Vol</th>
+<th style="text-align: center;">Sharpe</th>
+<th style="text-align: center;">Max DD</th>
+<th style="text-align: center;">Calmar</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>TopK</strong></td>
+<td>Baseline (no macro)</td>
+<td style="text-align: center;">15.88%</td>
+<td style="text-align: center;">15.31%</td>
+<td style="text-align: center;">1.037</td>
+<td style="text-align: center;">-23.47%</td>
+<td style="text-align: center;">0.677</td>
+</tr>
+<tr class="even">
+<td></td>
+<td><strong>With macro interactions</strong></td>
+<td style="text-align: center;"><strong>19.84%</strong></td>
+<td style="text-align: center;"><strong>12.83%</strong></td>
+<td style="text-align: center;"><strong>1.547</strong></td>
+<td style="text-align: center;"><strong>-10.77%</strong></td>
+<td style="text-align: center;"><strong>1.843</strong></td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>Δ</td>
+<td style="text-align: center;"><strong>+3.96pp</strong></td>
+<td style="text-align: center;">-2.48pp</td>
+<td style="text-align: center;"><strong>+0.510</strong></td>
+<td style="text-align: center;"><strong>+12.70pp</strong></td>
+<td style="text-align: center;"><strong>+1.166</strong></td>
+</tr>
+<tr class="even">
+<td><strong>TopK8-Def25</strong></td>
+<td>Baseline (no macro)</td>
+<td style="text-align: center;">15.63%</td>
+<td style="text-align: center;">12.86%</td>
+<td style="text-align: center;">1.216</td>
+<td style="text-align: center;">-17.52%</td>
+<td style="text-align: center;">0.892</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td><strong>With macro interactions</strong></td>
+<td style="text-align: center;"><strong>17.94%</strong></td>
+<td style="text-align: center;"><strong>10.50%</strong></td>
+<td style="text-align: center;"><strong>1.708</strong></td>
+<td style="text-align: center;"><strong>-7.90%</strong></td>
+<td style="text-align: center;"><strong>2.270</strong></td>
+</tr>
+<tr class="even">
+<td></td>
+<td>Δ</td>
+<td style="text-align: center;"><strong>+2.31pp</strong></td>
+<td style="text-align: center;">-2.36pp</td>
+<td style="text-align: center;"><strong>+0.492</strong></td>
+<td style="text-align: center;"><strong>+9.62pp</strong></td>
+<td style="text-align: center;"><strong>+1.378</strong></td>
+</tr>
+<tr class="odd">
+<td><strong>TopK-Def30</strong></td>
+<td>Baseline (no macro)</td>
+<td style="text-align: center;">14.52%</td>
+<td style="text-align: center;">11.36%</td>
+<td style="text-align: center;">1.278</td>
+<td style="text-align: center;">-15.51%</td>
+<td style="text-align: center;">0.936</td>
+</tr>
+<tr class="even">
+<td></td>
+<td><strong>With macro interactions</strong></td>
+<td style="text-align: center;"><strong>17.18%</strong></td>
+<td style="text-align: center;"><strong>9.45%</strong></td>
+<td style="text-align: center;"><strong>1.819</strong></td>
+<td style="text-align: center;"><strong>-6.36%</strong></td>
+<td style="text-align: center;"><strong>2.700</strong></td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>Δ</td>
+<td style="text-align: center;"><strong>+2.66pp</strong></td>
+<td style="text-align: center;">-1.91pp</td>
+<td style="text-align: center;"><strong>+0.541</strong></td>
+<td style="text-align: center;"><strong>+9.15pp</strong></td>
+<td style="text-align: center;"><strong>+1.764</strong></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="where-the-gains-come-from-stress-regimes" class="level3">
+<h3 class="anchored" data-anchor-id="where-the-gains-come-from-stress-regimes">Where the gains come from — stress regimes</h3>
+<p>The improvement is concentrated in stress regimes, which is exactly what regime-conditional features should deliver:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 10%">
+<col style="width: 17%">
+<col style="width: 17%">
+<col style="width: 17%">
+<col style="width: 17%">
+<col style="width: 17%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Period</th>
+<th style="text-align: center;">TopK Baseline</th>
+<th style="text-align: center;">TopK Macro</th>
+<th style="text-align: center;">TopK8-Def25 Baseline</th>
+<th style="text-align: center;">TopK8-Def25 Macro</th>
+<th style="text-align: center;">Top 40</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>2022 rate shock (Jan-Oct)</td>
+<td style="text-align: center;">-18.31%</td>
+<td style="text-align: center;"><strong>-5.60%</strong></td>
+<td style="text-align: center;">-13.29%</td>
+<td style="text-align: center;"><strong>-2.70%</strong></td>
+<td style="text-align: center;">-7.41%</td>
+</tr>
+<tr class="even">
+<td>Late 2024 SA correction (Oct-Feb)</td>
+<td style="text-align: center;">+1.71%</td>
+<td style="text-align: center;"><strong>+11.99%</strong></td>
+<td style="text-align: center;">+1.32%</td>
+<td style="text-align: center;"><strong>+10.31%</strong></td>
+<td style="text-align: center;">-3.19%</td>
+</tr>
+</tbody>
+</table>
+<p>The 2022 rate shock is the cleanest test. The baseline pipeline lost almost three times what the JSE Top 40 lost (-18.31% vs -7.41%): its top-momentum picks were rate-sensitive growth ETFs that crashed when yields spiked. The macro version reduced these losses by 10-13 percentage points, actually outperforming the index during the worst of the rotation. The mechanism is exactly the one described in Step 1 — rising US 10y yields produced a positive <span class="math inline">\(\widetilde{\Delta\text{US10Y}}\)</span> z-score, which combined with positive momentum produced large positive <span class="math inline">\(\text{mom3\_x\_us10y}\)</span> values, which LightGBM had learned to associate with mean reversion.</p>
+<p>The late-2024 SA-specific correction is the inverse test. SA-only factors weighed on the JSE Top 40 (-3.19%) but global macro signals were <em>not</em> flashing risk-off — VIX was moderate, US rates were stable. The macro version correctly stayed exposed to globally-driven themes and <em>gained</em> between +8.88% and +11.99%, while the baseline pipeline captured almost none of the upside (+1.32% to +1.78%).</p>
+</section>
+<section id="holdings-the-balanced-configuration" class="level3">
+<h3 class="anchored" data-anchor-id="holdings-the-balanced-configuration">Holdings — the balanced configuration</h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="figures/fig_03_selection.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<figcaption>TopK8-Def25 selection grid</figcaption>
+</figure>
+</div>
+<p>The selection grid shows the model rotating through high-conviction themes: US Information Tech (<code>ETF5IT</code>, <code>STXNDQ</code>), Indian equity (<code>STXINDI</code>), South African resources (<code>STXRES</code>, <code>STXIND</code>), the 4IR theme (<code>SYG4IR</code>), and select South African REITs (<code>CSPROP</code>, <code>STXPRO</code>). STXNAM is pinned at 25% throughout.</p>
+<p>The 8 equity slots rotate substantially — typical turnover of 3-5 holdings per quarter. The pipeline is concentrated and active.</p>
+</section>
+</section>
+<section id="why-this-works-and-what-the-trade-offs-are" class="level2">
+<h2 class="anchored" data-anchor-id="why-this-works-and-what-the-trade-offs-are">Why this works — and what the trade-offs are</h2>
+<p>The architecture has a clean theoretical justification. Three steps of careful work to produce a robust forecast posterior.</p>
+<ul>
+<li><p><strong>Why TopK works:</strong> Because sometimes the smartest move is just “sort and slice.” Fancy optimizers love to overcomplicate things, but in small‑data land, simple beats clever.</p></li>
+<li><p><strong>Why the defensive sleeve helps:</strong> STXNAM bonds are like bubble wrap for your portfolio — they cushion the falls without smothering the gains.</p></li>
+<li><p><strong>Why macro interactions help:</strong> A 5% rally when VIX is 15 is a victory lap; the same rally when VIX is 35 is a panic sprint. The model needs to know the difference.</p></li>
+<li><p><strong>Weaknesses:</strong> It’s still equity‑tilted, so if the world goes full risk‑off, expect some bruises.</p></li>
+<li><p><strong>Limitations:</strong> The macro z‑scores need about six months to “learn the vibe,” so brand‑new regimes catch the model flat‑footed. The OOS window (Sep 2020 - Apr 2026) does NOT include the March 2020 COVID crash. This is simply due to data limitations.</p></li>
+<li><p><strong>Proof it works:</strong> In the 2022 rate shock, the defensive configs lost only ~‑2% while the JSE Top 40 dropped ‑7%. That’s not just surviving the storm — that’s sipping coffee while the neighbors’ roof blows off.</p></li>
+</ul>
+</section>
+<section id="what-i-tested-that-didnt-make-the-cut" class="level2">
+<h2 class="anchored" data-anchor-id="what-i-tested-that-didnt-make-the-cut">What I tested that didn’t make the cut</h2>
+<p>I have spent an insane amount of hours on this as the below attempts might show. So much in fact, my PC might join a union. I do have a day job so I can’t formally write-up everything I tried but here is the list with high-level results:</p>
+<ul>
+<li><strong>CVaR-MILP optimization</strong> — too conservative, gave away ~5pp of return.</li>
+<li><strong>Standalone macro features</strong> (raw levels and changes in the feature panel) — <em>hurt</em> returns by 2.6-4.3pp because they’re constant across ETFs and crowd out cross-sectional signals.</li>
+<li><strong>Monthly rebalancing</strong> (vs quarterly) — <em>hurt</em> returns by 0.8-1.6pp in choppy regimes; the whipsaw cost exceeded the rotation gain.</li>
+<li><strong>Multi-seed LightGBM ensembling</strong> — improved win rate slightly but cost return and drawdown.</li>
+<li><strong>Cross-sectional target demeaning</strong> — destroyed the magnitude signal that drives selection.</li>
+<li><strong>Volatility-targeting overlay</strong> — clean trade-off but no Sharpe gain.</li>
+<li><strong>Market trend filter</strong> (12-month) — too slow; triggered once un-productively.</li>
+<li><strong>Adaptive defensive sleeve</strong> (scales with realized vol) — added complexity without improving outcomes.</li>
+<li><strong>Different K values</strong> (number of ETFs allowed in the portfolio) — K=8 and K=10 are clear sweet spots; further extremes lose Sharpe without return gains.</li>
+<li><strong>Ridge / Random Forest / stacked mean-models</strong> — LightGBM is genuinely the right architecture for this conditional-on-regime signal.</li>
+<li><strong>Skipping Black-Litterman entirely</strong> — return drops 4-5pp; the Bayesian shrinkage genuinely helps.</li>
+<li><strong>Alternative defensive assets</strong> — ETFUSD (US Treasuries via ZAR) <em>hurt</em> performance significantly; INCOME (10X actively managed) was middling. STXNAM (Namibian bonds) was the decisive upgrade.</li>
+</ul>
+<p>The negative results are themselves informative. The architechture is at a sensible local optimum: more complexity, more features, more elaborate optimization, or fancier models all hurt rather than help.</p>
+</section>
+<section id="whats-left-worth-exploring" class="level2">
+<h2 class="anchored" data-anchor-id="whats-left-worth-exploring">What’s left worth exploring</h2>
+<p>Two genuinely untested levers remain.</p>
+<ul>
+<li><p><strong>Universe expansion to JSE-listed and international ETFs not just TFSA eligible ones</strong></p></li>
+<li><p><strong>Sector-aware concentration limits</strong></p></li>
+</ul>
+</section>
+<section id="do-i-actually-use-this" class="level2">
+<h2 class="anchored" data-anchor-id="do-i-actually-use-this">Do I actually use this?</h2>
+<p>Sort of.I have been tinkering with this idea for longer than I have had a TFSA. Quant stuff is my passion, but I don’t worship models like they’re crystal balls. For the past two years I’ve used this framework as one ingredient in my ETF recipe — with a few tilts and tweaks — because blind faith belongs in religion, not portfolio construction.</p>
+
+
+<!-- -->
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+    const viewSource = window.document.getElementById('quarto-view-source') ||
+                       window.document.getElementById('quarto-code-tools-source');
+    if (viewSource) {
+      const sourceUrl = viewSource.getAttribute("data-quarto-source-url");
+      viewSource.addEventListener("click", function(e) {
+        if (sourceUrl) {
+          // rstudio viewer pane
+          if (/\bcapabilities=\b/.test(window.location)) {
+            window.open(sourceUrl);
+          } else {
+            window.location.href = sourceUrl;
+          }
+        } else {
+          const modal = new bootstrap.Modal(document.getElementById('quarto-embedded-source-code-modal'));
+          modal.show();
+        }
+        return false;
+      });
+    }
+    function toggleCodeHandler(show) {
+      return function(e) {
+        const detailsSrc = window.document.querySelectorAll(".cell > details > .sourceCode");
+        for (let i=0; i<detailsSrc.length; i++) {
+          const details = detailsSrc[i].parentElement;
+          if (show) {
+            details.open = true;
+          } else {
+            details.removeAttribute("open");
+          }
+        }
+        const cellCodeDivs = window.document.querySelectorAll(".cell > .sourceCode");
+        const fromCls = show ? "hidden" : "unhidden";
+        const toCls = show ? "unhidden" : "hidden";
+        for (let i=0; i<cellCodeDivs.length; i++) {
+          const codeDiv = cellCodeDivs[i];
+          if (codeDiv.classList.contains(fromCls)) {
+            codeDiv.classList.remove(fromCls);
+            codeDiv.classList.add(toCls);
+          } 
+        }
+        return false;
+      }
+    }
+    const hideAllCode = window.document.getElementById("quarto-hide-all-code");
+    if (hideAllCode) {
+      hideAllCode.addEventListener("click", toggleCodeHandler(false));
+    }
+    const showAllCode = window.document.getElementById("quarto-show-all-code");
+    if (showAllCode) {
+      showAllCode.addEventListener("click", toggleCodeHandler(true));
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/rossouwvanjaarsveld-lang\.github\.io\/website");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script><div class="modal fade" id="quarto-embedded-source-code-modal" tabindex="-1" aria-labelledby="quarto-embedded-source-code-modal-label" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="quarto-embedded-source-code-modal-label">Source Code</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3" data-shortcodes="false"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="an">title:</span><span class="co"> "ML-Driven TFSA ETF Portfolio Optimization for EE"</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="an">date:</span><span class="co"> "2026-05-17"</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="an">categories:</span><span class="co"> [portfolio optimization, machine learning, quant finance]</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="an">description:</span><span class="co"> "A LightGBM + conformal + Black-Litterman pipeline on 73 SA ETFs with macro-conditional features, producing three risk-tiered portfolios that beat the JSE Top 40 by 6.4 to 9.1 percentage points annualized."</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="an">image:</span><span class="co"> thumbnail.png</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>::: {.callout-note}</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>This is not financial advice.</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>I’ve been working on this ETF-picking framework for so long that my code probably deserves anniversary flowers. When it comes to a TFSA, most people toss a couple of ETFs in there, let compounding do its quiet magic, and move on with their lives. Me? I went full nerd and built a machine-learning pipeline with macro-conditional features and Bayesian shrinkage. The payoff: a system that outpaces the JSE Top 40 by 6.4 to 9.1 percentage points annualized, with Sharpe ratios twice as high — all while I keep insisting this is “just passive investing”. Over-engineered retirement planning? Guilty as charged.</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>The **macro-conditional features** is the real star of the show. This lets the model learn that the</span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>same momentum reading means something different in a high-vol regime</span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>than in a calm one — a regime-dependence that pure momentum signals</span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>cannot capture. The sophistication lives entirely in the forecast — the rest is just me pretending I’m not running a glorified “sort and slice” function.</span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a><span class="fu">## Portfolio rules and caveats</span></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>An ETF only becomes eligible for selection when more than 6 months of data is available,</span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Rebalancing occurs at a quarterly frequency,</span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Only $K=8$ ETFs are allowed in the portfolio. If you can make it to the end of the post you will understand why.</span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>I am only considering ETFs that are eligible for TFSA and available on EE. Why? Because I’ve been hoarding data on them like a dragon sitting on a pile of CSV files.   </span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The out-of sample test is not nearly as long as I would like. It’s basically the financial equivalent of a movie trailer — just enough to get you excited, but not enough to prove the plot won’t collapse halfway through so please read the disclaimer up top again! </span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a><span class="fu">## Data</span></span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a>73 TFSA-listed ETFs from January 2019 to April 2026. The universe</span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a>spans six broad categories:</span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Category <span class="pp">|</span> Count <span class="pp">|</span></span>
+<span id="cb3-34"><a href="#cb3-34" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|</span></span>
+<span id="cb3-35"><a href="#cb3-35" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Global Equity <span class="pp">|</span> 30 <span class="pp">|</span></span>
+<span id="cb3-36"><a href="#cb3-36" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Local Equity <span class="pp">|</span> 18 <span class="pp">|</span></span>
+<span id="cb3-37"><a href="#cb3-37" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Local Income <span class="pp">|</span> 7 <span class="pp">|</span></span>
+<span id="cb3-38"><a href="#cb3-38" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Global Income <span class="pp">|</span> 5 <span class="pp">|</span></span>
+<span id="cb3-39"><a href="#cb3-39" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Global REIT <span class="pp">|</span> 4 <span class="pp">|</span></span>
+<span id="cb3-40"><a href="#cb3-40" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Local REIT <span class="pp">|</span> 3 <span class="pp">|</span></span>
+<span id="cb3-41"><a href="#cb3-41" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Multi-Asset / Other <span class="pp">|</span> 6 <span class="pp">|</span></span>
+<span id="cb3-42"><a href="#cb3-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-43"><a href="#cb3-43" aria-hidden="true" tabindex="-1"></a>I use three macro time series from FRED:</span>
+<span id="cb3-44"><a href="#cb3-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-45"><a href="#cb3-45" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Series <span class="pp">|</span> FRED ID <span class="pp">|</span> What it measures <span class="pp">|</span></span>
+<span id="cb3-46"><a href="#cb3-46" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|---|</span></span>
+<span id="cb3-47"><a href="#cb3-47" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> USD/ZAR exchange rate <span class="pp">|</span> <span class="in">`EXSFUS`</span> <span class="pp">|</span> Rand strength against the US dollar <span class="pp">|</span></span>
+<span id="cb3-48"><a href="#cb3-48" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> US 10-Year Treasury yield <span class="pp">|</span> <span class="in">`GS10`</span> <span class="pp">|</span> Global rate environment <span class="pp">|</span></span>
+<span id="cb3-49"><a href="#cb3-49" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> CBOE VIX <span class="pp">|</span> <span class="in">`VIXCLS`</span> (monthly avg) <span class="pp">|</span> Global equity risk sentiment <span class="pp">|</span></span>
+<span id="cb3-50"><a href="#cb3-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-51"><a href="#cb3-51" aria-hidden="true" tabindex="-1"></a>Monthly returns are computed from each ETF's total-return series. No cheating is allowed — features and forecasts at time $t$ only use</span>
+<span id="cb3-52"><a href="#cb3-52" aria-hidden="true" tabindex="-1"></a>data through $t$.</span>
+<span id="cb3-53"><a href="#cb3-53" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-54"><a href="#cb3-54" aria-hidden="true" tabindex="-1"></a>The JSE top40 benchmark is the average return of the JSE top 40 ETFs. The equal weighting benchmark is the result of buying every ETF (when they are available) and allocating equal weights.</span>
+<span id="cb3-55"><a href="#cb3-55" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-56"><a href="#cb3-56" aria-hidden="true" tabindex="-1"></a><span class="fu">## The pipeline</span></span>
+<span id="cb3-57"><a href="#cb3-57" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-58"><a href="#cb3-58" aria-hidden="true" tabindex="-1"></a>Four sequential steps. Steps 1-3 produce a calibrated posterior</span>
+<span id="cb3-59"><a href="#cb3-59" aria-hidden="true" tabindex="-1"></a>forecast of expected returns per ETF; Step 4 converts that into</span>
+<span id="cb3-60"><a href="#cb3-60" aria-hidden="true" tabindex="-1"></a>portfolio weights.</span>
+<span id="cb3-61"><a href="#cb3-61" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-62"><a href="#cb3-62" aria-hidden="true" tabindex="-1"></a><span class="fu">### Step 1: LightGBM panel forecast</span></span>
+<span id="cb3-63"><a href="#cb3-63" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-64"><a href="#cb3-64" aria-hidden="true" tabindex="-1"></a>I build a "panel" — one row per (ETF $i$, month $t$) combination —</span>
+<span id="cb3-65"><a href="#cb3-65" aria-hidden="true" tabindex="-1"></a>with **9 feature columns** plus the next-month return as the target.</span>
+<span id="cb3-66"><a href="#cb3-66" aria-hidden="true" tabindex="-1"></a>LightGBM is trained on this panel to predict expected return per ETF</span>
+<span id="cb3-67"><a href="#cb3-67" aria-hidden="true" tabindex="-1"></a>per month.</span>
+<span id="cb3-68"><a href="#cb3-68" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-69"><a href="#cb3-69" aria-hidden="true" tabindex="-1"></a>The 8 features split into two groups:</span>
+<span id="cb3-70"><a href="#cb3-70" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-71"><a href="#cb3-71" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Feature group A (5 features): ETF-level signals.** Tell the model</span>
+<span id="cb3-72"><a href="#cb3-72" aria-hidden="true" tabindex="-1"></a>  what each ETF has been doing — momentum, volatility, risk-adjusted</span>
+<span id="cb3-73"><a href="#cb3-73" aria-hidden="true" tabindex="-1"></a>  momentum, etc.</span>
+<span id="cb3-74"><a href="#cb3-74" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Feature group B (3 features): macro-conditional interactions.**</span>
+<span id="cb3-75"><a href="#cb3-75" aria-hidden="true" tabindex="-1"></a>  Tell the model what *kind of environment* the ETF is operating in.</span>
+<span id="cb3-76"><a href="#cb3-76" aria-hidden="true" tabindex="-1"></a>  These are the most important features in the pipeline.</span>
+<span id="cb3-77"><a href="#cb3-77" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-78"><a href="#cb3-78" aria-hidden="true" tabindex="-1"></a>The macro interactions are not optional add-ons — they are responsible</span>
+<span id="cb3-79"><a href="#cb3-79" aria-hidden="true" tabindex="-1"></a>for most of the pipeline's edge. </span>
+<span id="cb3-80"><a href="#cb3-80" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-81"><a href="#cb3-81" aria-hidden="true" tabindex="-1"></a><span class="fu">#### Feature group A: ETF-level features (5)</span></span>
+<span id="cb3-82"><a href="#cb3-82" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-83"><a href="#cb3-83" aria-hidden="true" tabindex="-1"></a>These describe each ETF's own price behaviour:</span>
+<span id="cb3-84"><a href="#cb3-84" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-85"><a href="#cb3-85" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb3-86"><a href="#cb3-86" aria-hidden="true" tabindex="-1"></a>\begin{aligned}</span>
+<span id="cb3-87"><a href="#cb3-87" aria-hidden="true" tabindex="-1"></a>\text{mom}_{6-1, i, t} &amp;= \sum_{s=t-6}^{t-1} \log(1 + r_{i, s}) <span class="sc">\\</span></span>
+<span id="cb3-88"><a href="#cb3-88" aria-hidden="true" tabindex="-1"></a>\text{mom}_{3-1, i, t} &amp;= \sum_{s=t-3}^{t-1} \log(1 + r_{i, s}) <span class="sc">\\</span></span>
+<span id="cb3-89"><a href="#cb3-89" aria-hidden="true" tabindex="-1"></a>\sigma_{i, t} &amp;= \sqrt{12} \cdot \text{stdev}(r_{i, t-5:t-1}) <span class="sc">\\</span></span>
+<span id="cb3-90"><a href="#cb3-90" aria-hidden="true" tabindex="-1"></a>\text{mom<span class="sc">\_</span>scaled}_{i, t} &amp;= \text{mom}_{6-1, i, t} \;/\; \sigma_{i, t} <span class="sc">\\</span></span>
+<span id="cb3-91"><a href="#cb3-91" aria-hidden="true" tabindex="-1"></a>\text{defensive}_{i, t} &amp;= 1 \;/\; \sigma_{i, t}</span>
+<span id="cb3-92"><a href="#cb3-92" aria-hidden="true" tabindex="-1"></a>\end{aligned}</span>
+<span id="cb3-93"><a href="#cb3-93" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb3-94"><a href="#cb3-94" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-95"><a href="#cb3-95" aria-hidden="true" tabindex="-1"></a>**What each variable means:**</span>
+<span id="cb3-96"><a href="#cb3-96" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-97"><a href="#cb3-97" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>$r_{i, s}$ — simple monthly return of ETF $i$ in month $s$</span>
+<span id="cb3-98"><a href="#cb3-98" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**$\text{mom}_{6-1}$** — 6-month log-return ending one month back.</span>
+<span id="cb3-99"><a href="#cb3-99" aria-hidden="true" tabindex="-1"></a>  Captures medium-term trend. The "$-1$" lag avoids using same-month</span>
+<span id="cb3-100"><a href="#cb3-100" aria-hidden="true" tabindex="-1"></a>  return as both feature and target.</span>
+<span id="cb3-101"><a href="#cb3-101" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**$\text{mom}_{3-1}$** — 3-month log-return ending one month back.</span>
+<span id="cb3-102"><a href="#cb3-102" aria-hidden="true" tabindex="-1"></a>  Captures shorter-term trend; reacts faster than the 6-month version.</span>
+<span id="cb3-103"><a href="#cb3-103" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**$\sigma_{i, t}$** — annualized volatility over the past 6 months.</span>
+<span id="cb3-104"><a href="#cb3-104" aria-hidden="true" tabindex="-1"></a>  Higher = more risky.</span>
+<span id="cb3-105"><a href="#cb3-105" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**$\text{mom\_scaled}$** — risk-adjusted momentum. A 10% gain on a</span>
+<span id="cb3-106"><a href="#cb3-106" aria-hidden="true" tabindex="-1"></a>  high-vol ETF is less convincing than the same gain on a stable ETF.</span>
+<span id="cb3-107"><a href="#cb3-107" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**$\text{defensive}$** — inverse volatility. A "stability score";</span>
+<span id="cb3-108"><a href="#cb3-108" aria-hidden="true" tabindex="-1"></a>  high values flag low-vol ETFs (bonds, income, defensive equities).</span>
+<span id="cb3-109"><a href="#cb3-109" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-110"><a href="#cb3-110" aria-hidden="true" tabindex="-1"></a><span class="fu">#### Feature group B: Macro-conditional interaction features</span></span>
+<span id="cb3-111"><a href="#cb3-111" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-112"><a href="#cb3-112" aria-hidden="true" tabindex="-1"></a>The 5 ETF-level features above tell the model *what each ETF has been</span>
+<span id="cb3-113"><a href="#cb3-113" aria-hidden="true" tabindex="-1"></a>doing*. They don't tell it *what kind of environment that's happening</span>
+<span id="cb3-114"><a href="#cb3-114" aria-hidden="true" tabindex="-1"></a>in*. Adding macro context is essential — but the way macros are</span>
+<span id="cb3-115"><a href="#cb3-115" aria-hidden="true" tabindex="-1"></a>encoded matters enormously, and the naive approach fails badly.</span>
+<span id="cb3-116"><a href="#cb3-116" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-117"><a href="#cb3-117" aria-hidden="true" tabindex="-1"></a>Pure ETF features are regime-blind. A 10% rally looks the same whether it’s March 2020 (VIX screaming at 50, world on fire) or January 2024 (VIX chilling at 14, markets sipping piña coladas). Without macro context, the model is basically that friend who insists “all parties are the same” — which is why we had to teach it that a rave at 3 a.m. is not the same as a Sunday brunch. Enter macro interactions: multiplying ETF signals by z-scored macros so the model finally stops being socially oblivious.</span>
+<span id="cb3-118"><a href="#cb3-118" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-119"><a href="#cb3-119" aria-hidden="true" tabindex="-1"></a>The obvious fix is to add macro variables as new columns to the panel:</span>
+<span id="cb3-120"><a href="#cb3-120" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-121"><a href="#cb3-121" aria-hidden="true" tabindex="-1"></a><span class="in">```text</span></span>
+<span id="cb3-122"><a href="#cb3-122" aria-hidden="true" tabindex="-1"></a><span class="in">panel columns (naive approach):</span></span>
+<span id="cb3-123"><a href="#cb3-123" aria-hidden="true" tabindex="-1"></a><span class="in">  [mom_3_1, mom_6_1, vol_recent, mom_scaled, defensive,</span></span>
+<span id="cb3-124"><a href="#cb3-124" aria-hidden="true" tabindex="-1"></a><span class="in">   vix_level, usdzar_mom6, us10y_mom6]</span></span>
+<span id="cb3-125"><a href="#cb3-125" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb3-126"><a href="#cb3-126" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-127"><a href="#cb3-127" aria-hidden="true" tabindex="-1"></a>I tested this. It *hurt* performance by 2.6 to 4.3 percentage points</span>
+<span id="cb3-128"><a href="#cb3-128" aria-hidden="true" tabindex="-1"></a>of return across all three configurations.</span>
+<span id="cb3-129"><a href="#cb3-129" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-130"><a href="#cb3-130" aria-hidden="true" tabindex="-1"></a>The reason is structural. Macro variables are **identical across all</span>
+<span id="cb3-131"><a href="#cb3-131" aria-hidden="true" tabindex="-1"></a>ETFs at any given month**. At month $t$:</span>
+<span id="cb3-132"><a href="#cb3-132" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-133"><a href="#cb3-133" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> ETF <span class="pp">|</span> $\text{mom}_{3-1}$ <span class="pp">|</span> $\text{VIX}_t$ <span class="pp">|</span></span>
+<span id="cb3-134"><a href="#cb3-134" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|:---:|:---:|</span></span>
+<span id="cb3-135"><a href="#cb3-135" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> ETF A <span class="pp">|</span> +0.10 <span class="pp">|</span> 28.5 <span class="pp">|</span></span>
+<span id="cb3-136"><a href="#cb3-136" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> ETF B <span class="pp">|</span> -0.05 <span class="pp">|</span> 28.5 <span class="pp">|</span></span>
+<span id="cb3-137"><a href="#cb3-137" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> ETF C <span class="pp">|</span> +0.02 <span class="pp">|</span> 28.5 <span class="pp">|</span></span>
+<span id="cb3-138"><a href="#cb3-138" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-139"><a href="#cb3-139" aria-hidden="true" tabindex="-1"></a>The VIX column has the same value for every ETF. A LightGBM split like</span>
+<span id="cb3-140"><a href="#cb3-140" aria-hidden="true" tabindex="-1"></a>"if vix_level &gt; 25, predict lower return" affects *every ETF</span>
+<span id="cb3-141"><a href="#cb3-141" aria-hidden="true" tabindex="-1"></a>identically* — it shifts the level of all predictions but doesn't</span>
+<span id="cb3-142"><a href="#cb3-142" aria-hidden="true" tabindex="-1"></a>change the **ranking** of ETFs.</span>
+<span id="cb3-143"><a href="#cb3-143" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-144"><a href="#cb3-144" aria-hidden="true" tabindex="-1"></a>Portfolio construction is fundamentally a **cross-sectional**</span>
+<span id="cb3-145"><a href="#cb3-145" aria-hidden="true" tabindex="-1"></a>problem: pick the top-K out of 70+ ETFs at each rebalance. What</span>
+<span id="cb3-146"><a href="#cb3-146" aria-hidden="true" tabindex="-1"></a>matters is which ETF outperforms others, not whether the average ETF</span>
+<span id="cb3-147"><a href="#cb3-147" aria-hidden="true" tabindex="-1"></a>will have a good or bad month. Standalone macros provide no help with</span>
+<span id="cb3-148"><a href="#cb3-148" aria-hidden="true" tabindex="-1"></a>ranking ETFs against each other.</span>
+<span id="cb3-149"><a href="#cb3-149" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-150"><a href="#cb3-150" aria-hidden="true" tabindex="-1"></a>Feature importance analysis confirmed the failure point. Standalone</span>
+<span id="cb3-151"><a href="#cb3-151" aria-hidden="true" tabindex="-1"></a>macros accumulated **57% of total LightGBM feature importance**,</span>
+<span id="cb3-152"><a href="#cb3-152" aria-hidden="true" tabindex="-1"></a>crowding out the ETF-specific signals that actually drive selection.</span>
+<span id="cb3-153"><a href="#cb3-153" aria-hidden="true" tabindex="-1"></a>The model became a regime predictor instead of an ETF picker.</span>
+<span id="cb3-154"><a href="#cb3-154" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-155"><a href="#cb3-155" aria-hidden="true" tabindex="-1"></a>The solution is to **multiply** each macro variable by an ETF-specific</span>
+<span id="cb3-156"><a href="#cb3-156" aria-hidden="true" tabindex="-1"></a>signal. Econometricians have been doing this since dinosaurs roamed the earth (okay, maybe since the 1970s), but slap a “feature engineering” label on it and suddenly it’s treated like the moon landing. The result is a feature that actually varies across ETFs at every timestep:</span>
+<span id="cb3-157"><a href="#cb3-157" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-158"><a href="#cb3-158" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb3-159"><a href="#cb3-159" aria-hidden="true" tabindex="-1"></a>\begin{aligned}</span>
+<span id="cb3-160"><a href="#cb3-160" aria-hidden="true" tabindex="-1"></a>\widetilde{x}_t &amp;= \dfrac{x_t - \bar{x}_{0:t}}{\text{std}(x_{0:t})} \quad</span>
+<span id="cb3-161"><a href="#cb3-161" aria-hidden="true" tabindex="-1"></a>  \text{(causal expanding z-score)} <span class="sc">\\</span><span class="co">[</span><span class="ot">6pt</span><span class="co">]</span></span>
+<span id="cb3-162"><a href="#cb3-162" aria-hidden="true" tabindex="-1"></a>\text{mom3<span class="sc">\_</span>x<span class="sc">\_</span>vix}_{i, t}     &amp;= \text{mom}_{3-1, i, t} \cdot \widetilde{\text{VIX}}_t <span class="sc">\\</span></span>
+<span id="cb3-163"><a href="#cb3-163" aria-hidden="true" tabindex="-1"></a>\text{mom3<span class="sc">\_</span>x<span class="sc">\_</span>us10y}_{i, t}   &amp;= \text{mom}_{3-1, i, t} \cdot \widetilde{\Delta\text{US10Y}}_t <span class="sc">\\</span></span>
+<span id="cb3-164"><a href="#cb3-164" aria-hidden="true" tabindex="-1"></a>\text{mom6<span class="sc">\_</span>x<span class="sc">\_</span>usdzar}_{i, t}  &amp;= \text{mom}_{6-1, i, t} \cdot \widetilde{\Delta\text{USDZAR}}_t <span class="sc">\\</span></span>
+<span id="cb3-165"><a href="#cb3-165" aria-hidden="true" tabindex="-1"></a>\text{vol<span class="sc">\_</span>x<span class="sc">\_</span>vix}_{i, t}      &amp;= \sigma_{i, t} \cdot \widetilde{\text{VIX}}_t</span>
+<span id="cb3-166"><a href="#cb3-166" aria-hidden="true" tabindex="-1"></a>\end{aligned}</span>
+<span id="cb3-167"><a href="#cb3-167" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb3-168"><a href="#cb3-168" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-169"><a href="#cb3-169" aria-hidden="true" tabindex="-1"></a>**What each variable means:**</span>
+<span id="cb3-170"><a href="#cb3-170" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-171"><a href="#cb3-171" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**$\widetilde{x}_t$** — the z-score of macro variable $x$ at month</span>
+<span id="cb3-172"><a href="#cb3-172" aria-hidden="true" tabindex="-1"></a>  $t$, using only data through $t$ (expanding mean and standard</span>
+<span id="cb3-173"><a href="#cb3-173" aria-hidden="true" tabindex="-1"></a>  deviation). A positive z-score means $x$ is above its historical</span>
+<span id="cb3-174"><a href="#cb3-174" aria-hidden="true" tabindex="-1"></a>  average; negative means below.</span>
+<span id="cb3-175"><a href="#cb3-175" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**$\widetilde{\text{VIX}}_t$** — VIX level relative to its own</span>
+<span id="cb3-176"><a href="#cb3-176" aria-hidden="true" tabindex="-1"></a>  history. Positive = elevated global equity risk.</span>
+<span id="cb3-177"><a href="#cb3-177" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**$\widetilde{\Delta\text{US10Y}}_t$** — 6-month change in US 10y</span>
+<span id="cb3-178"><a href="#cb3-178" aria-hidden="true" tabindex="-1"></a>  yield, z-scored. Positive = rates rising fast (typically headwind</span>
+<span id="cb3-179"><a href="#cb3-179" aria-hidden="true" tabindex="-1"></a>  for growth/duration-sensitive assets).</span>
+<span id="cb3-180"><a href="#cb3-180" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**$\widetilde{\Delta\text{USDZAR}}_t$** — 6-month log change in</span>
+<span id="cb3-181"><a href="#cb3-181" aria-hidden="true" tabindex="-1"></a>  USD/ZAR, z-scored. Positive = rand weakening (helps SA resources,</span>
+<span id="cb3-182"><a href="#cb3-182" aria-hidden="true" tabindex="-1"></a>  hurts importers).</span>
+<span id="cb3-183"><a href="#cb3-183" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The **four interaction terms** are each ETF-specific (because they</span>
+<span id="cb3-184"><a href="#cb3-184" aria-hidden="true" tabindex="-1"></a>  contain an ETF-specific factor) AND regime-aware (because they</span>
+<span id="cb3-185"><a href="#cb3-185" aria-hidden="true" tabindex="-1"></a>  contain a macro factor).</span>
+<span id="cb3-186"><a href="#cb3-186" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-187"><a href="#cb3-187" aria-hidden="true" tabindex="-1"></a>Now look at the same panel example, but using the interaction column:</span>
+<span id="cb3-188"><a href="#cb3-188" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-189"><a href="#cb3-189" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> ETF <span class="pp">|</span> $\text{mom}_{3-1}$ <span class="pp">|</span> $\widetilde{\text{VIX}}_t$ <span class="pp">|</span> $\text{mom3<span class="sc">\_</span>x<span class="sc">\_</span>vix}$ <span class="pp">|</span></span>
+<span id="cb3-190"><a href="#cb3-190" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|:---:|:---:|:---:|</span></span>
+<span id="cb3-191"><a href="#cb3-191" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> ETF A <span class="pp">|</span> +0.10 <span class="pp">|</span> +1.5 <span class="pp">|</span> $+0.10 \times 1.5 = +0.15$ <span class="pp">|</span></span>
+<span id="cb3-192"><a href="#cb3-192" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> ETF B <span class="pp">|</span> -0.05 <span class="pp">|</span> +1.5 <span class="pp">|</span> $-0.05 \times 1.5 = -0.075$ <span class="pp">|</span></span>
+<span id="cb3-193"><a href="#cb3-193" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> ETF C <span class="pp">|</span> +0.02 <span class="pp">|</span> +1.5 <span class="pp">|</span> $+0.02 \times 1.5 = +0.03$ <span class="pp">|</span></span>
+<span id="cb3-194"><a href="#cb3-194" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-195"><a href="#cb3-195" aria-hidden="true" tabindex="-1"></a>The interaction column **varies across ETFs**. A tree split on this</span>
+<span id="cb3-196"><a href="#cb3-196" aria-hidden="true" tabindex="-1"></a>column produces different outcomes for different ETFs — exactly what</span>
+<span id="cb3-197"><a href="#cb3-197" aria-hidden="true" tabindex="-1"></a>we need for cross-sectional selection.</span>
+<span id="cb3-198"><a href="#cb3-198" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-199"><a href="#cb3-199" aria-hidden="true" tabindex="-1"></a><span class="fu">##### How LightGBM uses these features for selection</span></span>
+<span id="cb3-200"><a href="#cb3-200" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-201"><a href="#cb3-201" aria-hidden="true" tabindex="-1"></a>LightGBM is a gradient-boosted tree model. Each tree learns a series</span>
+<span id="cb3-202"><a href="#cb3-202" aria-hidden="true" tabindex="-1"></a>of splits like:</span>
+<span id="cb3-203"><a href="#cb3-203" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-204"><a href="#cb3-204" aria-hidden="true" tabindex="-1"></a><span class="in">```text</span></span>
+<span id="cb3-205"><a href="#cb3-205" aria-hidden="true" tabindex="-1"></a><span class="in">if mom3_x_vix &lt; -0.05:</span></span>
+<span id="cb3-206"><a href="#cb3-206" aria-hidden="true" tabindex="-1"></a><span class="in">    predict +1.2% (next-month return)</span></span>
+<span id="cb3-207"><a href="#cb3-207" aria-hidden="true" tabindex="-1"></a><span class="in">else if mom3_x_vix &gt; 0.10:</span></span>
+<span id="cb3-208"><a href="#cb3-208" aria-hidden="true" tabindex="-1"></a><span class="in">    predict -0.8%</span></span>
+<span id="cb3-209"><a href="#cb3-209" aria-hidden="true" tabindex="-1"></a><span class="in">else:</span></span>
+<span id="cb3-210"><a href="#cb3-210" aria-hidden="true" tabindex="-1"></a><span class="in">    predict +0.4%</span></span>
+<span id="cb3-211"><a href="#cb3-211" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb3-212"><a href="#cb3-212" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-213"><a href="#cb3-213" aria-hidden="true" tabindex="-1"></a>These splits encode **regime-conditional** rules that pure momentum or</span>
+<span id="cb3-214"><a href="#cb3-214" aria-hidden="true" tabindex="-1"></a>standalone macros fundamentally cannot express:</span>
+<span id="cb3-215"><a href="#cb3-215" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-216"><a href="#cb3-216" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>A split like "$\text{mom3<span class="sc">\_</span>x<span class="sc">\_</span>vix} &gt; 0.10$" triggers only when *both*</span>
+<span id="cb3-217"><a href="#cb3-217" aria-hidden="true" tabindex="-1"></a>  short-term momentum is positive *and* VIX is elevated (their product</span>
+<span id="cb3-218"><a href="#cb3-218" aria-hidden="true" tabindex="-1"></a>  is large and positive). This is the "high-momentum-in-stress"</span>
+<span id="cb3-219"><a href="#cb3-219" aria-hidden="true" tabindex="-1"></a>  bucket, which historically tends to mean-revert.</span>
+<span id="cb3-220"><a href="#cb3-220" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The same split is dormant when the macro is neutral</span>
+<span id="cb3-221"><a href="#cb3-221" aria-hidden="true" tabindex="-1"></a>  ($\widetilde{\text{VIX}}_t \approx 0$): the product is near zero</span>
+<span id="cb3-222"><a href="#cb3-222" aria-hidden="true" tabindex="-1"></a>  regardless of the ETF's momentum, so the split doesn't fire for any</span>
+<span id="cb3-223"><a href="#cb3-223" aria-hidden="true" tabindex="-1"></a>  ETF.</span>
+<span id="cb3-224"><a href="#cb3-224" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Different ETFs at the same timestep produce different values of</span>
+<span id="cb3-225"><a href="#cb3-225" aria-hidden="true" tabindex="-1"></a>  $\text{mom3<span class="sc">\_</span>x<span class="sc">\_</span>vix}$ (because their $\text{mom}_{3-1}$ differs).</span>
+<span id="cb3-226"><a href="#cb3-226" aria-hidden="true" tabindex="-1"></a>  So one ETF might end up in the "predict $-0.8\%$" bucket while</span>
+<span id="cb3-227"><a href="#cb3-227" aria-hidden="true" tabindex="-1"></a>  another ends up in "predict $+1.2\%$" — directly creating a</span>
+<span id="cb3-228"><a href="#cb3-228" aria-hidden="true" tabindex="-1"></a>  **cross-sectional ranking signal**.</span>
+<span id="cb3-229"><a href="#cb3-229" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-230"><a href="#cb3-230" aria-hidden="true" tabindex="-1"></a>The end result: at each rebalance time, LightGBM produces an expected</span>
+<span id="cb3-231"><a href="#cb3-231" aria-hidden="true" tabindex="-1"></a>return $\hat{\mu}_i$ for every ETF that reflects *both* its</span>
+<span id="cb3-232"><a href="#cb3-232" aria-hidden="true" tabindex="-1"></a>ETF-specific behavior *and* the current macro regime. ETFs whose</span>
+<span id="cb3-233"><a href="#cb3-233" aria-hidden="true" tabindex="-1"></a>momentum signal "aligns with" the regime (e.g., strong momentum in a</span>
+<span id="cb3-234"><a href="#cb3-234" aria-hidden="true" tabindex="-1"></a>benign environment) get higher $\hat{\mu}_i$. ETFs whose signal</span>
+<span id="cb3-235"><a href="#cb3-235" aria-hidden="true" tabindex="-1"></a>"fights" the regime (e.g., strong momentum during stress) get lower</span>
+<span id="cb3-236"><a href="#cb3-236" aria-hidden="true" tabindex="-1"></a>$\hat{\mu}_i$ — even if their pure momentum is the same.</span>
+<span id="cb3-237"><a href="#cb3-237" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-238"><a href="#cb3-238" aria-hidden="true" tabindex="-1"></a>This regime-conditional forecast then flows **unchanged** through</span>
+<span id="cb3-239"><a href="#cb3-239" aria-hidden="true" tabindex="-1"></a>Steps 2-4. ACI, Black-Litterman, and Top-K selection all operate on</span>
+<span id="cb3-240"><a href="#cb3-240" aria-hidden="true" tabindex="-1"></a>$\hat{\mu}_i$ and $\hat{q}_i$ values — they don't need to know about</span>
+<span id="cb3-241"><a href="#cb3-241" aria-hidden="true" tabindex="-1"></a>macros, because the macro information is already baked into those</span>
+<span id="cb3-242"><a href="#cb3-242" aria-hidden="true" tabindex="-1"></a>predictions.</span>
+<span id="cb3-243"><a href="#cb3-243" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-244"><a href="#cb3-244" aria-hidden="true" tabindex="-1"></a>The four chosen interactions each have an economic story:</span>
+<span id="cb3-245"><a href="#cb3-245" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-246"><a href="#cb3-246" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Interaction <span class="pp">|</span> Economic intuition <span class="pp">|</span></span>
+<span id="cb3-247"><a href="#cb3-247" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|</span></span>
+<span id="cb3-248"><a href="#cb3-248" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> $\text{mom}_{3-1} \times \widetilde{\text{VIX}}$ <span class="pp">|</span> High short-momentum during high-vol regimes tends to mean-revert <span class="pp">|</span></span>
+<span id="cb3-249"><a href="#cb3-249" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> $\text{mom}_{3-1} \times \widetilde{\Delta\text{US10Y}}$ <span class="pp">|</span> Rising rates penalize rate-sensitive picks; flat rates do not <span class="pp">|</span></span>
+<span id="cb3-250"><a href="#cb3-250" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> $\text{mom}_{6-1} \times \widetilde{\Delta\text{USDZAR}}$ <span class="pp">|</span> Rand-weakening helps ZAR-exposed picks (resources) and hurts others <span class="pp">|</span></span>
+<span id="cb3-251"><a href="#cb3-251" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> $\sigma \times \widetilde{\text{VIX}}$ <span class="pp">|</span> High-vol assets in a high global-vol regime are doubly exposed <span class="pp">|</span></span>
+<span id="cb3-252"><a href="#cb3-252" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-253"><a href="#cb3-253" aria-hidden="true" tabindex="-1"></a>I don’t bother including Brent crude, GDP, inflation, or interest rate interactions — even though I freaking sourced them and tried. In my tests, they added about as much predictive value as a horoscope. Their moves in the model is basically just USD/ZAR and VIX in disguise, so the information was already absorbed. In other words, throwing them in would be like adding extra garlic to a dish that’s already 90% garlic: technically possible, but nobody’s going to thank you for it.</span>
+<span id="cb3-254"><a href="#cb3-254" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-255"><a href="#cb3-255" aria-hidden="true" tabindex="-1"></a><span class="fu">#### Training three LightGBM models</span></span>
+<span id="cb3-256"><a href="#cb3-256" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-257"><a href="#cb3-257" aria-hidden="true" tabindex="-1"></a>I pool all observations into a single panel and train</span>
+<span id="cb3-258"><a href="#cb3-258" aria-hidden="true" tabindex="-1"></a>three gradient-boosted tree models:</span>
+<span id="cb3-259"><a href="#cb3-259" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-260"><a href="#cb3-260" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Model <span class="pp">|</span> Objective <span class="pp">|</span> What it predicts <span class="pp">|</span></span>
+<span id="cb3-261"><a href="#cb3-261" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|---|</span></span>
+<span id="cb3-262"><a href="#cb3-262" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`m_mean`</span> <span class="pp">|</span> Regression (squared loss) <span class="pp">|</span> Expected return $\hat{\mu}_i$ <span class="pp">|</span></span>
+<span id="cb3-263"><a href="#cb3-263" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`m_lo`</span> <span class="pp">|</span> Quantile, $\alpha = 0.10$ <span class="pp">|</span> 10th percentile $\hat{q}_{i, 0.1}$ <span class="pp">|</span></span>
+<span id="cb3-264"><a href="#cb3-264" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`m_hi`</span> <span class="pp">|</span> Quantile, $\alpha = 0.90$ <span class="pp">|</span> 90th percentile $\hat{q}_{i, 0.9}$ <span class="pp">|</span></span>
+<span id="cb3-265"><a href="#cb3-265" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-266"><a href="#cb3-266" aria-hidden="true" tabindex="-1"></a>Hyperparameters: 300 trees, max_depth=4, learning_rate=0.03,</span>
+<span id="cb3-267"><a href="#cb3-267" aria-hidden="true" tabindex="-1"></a>num_leaves=15, min_child_samples=30, mild L1/L2 regularization.</span>
+<span id="cb3-268"><a href="#cb3-268" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-269"><a href="#cb3-269" aria-hidden="true" tabindex="-1"></a>**Why three models?** The mean prediction $\hat{\mu}_i$ tells us *what</span>
+<span id="cb3-270"><a href="#cb3-270" aria-hidden="true" tabindex="-1"></a>we expect* the next monthly return to be. The 10th and 90th percentile</span>
+<span id="cb3-271"><a href="#cb3-271" aria-hidden="true" tabindex="-1"></a>predictions bracket the range of plausible outcomes. The wider this</span>
+<span id="cb3-272"><a href="#cb3-272" aria-hidden="true" tabindex="-1"></a>bracket, the less confident the model is about the prediction — which</span>
+<span id="cb3-273"><a href="#cb3-273" aria-hidden="true" tabindex="-1"></a>is critical information for the Bayesian step that follows.</span>
+<span id="cb3-274"><a href="#cb3-274" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-275"><a href="#cb3-275" aria-hidden="true" tabindex="-1"></a><span class="fu">### Step 2: Adaptive Conformal Inference (ACI)</span></span>
+<span id="cb3-276"><a href="#cb3-276" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-277"><a href="#cb3-277" aria-hidden="true" tabindex="-1"></a>A naive 10-90 quantile interval covers 80% of observations *only if</span>
+<span id="cb3-278"><a href="#cb3-278" aria-hidden="true" tabindex="-1"></a>the model is well-calibrated*. But monthly returns are</span>
+<span id="cb3-279"><a href="#cb3-279" aria-hidden="true" tabindex="-1"></a>non-stationary: the model will be over- or under-confident depending</span>
+<span id="cb3-280"><a href="#cb3-280" aria-hidden="true" tabindex="-1"></a>on regime.</span>
+<span id="cb3-281"><a href="#cb3-281" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-282"><a href="#cb3-282" aria-hidden="true" tabindex="-1"></a>ACI <span class="co">[</span><span class="ot">(Gibbs &amp; Candès, 2021)</span><span class="co">](https://arxiv.org/abs/2106.00170)</span> adjusts</span>
+<span id="cb3-283"><a href="#cb3-283" aria-hidden="true" tabindex="-1"></a>the effective $\alpha$ over time so that long-run coverage matches the</span>
+<span id="cb3-284"><a href="#cb3-284" aria-hidden="true" tabindex="-1"></a>target:</span>
+<span id="cb3-285"><a href="#cb3-285" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-286"><a href="#cb3-286" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb3-287"><a href="#cb3-287" aria-hidden="true" tabindex="-1"></a>\alpha_{t+1} = \alpha_t + \gamma \cdot \left( \alpha^{*} - \mathbb{1}<span class="sc">\{</span>y_t \notin C_t<span class="sc">\}</span> \right)</span>
+<span id="cb3-288"><a href="#cb3-288" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb3-289"><a href="#cb3-289" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-290"><a href="#cb3-290" aria-hidden="true" tabindex="-1"></a>**What each variable means:**</span>
+<span id="cb3-291"><a href="#cb3-291" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-292"><a href="#cb3-292" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**$\alpha^{*}$** — target miscoverage rate. We use $\alpha^{*} = 0.20$,</span>
+<span id="cb3-293"><a href="#cb3-293" aria-hidden="true" tabindex="-1"></a>  i.e. we want the interval to *fail* 20% of the time on average</span>
+<span id="cb3-294"><a href="#cb3-294" aria-hidden="true" tabindex="-1"></a>  (equivalent to 80% coverage).</span>
+<span id="cb3-295"><a href="#cb3-295" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**$\alpha_t$** — the *effective* miscoverage we're using at time $t$.</span>
+<span id="cb3-296"><a href="#cb3-296" aria-hidden="true" tabindex="-1"></a>  Starts at $\alpha^{*}$ and adapts.</span>
+<span id="cb3-297"><a href="#cb3-297" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**$\mathbb{1}\{y_t \notin C_t\}$** — indicator that equals 1 if the</span>
+<span id="cb3-298"><a href="#cb3-298" aria-hidden="true" tabindex="-1"></a>  actual return $y_t$ fell *outside* the previous interval $C_t$, and</span>
+<span id="cb3-299"><a href="#cb3-299" aria-hidden="true" tabindex="-1"></a>  0 if it was inside.</span>
+<span id="cb3-300"><a href="#cb3-300" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**$\gamma$** — adaptation step size. We use $\gamma = 0.02$. Small</span>
+<span id="cb3-301"><a href="#cb3-301" aria-hidden="true" tabindex="-1"></a>  enough to be smooth, large enough to adapt within a few months.</span>
+<span id="cb3-302"><a href="#cb3-302" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**The intuition**: if the interval keeps missing ($\mathbb{1} = 1$</span>
+<span id="cb3-303"><a href="#cb3-303" aria-hidden="true" tabindex="-1"></a>  often), $\alpha_t$ decreases → wider intervals are demanded. If the</span>
+<span id="cb3-304"><a href="#cb3-304" aria-hidden="true" tabindex="-1"></a>  interval keeps covering ($\mathbb{1} = 0$ often), $\alpha_t$</span>
+<span id="cb3-305"><a href="#cb3-305" aria-hidden="true" tabindex="-1"></a>  increases → tighter intervals are allowed.</span>
+<span id="cb3-306"><a href="#cb3-306" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-307"><a href="#cb3-307" aria-hidden="true" tabindex="-1"></a>The width adjustment $\hat{Q}_t$ is the empirical quantile (at level</span>
+<span id="cb3-308"><a href="#cb3-308" aria-hidden="true" tabindex="-1"></a>$1 - \alpha_t$) of recent *non-conformity scores* — how much each</span>
+<span id="cb3-309"><a href="#cb3-309" aria-hidden="true" tabindex="-1"></a>recent observation fell outside the predicted interval. The calibrated</span>
+<span id="cb3-310"><a href="#cb3-310" aria-hidden="true" tabindex="-1"></a>interval becomes:</span>
+<span id="cb3-311"><a href="#cb3-311" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-312"><a href="#cb3-312" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb3-313"><a href="#cb3-313" aria-hidden="true" tabindex="-1"></a>C_t = \left<span class="co">[</span><span class="ot">\hat{q}_{i, 0.1} - \hat{Q}_t,\; \hat{q}_{i, 0.9} + \hat{Q}_t\right</span><span class="co">]</span></span>
+<span id="cb3-314"><a href="#cb3-314" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb3-315"><a href="#cb3-315" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-316"><a href="#cb3-316" aria-hidden="true" tabindex="-1"></a>This is the interval the next step (Black-Litterman) uses as the</span>
+<span id="cb3-317"><a href="#cb3-317" aria-hidden="true" tabindex="-1"></a>"uncertainty" attached to each view.</span>
+<span id="cb3-318"><a href="#cb3-318" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-319"><a href="#cb3-319" aria-hidden="true" tabindex="-1"></a><span class="fu">### Step 3: Black-Litterman posterior</span></span>
+<span id="cb3-320"><a href="#cb3-320" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-321"><a href="#cb3-321" aria-hidden="true" tabindex="-1"></a>Raw LightGBM forecasts are noisy — like a toddler with a drum set. Black‑Litterman steps in like the responsible adult, combining them with a market equilibrium prior in a Bayesian way. Think of it as noise‑canceling headphones for your portfolio: the forecasts are still banging away in the background, but now they’re blended with something sensible so you don’t lose your mind (or your Sharpe ratio).</span>
+<span id="cb3-322"><a href="#cb3-322" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-323"><a href="#cb3-323" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb3-324"><a href="#cb3-324" aria-hidden="true" tabindex="-1"></a>\mu_{BL} = \left<span class="co">[</span><span class="ot">(\tau\Sigma)^{-1} + \Omega^{-1}\right</span><span class="co">]</span>^{-1}</span>
+<span id="cb3-325"><a href="#cb3-325" aria-hidden="true" tabindex="-1"></a>           \left<span class="co">[</span><span class="ot">(\tau\Sigma)^{-1}\pi + \Omega^{-1}\hat{\mu}\right</span><span class="co">]</span></span>
+<span id="cb3-326"><a href="#cb3-326" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb3-327"><a href="#cb3-327" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-328"><a href="#cb3-328" aria-hidden="true" tabindex="-1"></a>**What each variable means:**</span>
+<span id="cb3-329"><a href="#cb3-329" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-330"><a href="#cb3-330" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**$\mu_{BL}$** — the posterior expected return vector (one number</span>
+<span id="cb3-331"><a href="#cb3-331" aria-hidden="true" tabindex="-1"></a>  per ETF). This is what Step 4 uses to rank ETFs.</span>
+<span id="cb3-332"><a href="#cb3-332" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**$\hat{\mu}$** — the raw mean prediction from LightGBM (the</span>
+<span id="cb3-333"><a href="#cb3-333" aria-hidden="true" tabindex="-1"></a>  "views"). This is what it *think* will happen, but it's noisy.</span>
+<span id="cb3-334"><a href="#cb3-334" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**$\pi = \delta \Sigma w_{\text{mkt}}$** — the equilibrium return</span>
+<span id="cb3-335"><a href="#cb3-335" aria-hidden="true" tabindex="-1"></a>  vector. It's what returns *would have to be* for the current market</span>
+<span id="cb3-336"><a href="#cb3-336" aria-hidden="true" tabindex="-1"></a>  weights to make sense given risk aversion $\delta$.</span>
+<span id="cb3-337"><a href="#cb3-337" aria-hidden="true" tabindex="-1"></a><span class="ss">   - </span>**$\delta = 2.5$** — risk-aversion coefficient (standard textbook value)</span>
+<span id="cb3-338"><a href="#cb3-338" aria-hidden="true" tabindex="-1"></a><span class="ss">   - </span>**$w_{\text{mkt}}$** — equal-weighted market portfolio (we don't</span>
+<span id="cb3-339"><a href="#cb3-339" aria-hidden="true" tabindex="-1"></a>     have market caps for all ETFs, so equal-weighted is the neutral</span>
+<span id="cb3-340"><a href="#cb3-340" aria-hidden="true" tabindex="-1"></a>     prior)</span>
+<span id="cb3-341"><a href="#cb3-341" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**$\Sigma$** — the covariance matrix of ETF returns, estimated using</span>
+<span id="cb3-342"><a href="#cb3-342" aria-hidden="true" tabindex="-1"></a>  the past 36 months with 20% diagonal shrinkage (Ledoit-Wolf style,</span>
+<span id="cb3-343"><a href="#cb3-343" aria-hidden="true" tabindex="-1"></a>  to stabilize the inverse when some pairs lack overlap).</span>
+<span id="cb3-344"><a href="#cb3-344" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**$\tau = 0.05$** — scaling parameter. Small $\tau$ means the prior</span>
+<span id="cb3-345"><a href="#cb3-345" aria-hidden="true" tabindex="-1"></a>  is "tight" (we trust the equilibrium more); large $\tau$ means the</span>
+<span id="cb3-346"><a href="#cb3-346" aria-hidden="true" tabindex="-1"></a>  prior is "loose" (we trust the views more).</span>
+<span id="cb3-347"><a href="#cb3-347" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**$\Omega = \text{diag}(\text{view\_std}^2)$** — diagonal matrix of</span>
+<span id="cb3-348"><a href="#cb3-348" aria-hidden="true" tabindex="-1"></a>  view uncertainties, derived from the ACI-calibrated interval widths.</span>
+<span id="cb3-349"><a href="#cb3-349" aria-hidden="true" tabindex="-1"></a>  When ACI says "the interval is wide right now," $\Omega$ is large</span>
+<span id="cb3-350"><a href="#cb3-350" aria-hidden="true" tabindex="-1"></a>  and the views get down-weighted.</span>
+<span id="cb3-351"><a href="#cb3-351" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-352"><a href="#cb3-352" aria-hidden="true" tabindex="-1"></a>**Intuition**: $\mu_{BL}$ is a precision-weighted average of the prior</span>
+<span id="cb3-353"><a href="#cb3-353" aria-hidden="true" tabindex="-1"></a>$\pi$ and the views $\hat{\mu}$. Where ACI says the views are reliable,</span>
+<span id="cb3-354"><a href="#cb3-354" aria-hidden="true" tabindex="-1"></a>$\mu_{BL}$ leans toward $\hat{\mu}$. Where ACI says the views are</span>
+<span id="cb3-355"><a href="#cb3-355" aria-hidden="true" tabindex="-1"></a>unreliable, $\mu_{BL}$ leans toward $\pi$. This is a principled way to</span>
+<span id="cb3-356"><a href="#cb3-356" aria-hidden="true" tabindex="-1"></a>shrink noisy forecasts toward a sensible baseline.</span>
+<span id="cb3-357"><a href="#cb3-357" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-358"><a href="#cb3-358" aria-hidden="true" tabindex="-1"></a><span class="fu">### Step 4: Top-K equal weight (+ optional defensive sleeve)</span></span>
+<span id="cb3-359"><a href="#cb3-359" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-360"><a href="#cb3-360" aria-hidden="true" tabindex="-1"></a>The portfolio is built in two lines. Step 1, rank ETFs by $\mu_{BL}$</span>
+<span id="cb3-361"><a href="#cb3-361" aria-hidden="true" tabindex="-1"></a>and equal-weight the top $K$:</span>
+<span id="cb3-362"><a href="#cb3-362" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-363"><a href="#cb3-363" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb3-364"><a href="#cb3-364" aria-hidden="true" tabindex="-1"></a>\text{top}_K = \text{argsort}(-\mu_{BL})<span class="co">[</span><span class="ot">:K</span><span class="co">]</span>, \quad</span>
+<span id="cb3-365"><a href="#cb3-365" aria-hidden="true" tabindex="-1"></a>w_i^{\text{equity}} = \frac{1}{K} \cdot \mathbb{1}<span class="sc">\{</span>i \in \text{top}_K<span class="sc">\}</span></span>
+<span id="cb3-366"><a href="#cb3-366" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb3-367"><a href="#cb3-367" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-368"><a href="#cb3-368" aria-hidden="true" tabindex="-1"></a>**What each variable means:**</span>
+<span id="cb3-369"><a href="#cb3-369" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-370"><a href="#cb3-370" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**$\mu_{BL}$** — the Black-Litterman posterior expected returns from Step 3</span>
+<span id="cb3-371"><a href="#cb3-371" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**$\text{argsort}(-\mu_{BL})$** — index permutation that sorts ETFs</span>
+<span id="cb3-372"><a href="#cb3-372" aria-hidden="true" tabindex="-1"></a>  from highest expected return to lowest</span>
+<span id="cb3-373"><a href="#cb3-373" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**$[:K]$** — keep only the first $K$ (the top performers)</span>
+<span id="cb3-374"><a href="#cb3-374" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**$\mathbb{1}\{i \in \text{top}_K\}$** — indicator: 1 if ETF $i$ is</span>
+<span id="cb3-375"><a href="#cb3-375" aria-hidden="true" tabindex="-1"></a>  in the top-$K$, 0 otherwise</span>
+<span id="cb3-376"><a href="#cb3-376" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-377"><a href="#cb3-377" aria-hidden="true" tabindex="-1"></a>Step 2, optionally, reserve a fraction $d$ for a defensive asset:</span>
+<span id="cb3-378"><a href="#cb3-378" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-379"><a href="#cb3-379" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb3-380"><a href="#cb3-380" aria-hidden="true" tabindex="-1"></a>w_i^{\text{final}} =</span>
+<span id="cb3-381"><a href="#cb3-381" aria-hidden="true" tabindex="-1"></a>\begin{cases}</span>
+<span id="cb3-382"><a href="#cb3-382" aria-hidden="true" tabindex="-1"></a>(1 - d) \cdot w_i^{\text{equity}} + d &amp; \text{if } i = \text{STXNAM} <span class="sc">\\</span><span class="co">[</span><span class="ot">4pt</span><span class="co">]</span></span>
+<span id="cb3-383"><a href="#cb3-383" aria-hidden="true" tabindex="-1"></a>(1 - d) \cdot w_i^{\text{equity}} &amp; \text{otherwise}</span>
+<span id="cb3-384"><a href="#cb3-384" aria-hidden="true" tabindex="-1"></a>\end{cases}</span>
+<span id="cb3-385"><a href="#cb3-385" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb3-386"><a href="#cb3-386" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-387"><a href="#cb3-387" aria-hidden="true" tabindex="-1"></a>**What each variable means:**</span>
+<span id="cb3-388"><a href="#cb3-388" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-389"><a href="#cb3-389" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**$d$** — defensive fraction (0%, 25%, or 30% in my three configs)</span>
+<span id="cb3-390"><a href="#cb3-390" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**STXNAM** — Satrix S&amp;P Namibia Bond ETF (see "Why STXNAM" below)</span>
+<span id="cb3-391"><a href="#cb3-391" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-392"><a href="#cb3-392" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-393"><a href="#cb3-393" aria-hidden="true" tabindex="-1"></a><span class="fu">## Three configurations</span></span>
+<span id="cb3-394"><a href="#cb3-394" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-395"><a href="#cb3-395" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Config <span class="pp">|</span> K <span class="pp">|</span> Defensive % <span class="pp">|</span> Description <span class="pp">|</span></span>
+<span id="cb3-396"><a href="#cb3-396" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|---|---|</span></span>
+<span id="cb3-397"><a href="#cb3-397" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **TopK** <span class="pp">|</span> 10 <span class="pp">|</span> 0% <span class="pp">|</span> Pure aggressive — top-10 ETFs at 10% each <span class="pp">|</span></span>
+<span id="cb3-398"><a href="#cb3-398" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **TopK8-Def25** <span class="pp">|</span> 8 <span class="pp">|</span> 25% (STXNAM) <span class="pp">|</span> Balanced — top-8 ETFs at 9.375% + 25% Namibian bonds <span class="pp">|</span></span>
+<span id="cb3-399"><a href="#cb3-399" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **TopK-Def30** <span class="pp">|</span> 10 <span class="pp">|</span> 30% (STXNAM) <span class="pp">|</span> Defensive — top-10 ETFs at 7% + 30% Namibian bonds <span class="pp">|</span></span>
+<span id="cb3-400"><a href="#cb3-400" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-401"><a href="#cb3-401" aria-hidden="true" tabindex="-1"></a>**Why STXNAM?** The Satrix S&amp;P Namibia Bond ETF was chosen as the</span>
+<span id="cb3-402"><a href="#cb3-402" aria-hidden="true" tabindex="-1"></a>defensive asset over more obvious candidates (STXILB inflation-linked</span>
+<span id="cb3-403"><a href="#cb3-403" aria-hidden="true" tabindex="-1"></a>bonds, ETFBND nominal bonds, ETFUSD US Treasuries) after head-to-head</span>
+<span id="cb3-404"><a href="#cb3-404" aria-hidden="true" tabindex="-1"></a>testing. The mechanism:</span>
+<span id="cb3-405"><a href="#cb3-405" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-406"><a href="#cb3-406" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>Namibia is in the Common Monetary Area — NAD is pegged 1:1 to ZAR,</span>
+<span id="cb3-407"><a href="#cb3-407" aria-hidden="true" tabindex="-1"></a>   so there's no FX risk for an SA investor.</span>
+<span id="cb3-408"><a href="#cb3-408" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>Namibian sovereign yields are typically higher than SA yields (lower</span>
+<span id="cb3-409"><a href="#cb3-409" aria-hidden="true" tabindex="-1"></a>   credit rating + similar macro = higher carry).</span>
+<span id="cb3-410"><a href="#cb3-410" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>Different economic exposure (uranium and diamonds vs SA's gold and</span>
+<span id="cb3-411"><a href="#cb3-411" aria-hidden="true" tabindex="-1"></a>   platinum) provides genuine diversification.</span>
+<span id="cb3-412"><a href="#cb3-412" aria-hidden="true" tabindex="-1"></a><span class="ss">4. </span>The macro-conditional model doesn't pick STXNAM directly — it's not</span>
+<span id="cb3-413"><a href="#cb3-413" aria-hidden="true" tabindex="-1"></a>   a momentum-driven asset — but as a fixed allocation it adds material</span>
+<span id="cb3-414"><a href="#cb3-414" aria-hidden="true" tabindex="-1"></a>   risk-adjusted return.</span>
+<span id="cb3-415"><a href="#cb3-415" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-416"><a href="#cb3-416" aria-hidden="true" tabindex="-1"></a><span class="fu">## Results</span></span>
+<span id="cb3-417"><a href="#cb3-417" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-418"><a href="#cb3-418" aria-hidden="true" tabindex="-1"></a>After 23 quarterly rebalances (68 months out of sample, September 2020</span>
+<span id="cb3-419"><a href="#cb3-419" aria-hidden="true" tabindex="-1"></a>to April 2026):</span>
+<span id="cb3-420"><a href="#cb3-420" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-421"><a href="#cb3-421" aria-hidden="true" tabindex="-1"></a><span class="al">![Cumulative returns and drawdowns vs benchmarks](figures/fig_01_cumret.png)</span>{width=100%}</span>
+<span id="cb3-422"><a href="#cb3-422" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-423"><a href="#cb3-423" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Strategy <span class="pp">|</span> Ann. Return <span class="pp">|</span> Ann. Vol <span class="pp">|</span> Sharpe <span class="pp">|</span> Max DD <span class="pp">|</span> Calmar <span class="pp">|</span> Win Rate <span class="pp">|</span></span>
+<span id="cb3-424"><a href="#cb3-424" aria-hidden="true" tabindex="-1"></a><span class="pp">|----------|:-----------:|:--------:|:------:|:------:|:------:|:--------:|</span></span>
+<span id="cb3-425"><a href="#cb3-425" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **TopK (pure)** | **19.84%** | 12.83% | **1.547** <span class="pp">|</span> -10.77% <span class="pp">|</span> 1.843 <span class="pp">|</span> 70.6% <span class="pp">|</span></span>
+<span id="cb3-426"><a href="#cb3-426" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **TopK8-Def25 (balanced)** | **17.94%** | 10.50% | **1.708** <span class="pp">|</span> -7.90% <span class="pp">|</span> 2.270 <span class="pp">|</span> 67.6% <span class="pp">|</span></span>
+<span id="cb3-427"><a href="#cb3-427" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **TopK-Def30 (defensive)** | **17.18%** | 9.45% | **1.819** <span class="pp">|</span> -6.36% <span class="pp">|</span> 2.700 <span class="pp">|</span> 70.6% <span class="pp">|</span></span>
+<span id="cb3-428"><a href="#cb3-428" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> _Equal-Weight Benchmark_ | _9.24%_ | _9.23%_ | _1.001_ | _-10.93%_ | _0.846_ | _63.2%_ <span class="pp">|</span></span>
+<span id="cb3-429"><a href="#cb3-429" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> _JSE Top 40 (avg)_ | _10.75%_ | _13.83%_ | _0.777_ | _-12.60%_ | _0.853_ | _61.8%_ <span class="pp">|</span></span>
+<span id="cb3-430"><a href="#cb3-430" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-431"><a href="#cb3-431" aria-hidden="true" tabindex="-1"></a>All three configurations dominate both benchmarks across every metric</span>
+<span id="cb3-432"><a href="#cb3-432" aria-hidden="true" tabindex="-1"></a>that matters:</span>
+<span id="cb3-433"><a href="#cb3-433" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-434"><a href="#cb3-434" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>vs JSE Top 40: pipeline wins by **+6.4 to +9.1pp** annualized;</span>
+<span id="cb3-435"><a href="#cb3-435" aria-hidden="true" tabindex="-1"></a>  Sharpe is roughly 2 to 2.4x higher; max drawdown is half or less.</span>
+<span id="cb3-436"><a href="#cb3-436" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>vs Equal-Weight Benchmark: pipeline wins by **+7.9 to +10.6pp** on</span>
+<span id="cb3-437"><a href="#cb3-437" aria-hidden="true" tabindex="-1"></a>  return; Sharpe ratios are 1.5 to 1.8x higher.</span>
+<span id="cb3-438"><a href="#cb3-438" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-439"><a href="#cb3-439" aria-hidden="true" tabindex="-1"></a>After 23 quarterly rebalances, the pipeline crushed the JSE Top 40 so hard it probably owes it therapy. Annualized returns are +6.4 to +9.1 percentage points higher, Sharpe ratios are double, and drawdowns are half. Compounded, that’s turning R1 into R2.46–R2.79 while the Top 40 limps to R1.78. Translation: my “passive investing” looks suspiciously like active wizardry.</span>
+<span id="cb3-440"><a href="#cb3-440" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-441"><a href="#cb3-441" aria-hidden="true" tabindex="-1"></a><span class="fu">### The return-drawdown trade-off</span></span>
+<span id="cb3-442"><a href="#cb3-442" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-443"><a href="#cb3-443" aria-hidden="true" tabindex="-1"></a><span class="al">![Return vs max drawdown with iso-Calmar lines](figures/fig_02_tradeoff.png)</span>{width=100%}</span>
+<span id="cb3-444"><a href="#cb3-444" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-445"><a href="#cb3-445" aria-hidden="true" tabindex="-1"></a>The chart shows the choice cleanly. The diagonal lines are iso-Calmar:</span>
+<span id="cb3-446"><a href="#cb3-446" aria-hidden="true" tabindex="-1"></a>points sitting on the same line have proportionally the same</span>
+<span id="cb3-447"><a href="#cb3-447" aria-hidden="true" tabindex="-1"></a>return-per-drawdown trade-off. The Top 40 sits at Calmar = 0.85. **All</span>
+<span id="cb3-448"><a href="#cb3-448" aria-hidden="true" tabindex="-1"></a>three of my configurations are above Calmar = 1.8** — the defensive</span>
+<span id="cb3-449"><a href="#cb3-449" aria-hidden="true" tabindex="-1"></a>configuration reaches 2.70, which is roughly 3.2x more return per unit</span>
+<span id="cb3-450"><a href="#cb3-450" aria-hidden="true" tabindex="-1"></a>of drawdown risk than the benchmark.</span>
+<span id="cb3-451"><a href="#cb3-451" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-452"><a href="#cb3-452" aria-hidden="true" tabindex="-1"></a>The pure TopK gives up some Calmar (1.84) to chase return — but the</span>
+<span id="cb3-453"><a href="#cb3-453" aria-hidden="true" tabindex="-1"></a>absolute return advantage is +9.1pp over the Top 40 and +10.6pp over</span>
+<span id="cb3-454"><a href="#cb3-454" aria-hidden="true" tabindex="-1"></a>the Equal-Weight Benchmark.</span>
+<span id="cb3-455"><a href="#cb3-455" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-456"><a href="#cb3-456" aria-hidden="true" tabindex="-1"></a><span class="fu">### Performance vs JSE Top 40</span></span>
+<span id="cb3-457"><a href="#cb3-457" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-458"><a href="#cb3-458" aria-hidden="true" tabindex="-1"></a><span class="al">![All three configurations vs JSE Top 40](figures/fig_04_vs_top40.png)</span>{width=100%}</span>
+<span id="cb3-459"><a href="#cb3-459" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-460"><a href="#cb3-460" aria-hidden="true" tabindex="-1"></a>The active-return chart in the bottom panel shows cumulative</span>
+<span id="cb3-461"><a href="#cb3-461" aria-hidden="true" tabindex="-1"></a>outperformance vs Top 40 across the OOS window. All three configurations</span>
+<span id="cb3-462"><a href="#cb3-462" aria-hidden="true" tabindex="-1"></a>build a substantial and persistent lead from 2021 onwards.</span>
+<span id="cb3-463"><a href="#cb3-463" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-464"><a href="#cb3-464" aria-hidden="true" tabindex="-1"></a>The pipeline's compounding edge is most visible during stress periods:</span>
+<span id="cb3-465"><a href="#cb3-465" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-466"><a href="#cb3-466" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**2022 inflation-shock sell-off** (Jan-Oct 2022): when Top 40 lost</span>
+<span id="cb3-467"><a href="#cb3-467" aria-hidden="true" tabindex="-1"></a>  -7.4%, the macro-conditional defensive config lost only **-1.78%**,</span>
+<span id="cb3-468"><a href="#cb3-468" aria-hidden="true" tabindex="-1"></a>  and the balanced config lost only -2.70%. The macro signals (rising</span>
+<span id="cb3-469"><a href="#cb3-469" aria-hidden="true" tabindex="-1"></a>  rates, elevated VIX) flagged the regime change early and the model</span>
+<span id="cb3-470"><a href="#cb3-470" aria-hidden="true" tabindex="-1"></a>  rotated away from interest-rate-sensitive picks.</span>
+<span id="cb3-471"><a href="#cb3-471" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Late-2024 SA-specific correction** (Oct 2024-Feb 2025): when Top</span>
+<span id="cb3-472"><a href="#cb3-472" aria-hidden="true" tabindex="-1"></a>  40 lost -3.2%, the pipeline actually *gained* between +8.9% and</span>
+<span id="cb3-473"><a href="#cb3-473" aria-hidden="true" tabindex="-1"></a>  +12.0%, because the macro signals were not flashing global risk-off</span>
+<span id="cb3-474"><a href="#cb3-474" aria-hidden="true" tabindex="-1"></a>  even as SA-specific factors weighed on the index.</span>
+<span id="cb3-475"><a href="#cb3-475" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-476"><a href="#cb3-476" aria-hidden="true" tabindex="-1"></a><span class="fu">## Macro impact — empirical evidence</span></span>
+<span id="cb3-477"><a href="#cb3-477" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-478"><a href="#cb3-478" aria-hidden="true" tabindex="-1"></a>Step 1's "feature group B" describes the *mechanics* of how macro</span>
+<span id="cb3-479"><a href="#cb3-479" aria-hidden="true" tabindex="-1"></a>interactions enter the model. This section quantifies the</span>
+<span id="cb3-480"><a href="#cb3-480" aria-hidden="true" tabindex="-1"></a>*contribution* of those features to the final results. </span>
+<span id="cb3-481"><a href="#cb3-481" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-482"><a href="#cb3-482" aria-hidden="true" tabindex="-1"></a>To isolate the macro contribution cleanly, we re-run the entire</span>
+<span id="cb3-483"><a href="#cb3-483" aria-hidden="true" tabindex="-1"></a>pipeline *without* the 4 macro interaction features (using only the</span>
+<span id="cb3-484"><a href="#cb3-484" aria-hidden="true" tabindex="-1"></a>5 ETF-level features) on the same 68-month OOS window. Steps 2-4 are</span>
+<span id="cb3-485"><a href="#cb3-485" aria-hidden="true" tabindex="-1"></a>identical; the only difference is which columns are in the LightGBM</span>
+<span id="cb3-486"><a href="#cb3-486" aria-hidden="true" tabindex="-1"></a>panel.</span>
+<span id="cb3-487"><a href="#cb3-487" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-488"><a href="#cb3-488" aria-hidden="true" tabindex="-1"></a><span class="fu">### Before vs after — same OOS window</span></span>
+<span id="cb3-489"><a href="#cb3-489" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-490"><a href="#cb3-490" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Config <span class="pp">|</span> Variant <span class="pp">|</span> Ann. Return <span class="pp">|</span> Ann. Vol <span class="pp">|</span> Sharpe <span class="pp">|</span> Max DD <span class="pp">|</span> Calmar <span class="pp">|</span></span>
+<span id="cb3-491"><a href="#cb3-491" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|:---:|:---:|:---:|:---:|:---:|</span></span>
+<span id="cb3-492"><a href="#cb3-492" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **TopK** <span class="pp">|</span> Baseline (no macro) <span class="pp">|</span> 15.88% <span class="pp">|</span> 15.31% <span class="pp">|</span> 1.037 <span class="pp">|</span> -23.47% <span class="pp">|</span> 0.677 <span class="pp">|</span></span>
+<span id="cb3-493"><a href="#cb3-493" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="pp">|</span> **With macro interactions** | **19.84%** | **12.83%** | **1.547** | **-10.77%** | **1.843** <span class="pp">|</span></span>
+<span id="cb3-494"><a href="#cb3-494" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="pp">|</span> Δ <span class="pp">|</span> **+3.96pp** | -2.48pp | **+0.510** | **+12.70pp** | **+1.166** <span class="pp">|</span></span>
+<span id="cb3-495"><a href="#cb3-495" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **TopK8-Def25** <span class="pp">|</span> Baseline (no macro) <span class="pp">|</span> 15.63% <span class="pp">|</span> 12.86% <span class="pp">|</span> 1.216 <span class="pp">|</span> -17.52% <span class="pp">|</span> 0.892 <span class="pp">|</span></span>
+<span id="cb3-496"><a href="#cb3-496" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="pp">|</span> **With macro interactions** | **17.94%** | **10.50%** | **1.708** | **-7.90%** | **2.270** <span class="pp">|</span></span>
+<span id="cb3-497"><a href="#cb3-497" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="pp">|</span> Δ <span class="pp">|</span> **+2.31pp** | -2.36pp | **+0.492** | **+9.62pp** | **+1.378** <span class="pp">|</span></span>
+<span id="cb3-498"><a href="#cb3-498" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **TopK-Def30** <span class="pp">|</span> Baseline (no macro) <span class="pp">|</span> 14.52% <span class="pp">|</span> 11.36% <span class="pp">|</span> 1.278 <span class="pp">|</span> -15.51% <span class="pp">|</span> 0.936 <span class="pp">|</span></span>
+<span id="cb3-499"><a href="#cb3-499" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="pp">|</span> **With macro interactions** | **17.18%** | **9.45%** | **1.819** | **-6.36%** | **2.700** <span class="pp">|</span></span>
+<span id="cb3-500"><a href="#cb3-500" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="pp">|</span> Δ <span class="pp">|</span> **+2.66pp** | -1.91pp | **+0.541** | **+9.15pp** | **+1.764** <span class="pp">|</span></span>
+<span id="cb3-501"><a href="#cb3-501" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-502"><a href="#cb3-502" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-503"><a href="#cb3-503" aria-hidden="true" tabindex="-1"></a><span class="fu">### Where the gains come from — stress regimes</span></span>
+<span id="cb3-504"><a href="#cb3-504" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-505"><a href="#cb3-505" aria-hidden="true" tabindex="-1"></a>The improvement is concentrated in stress regimes, which is exactly</span>
+<span id="cb3-506"><a href="#cb3-506" aria-hidden="true" tabindex="-1"></a>what regime-conditional features should deliver:</span>
+<span id="cb3-507"><a href="#cb3-507" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-508"><a href="#cb3-508" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Period <span class="pp">|</span> TopK Baseline <span class="pp">|</span> TopK Macro <span class="pp">|</span> TopK8-Def25 Baseline <span class="pp">|</span> TopK8-Def25 Macro <span class="pp">|</span> Top 40 <span class="pp">|</span></span>
+<span id="cb3-509"><a href="#cb3-509" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|:---:|:---:|:---:|:---:|:---:|</span></span>
+<span id="cb3-510"><a href="#cb3-510" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> 2022 rate shock (Jan-Oct) <span class="pp">|</span> -18.31% <span class="pp">|</span> **-5.60%** | -13.29% | **-2.70%** <span class="pp">|</span> -7.41% <span class="pp">|</span></span>
+<span id="cb3-511"><a href="#cb3-511" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Late 2024 SA correction (Oct-Feb) <span class="pp">|</span> +1.71% <span class="pp">|</span> **+11.99%** | +1.32% | **+10.31%** <span class="pp">|</span> -3.19% <span class="pp">|</span></span>
+<span id="cb3-512"><a href="#cb3-512" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-513"><a href="#cb3-513" aria-hidden="true" tabindex="-1"></a>The 2022 rate shock is the cleanest test. The baseline pipeline lost</span>
+<span id="cb3-514"><a href="#cb3-514" aria-hidden="true" tabindex="-1"></a>almost three times what the JSE Top 40 lost (-18.31% vs -7.41%): its</span>
+<span id="cb3-515"><a href="#cb3-515" aria-hidden="true" tabindex="-1"></a>top-momentum picks were rate-sensitive growth ETFs that crashed when</span>
+<span id="cb3-516"><a href="#cb3-516" aria-hidden="true" tabindex="-1"></a>yields spiked. The macro version reduced these losses by 10-13</span>
+<span id="cb3-517"><a href="#cb3-517" aria-hidden="true" tabindex="-1"></a>percentage points, actually outperforming the index during the worst</span>
+<span id="cb3-518"><a href="#cb3-518" aria-hidden="true" tabindex="-1"></a>of the rotation. The mechanism is exactly the one described in Step 1</span>
+<span id="cb3-519"><a href="#cb3-519" aria-hidden="true" tabindex="-1"></a>— rising US 10y yields produced a positive $\widetilde{\Delta\text{US10Y}}$</span>
+<span id="cb3-520"><a href="#cb3-520" aria-hidden="true" tabindex="-1"></a>z-score, which combined with positive momentum produced large positive</span>
+<span id="cb3-521"><a href="#cb3-521" aria-hidden="true" tabindex="-1"></a>$\text{mom3<span class="sc">\_</span>x<span class="sc">\_</span>us10y}$ values, which LightGBM had learned to associate</span>
+<span id="cb3-522"><a href="#cb3-522" aria-hidden="true" tabindex="-1"></a>with mean reversion.</span>
+<span id="cb3-523"><a href="#cb3-523" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-524"><a href="#cb3-524" aria-hidden="true" tabindex="-1"></a>The late-2024 SA-specific correction is the inverse test. SA-only</span>
+<span id="cb3-525"><a href="#cb3-525" aria-hidden="true" tabindex="-1"></a>factors weighed on the JSE Top 40 (-3.19%) but global macro signals</span>
+<span id="cb3-526"><a href="#cb3-526" aria-hidden="true" tabindex="-1"></a>were *not* flashing risk-off — VIX was moderate, US rates were stable.</span>
+<span id="cb3-527"><a href="#cb3-527" aria-hidden="true" tabindex="-1"></a>The macro version correctly stayed exposed to globally-driven themes</span>
+<span id="cb3-528"><a href="#cb3-528" aria-hidden="true" tabindex="-1"></a>and *gained* between +8.88% and +11.99%, while the baseline pipeline</span>
+<span id="cb3-529"><a href="#cb3-529" aria-hidden="true" tabindex="-1"></a>captured almost none of the upside (+1.32% to +1.78%).</span>
+<span id="cb3-530"><a href="#cb3-530" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-531"><a href="#cb3-531" aria-hidden="true" tabindex="-1"></a><span class="fu">### Holdings — the balanced configuration</span></span>
+<span id="cb3-532"><a href="#cb3-532" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-533"><a href="#cb3-533" aria-hidden="true" tabindex="-1"></a><span class="al">![TopK8-Def25 selection grid](figures/fig_03_selection.png)</span>{width=100%}</span>
+<span id="cb3-534"><a href="#cb3-534" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-535"><a href="#cb3-535" aria-hidden="true" tabindex="-1"></a>The selection grid shows the model rotating through high-conviction</span>
+<span id="cb3-536"><a href="#cb3-536" aria-hidden="true" tabindex="-1"></a>themes: US Information Tech (<span class="in">`ETF5IT`</span>, <span class="in">`STXNDQ`</span>), Indian equity</span>
+<span id="cb3-537"><a href="#cb3-537" aria-hidden="true" tabindex="-1"></a>(<span class="in">`STXINDI`</span>), South African resources (<span class="in">`STXRES`</span>, <span class="in">`STXIND`</span>), the 4IR</span>
+<span id="cb3-538"><a href="#cb3-538" aria-hidden="true" tabindex="-1"></a>theme (<span class="in">`SYG4IR`</span>), and select South African REITs (<span class="in">`CSPROP`</span>, <span class="in">`STXPRO`</span>).</span>
+<span id="cb3-539"><a href="#cb3-539" aria-hidden="true" tabindex="-1"></a>STXNAM is pinned at 25% throughout.</span>
+<span id="cb3-540"><a href="#cb3-540" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-541"><a href="#cb3-541" aria-hidden="true" tabindex="-1"></a>The 8 equity slots rotate substantially — typical turnover of 3-5</span>
+<span id="cb3-542"><a href="#cb3-542" aria-hidden="true" tabindex="-1"></a>holdings per quarter. The pipeline is concentrated and active.</span>
+<span id="cb3-543"><a href="#cb3-543" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-544"><a href="#cb3-544" aria-hidden="true" tabindex="-1"></a><span class="fu">## Why this works — and what the trade-offs are</span></span>
+<span id="cb3-545"><a href="#cb3-545" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-546"><a href="#cb3-546" aria-hidden="true" tabindex="-1"></a>The architecture has a clean theoretical justification. Three steps</span>
+<span id="cb3-547"><a href="#cb3-547" aria-hidden="true" tabindex="-1"></a>of careful work to produce a robust forecast posterior.</span>
+<span id="cb3-548"><a href="#cb3-548" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-549"><a href="#cb3-549" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Why TopK works:** Because sometimes the smartest move is just “sort and slice.” Fancy optimizers love to overcomplicate things, but in small‑data land, simple beats clever.</span>
+<span id="cb3-550"><a href="#cb3-550" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-551"><a href="#cb3-551" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Why the defensive sleeve helps:** STXNAM bonds are like bubble wrap for your portfolio — they cushion the falls without smothering the gains.</span>
+<span id="cb3-552"><a href="#cb3-552" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-553"><a href="#cb3-553" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Why macro interactions help:** A 5% rally when VIX is 15 is a victory lap; the same rally when VIX is 35 is a panic sprint. The model needs to know the difference.</span>
+<span id="cb3-554"><a href="#cb3-554" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-555"><a href="#cb3-555" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Weaknesses:** It’s still equity‑tilted, so if the world goes full risk‑off, expect some bruises.</span>
+<span id="cb3-556"><a href="#cb3-556" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-557"><a href="#cb3-557" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Limitations:** The macro z‑scores need about six months to “learn the vibe,” so brand‑new regimes catch the model flat‑footed. The OOS window (Sep 2020 - Apr 2026) does NOT include the March 2020</span>
+<span id="cb3-558"><a href="#cb3-558" aria-hidden="true" tabindex="-1"></a>COVID crash. This is simply due to data limitations.</span>
+<span id="cb3-559"><a href="#cb3-559" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-560"><a href="#cb3-560" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Proof it works:** In the 2022 rate shock, the defensive configs lost only ~‑2% while the JSE Top 40 dropped ‑7%. That’s not just surviving the storm — that’s sipping coffee while the neighbors’ roof blows off.</span>
+<span id="cb3-561"><a href="#cb3-561" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-562"><a href="#cb3-562" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-563"><a href="#cb3-563" aria-hidden="true" tabindex="-1"></a><span class="fu">## What I tested that didn't make the cut</span></span>
+<span id="cb3-564"><a href="#cb3-564" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-565"><a href="#cb3-565" aria-hidden="true" tabindex="-1"></a>I have spent an insane amount of hours on this as the below attempts might show. So much in fact, my PC might join a union. I do have a day job so I can't formally write-up everything I tried but here is the list with high-level results: </span>
+<span id="cb3-566"><a href="#cb3-566" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-567"><a href="#cb3-567" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**CVaR-MILP optimization** — too</span>
+<span id="cb3-568"><a href="#cb3-568" aria-hidden="true" tabindex="-1"></a>  conservative, gave away ~5pp of return.</span>
+<span id="cb3-569"><a href="#cb3-569" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Standalone macro features** (raw levels and changes in the</span>
+<span id="cb3-570"><a href="#cb3-570" aria-hidden="true" tabindex="-1"></a>  feature panel) — *hurt* returns by 2.6-4.3pp because they're constant</span>
+<span id="cb3-571"><a href="#cb3-571" aria-hidden="true" tabindex="-1"></a>  across ETFs and crowd out cross-sectional signals.</span>
+<span id="cb3-572"><a href="#cb3-572" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Monthly rebalancing** (vs quarterly) — *hurt* returns by 0.8-1.6pp</span>
+<span id="cb3-573"><a href="#cb3-573" aria-hidden="true" tabindex="-1"></a>  in choppy regimes; the whipsaw cost exceeded the rotation gain.</span>
+<span id="cb3-574"><a href="#cb3-574" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Multi-seed LightGBM ensembling** — improved win rate slightly but</span>
+<span id="cb3-575"><a href="#cb3-575" aria-hidden="true" tabindex="-1"></a>  cost return and drawdown.</span>
+<span id="cb3-576"><a href="#cb3-576" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Cross-sectional target demeaning** — destroyed the magnitude</span>
+<span id="cb3-577"><a href="#cb3-577" aria-hidden="true" tabindex="-1"></a>  signal that drives selection.</span>
+<span id="cb3-578"><a href="#cb3-578" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Volatility-targeting overlay** — clean trade-off but no Sharpe gain.</span>
+<span id="cb3-579"><a href="#cb3-579" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Market trend filter** (12-month) — too slow; triggered once</span>
+<span id="cb3-580"><a href="#cb3-580" aria-hidden="true" tabindex="-1"></a>  un-productively.</span>
+<span id="cb3-581"><a href="#cb3-581" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Adaptive defensive sleeve** (scales with realized vol) — added</span>
+<span id="cb3-582"><a href="#cb3-582" aria-hidden="true" tabindex="-1"></a>  complexity without improving outcomes.</span>
+<span id="cb3-583"><a href="#cb3-583" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Different K values** (number of ETFs allowed in the portfolio) — K=8 and K=10 are clear</span>
+<span id="cb3-584"><a href="#cb3-584" aria-hidden="true" tabindex="-1"></a>  sweet spots; further extremes lose Sharpe without return gains.</span>
+<span id="cb3-585"><a href="#cb3-585" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Ridge / Random Forest / stacked mean-models** — LightGBM is</span>
+<span id="cb3-586"><a href="#cb3-586" aria-hidden="true" tabindex="-1"></a>  genuinely the right architecture for this conditional-on-regime signal.</span>
+<span id="cb3-587"><a href="#cb3-587" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Skipping Black-Litterman entirely** — return drops 4-5pp; the</span>
+<span id="cb3-588"><a href="#cb3-588" aria-hidden="true" tabindex="-1"></a>  Bayesian shrinkage genuinely helps.</span>
+<span id="cb3-589"><a href="#cb3-589" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Alternative defensive assets** — ETFUSD (US Treasuries via ZAR)</span>
+<span id="cb3-590"><a href="#cb3-590" aria-hidden="true" tabindex="-1"></a>  *hurt* performance significantly; INCOME (10X actively managed) was</span>
+<span id="cb3-591"><a href="#cb3-591" aria-hidden="true" tabindex="-1"></a>  middling. STXNAM (Namibian bonds) was the decisive upgrade.</span>
+<span id="cb3-592"><a href="#cb3-592" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-593"><a href="#cb3-593" aria-hidden="true" tabindex="-1"></a>The negative results are themselves informative. The architechture is at</span>
+<span id="cb3-594"><a href="#cb3-594" aria-hidden="true" tabindex="-1"></a>a sensible local optimum: more complexity, more features, more</span>
+<span id="cb3-595"><a href="#cb3-595" aria-hidden="true" tabindex="-1"></a>elaborate optimization, or fancier models all hurt rather than help.</span>
+<span id="cb3-596"><a href="#cb3-596" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-597"><a href="#cb3-597" aria-hidden="true" tabindex="-1"></a><span class="fu">## What's left worth exploring</span></span>
+<span id="cb3-598"><a href="#cb3-598" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-599"><a href="#cb3-599" aria-hidden="true" tabindex="-1"></a>Two genuinely untested levers remain.</span>
+<span id="cb3-600"><a href="#cb3-600" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-601"><a href="#cb3-601" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Universe expansion to JSE-listed and international ETFs not just TFSA eligible ones**</span>
+<span id="cb3-602"><a href="#cb3-602" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-603"><a href="#cb3-603" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Sector-aware concentration limits**</span>
+<span id="cb3-604"><a href="#cb3-604" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-605"><a href="#cb3-605" aria-hidden="true" tabindex="-1"></a><span class="fu">## Do I actually use this?</span></span>
+<span id="cb3-606"><a href="#cb3-606" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-607"><a href="#cb3-607" aria-hidden="true" tabindex="-1"></a>Sort of.I have been tinkering with this idea for longer than I have had a TFSA. Quant stuff is my passion, but I don’t worship models like they’re crystal balls. For the past two years I’ve used this framework as one ingredient in my ETF recipe — with a few tilts and tweaks — because blind faith belongs in religion, not portfolio construction.  </span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
+</div></div></div></div></div>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">
+<p>© 2025 Rossouw van Jaarsveld</p>
+</div>   
+    <div class="nav-footer-center">
+      &nbsp;
+    </div>
+    <div class="nav-footer-right">
+      <ul class="footer-items list-unstyled">
+    <li class="nav-item">
+    <a class="nav-link" href="https://quarto.org">
+<p>Built with Quarto</p>
+</a>
+  </li>  
+</ul>
+    </div>
+  </div>
+</footer>
+
+
+
+
+</body></html>
